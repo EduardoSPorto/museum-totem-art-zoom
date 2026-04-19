@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painting Pigment Explorer — Museum Edition</title>
+
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --accent-red: #C41E3A;
+      --accent-white: #F5F5F0;
+      --bg-dark: #0f1419;
+      --bg-card: #1a1f2e;
+      --text-primary: #f0f4f9;
+      --text-secondary: #b0b8c8;
+      --border-color: rgba(255,255,255,0.08);
+      --success: #4ade80;
+      --debug-color: #fbbf24;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f2e 100%);
+      color: var(--text-primary);
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ===== DEBUG MODE ===== */
+    .debug-panel {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid var(--debug-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+      font-size: 12px;
+      z-index: 999;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      max-width: 400px;
+    }
+
+    .debug-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .debug-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--debug-color);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    label[for="debugMode"] {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--debug-color);
+    }
+
+    /* ===== HAND TRACKING CURSOR ===== */
+    .hand-cursor {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 999;
+      display: none;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+      transition: opacity 0.1s ease;
+    }
+
+    .hand-cursor.active {
+      display: block;
+    }
+
+    .hand-cursor::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 8px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .hand-cursor.hovering {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 30px rgba(196, 30, 58, 0.6);
+    }
+
+    /* Hand tracking info overlay */
+    .hand-info-overlay {
+      position: fixed;
+      top: 80px;
+      right: 12px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid var(--debug-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      backdrop-filter: blur(8px);
+      color: var(--text-secondary);
+      z-index: 998;
+      display: none;
+      font-family: "Courier New", monospace;
+    }
+
+    .hand-info-overlay.visible {
+      display: block;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .container {
+      max-width: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* SELECTION MODE: Fullscreen painting */
+    .app-state-selection .container {
+      padding: 0;
+    }
+
+    .app-state-selection > div:first-child {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* DETAIL MODE: Fullscreen material card */
+    .app-state-detail .container {
+      padding: 40px 24px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      height: auto;
+      flex-direction: column;
+      display: flex;
+    }
+
+    .app-state-detail > div:first-child {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    .app-state-selection .material-card {
+      display: none;
+    }
+
+    .app-state-selection .zoom-button#zoomOutBtn {
+      display: none;
+    }
+
+    .app-state-detail .zoom-button#zoomInBtn {
+      display: none;
+    }
+
+    .app-state-detail .material-card {
+      position: relative;
+      top: auto;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      min-height: auto;
+      animation: fadeIn 0.5s ease-out;
+      width: 100%;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      margin-bottom: 24px;
+      animation: slideDown 0.8s ease-out;
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      z-index: 40;
+      background: rgba(0,0,0,0.4);
+      padding: 12px 16px;
+      border-radius: 10px;
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      display: none;
+    }
+
+    .app-state-selection .header {
+      display: block;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== CANVAS AREA ===== */
+    .canvas-wrapper {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 1.4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .app-state-selection .canvas-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 0;
+      aspect-ratio: auto;
+      box-shadow: none;
+      background: #000;
+      z-index: 10;
+      margin: 0;
+      padding: 0;
+    }
+
+    .app-state-detail .canvas-wrapper {
+      display: none !important;
+      position: static !important;
+      width: auto !important;
+      height: auto !important;
+      visibility: hidden !important;
+    }
+
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #paintingCanvas, #maskCanvas {
+      position: absolute;
+      max-width: 100%;
+      max-height: 100%;
+      cursor: crosshair;
+      display: block;
+    }
+
+    #maskCanvas {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    #maskCanvas.visible {
+      opacity: 0.5;
+      mix-blend-mode: screen;
+    }
+
+    .canvas-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      backdrop-filter: blur(8px);
+      color: var(--text-secondary);
+      display: none;
+    }
+
+    .app-state-selection .canvas-hint {
+      display: none;
+    }
+
+    /* ===== MATERIAL CARD ===== */
+    .material-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      position: sticky;
+      top: 32px;
+      animation: slideIn 0.6s ease-out 0.2s both;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .material-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .material-empty svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .material-content {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .material-color-indicator {
+      width: 100%;
+      height: 60px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 2px solid var(--border-color);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .material-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .material-name {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 16px 0;
+      line-height: 1.2;
+    }
+
+    .material-formula {
+      font-size: 13px;
+      background: rgba(255,255,255,0.05);
+      border-left: 3px solid var(--accent-red);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: "Courier New", monospace;
+      margin-bottom: 16px;
+      color: #ffb86c;
+    }
+
+    .material-section {
+      margin-bottom: 20px;
+    }
+
+    .material-section-title {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .material-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      opacity: 0.92;
+    }
+
+    .material-property {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .material-property-bullet {
+      color: var(--accent-red);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .material-note {
+      background: rgba(251, 191, 36, 0.1);
+      border-left: 3px solid var(--debug-color);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-primary);
+      margin-top: 16px;
+    }
+
+    /* ===== CURSOR INFO ===== */
+    .cursor-info {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-family: "Courier New", monospace;
+      color: var(--text-secondary);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .cursor-info.visible {
+      opacity: 1;
+    }
+
+    /* ===== STATUS BAR ===== */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-white));
+      animation: slideRight 1.2s ease-in-out infinite;
+    }
+
+    @keyframes slideRight {
+      0% { transform: scaleX(0); transform-origin: left; }
+      50% { transform: scaleX(1); transform-origin: left; }
+      100% { transform: scaleX(0); transform-origin: right; }
+    }
+
+    /* ===== ZOOM CONTROLS ===== */
+    .zoom-controls {
+      position: fixed;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .zoom-button {
+      pointer-events: all;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .zoom-button:hover:not(:disabled) {
+      background: var(--accent-red);
+      border-color: var(--accent-red);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(196, 30, 58, 0.3);
+    }
+
+    .zoom-button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .zoom-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Color swatch in zoom button */
+    .zoom-button-color {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid rgba(255,255,255,0.3);
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+      display: none;
+    }
+
+    #zoomInBtn .zoom-button-color {
+      display: block;
+    }
+
+    #zoomInBtn:hover:not(:disabled) .zoom-button-color {
+      border-color: rgba(255,255,255,0.8);
+      box-shadow: 0 0 12px rgba(255,255,255,0.3);
+    }
+
+    .detail-header {
+      display: none;
+      margin-bottom: 32px;
+      animation: slideDown 0.8s ease-out;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .app-state-detail .detail-header {
+      display: block;
+    }
+
+    .detail-header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.5px;
+    }
+
+    .detail-header p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== MATERIAL IMAGE ===== */
+    .material-image-section {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    }
+
+    .material-image {
+      max-width: 100%;
+      height: auto;
+      max-height: 400px;
+      display: block;
+      object-fit: contain;
+      padding: 16px;
+    }
+
+    /* Selection highlight feedback */
+    .selection-feedback {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(196, 30, 58, 0.2);
+      border: 2px solid var(--accent-red);
+      padding: 24px 32px;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      text-align: center;
+      z-index: 50;
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .app-state-selection .selection-feedback.active {
+      display: block;
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .selection-feedback-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-red);
+      margin: 0;
+    }
+
+    .selection-feedback-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .zoom-controls {
+        padding: 0 16px;
+        bottom: 16px;
+      }
+
+      .zoom-button {
+        padding: 10px 16px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- DEBUG PANEL -->
+  <div class="debug-panel">
+    <div class="debug-toggle">
+      <div class="debug-indicator"></div>
+      <label for="debugMode">Debug Mode</label>
+    </div>
+    <input type="checkbox" id="debugMode">
+    
+    <div style="width: 1px; height: 20px; background: var(--border-color); margin: 0 12px;"></div>
+    
+    <div class="debug-toggle">
+      <label for="handTrackingMode">Hand Tracking</label>
+    </div>
+    <input type="checkbox" id="handTrackingMode">
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <div class="container">
+    
+    <!-- LEFT: PAINTING / DETAIL HEADER -->
+    <div>
+      <div class="header">
+        <h1>The Flag of Japan</h1>
+        <p>Click on any area to explore the pigment</p>
+      </div>
+
+      <div class="detail-header" id="detailHeader">
+        <h1 id="detailTitle">Pigment Name</h1>
+        <p>Double-click or zoom out to select another pigment</p>
+      </div>
+
+      <div class="canvas-wrapper">
+        <div class="canvas-container">
+          <canvas id="paintingCanvas"></canvas>
+          <canvas id="maskCanvas"></canvas>
+        </div>
+        <div class="canvas-hint">
+          Click on red or white areas to discover pigments
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: MATERIAL INFO -->
+    <div class="material-card">
+      <div class="material-empty" id="materialEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2z" />
+        </svg>
+        <p>Click on the painting to reveal a pigment</p>
+      </div>
+
+      <div class="material-content" id="materialContent" style="display: none;">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SELECTION FEEDBACK POPUP -->
+  <div class="selection-feedback" id="selectionFeedback">
+    <p class="selection-feedback-name" id="selectionName">Vermilion</p>
+    <p class="selection-feedback-subtitle">Click "Zoom In" to explore ↓</p>
+  </div>
+
+  <!-- ZOOM CONTROLS -->
+  <div class="zoom-controls">
+    <button class="zoom-button" id="zoomOutBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+        <path d="M8 11h6"></path>
+      </svg>
+      Zoom Out
+    </button>
+
+    <button class="zoom-button" id="zoomInBtn" disabled>
+      <div class="zoom-button-color" id="colorSwatch"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+        <path d="M11 8v6M8 11h6"></path>
+      </svg>
+      Zoom In
+    </button>
+  </div>
+
+  <!-- HAND CURSOR CIRCLE -->
+  <div class="hand-cursor" id="handCursor"></div>
+
+  <!-- HAND TRACKING INFO -->
+  <div class="hand-info-overlay" id="handInfoOverlay"></div>
+
+  <!-- CURSOR INFO (debug) -->
+  <div class="cursor-info" id="cursorInfo"></div>
+
+  <!-- HAND TRACKING ELEMENTS (hidden) -->
+  <video id="webcamVideo" style="display: none;"></video>
+  <canvas id="handOverlayCanvas" style="position: fixed; top: 0; left: 0; z-index: 1000; pointer-events: none; display: none;"></canvas>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+    // ===== APP STATE MANAGEMENT =====
+    const APP_STATES = {
+      SELECTION: "selection",
+      DETAIL: "detail"
+    };
+
+    let appState = APP_STATES.SELECTION;
+    let selectedPigment = null;
+
+    function setAppState(newState) {
+      appState = newState;
+      document.body.className = `app-state-${newState}`;
+      console.log(`→ State: ${newState.toUpperCase()}`);
+    }
+
+    // ===== HAND TRACKING SYSTEM =====
+    let handTrackingEnabled = false;
+    let handDetector = null;
+    let webcamStream = null;
+    let lastHandPosition = { x: 0, y: 0 };
+    let handConfidence = 0;
+    
+    const handCursor = document.getElementById("handCursor");
+    const handTrackingToggle = document.getElementById("handTrackingMode");
+    const handInfoOverlay = document.getElementById("handInfoOverlay");
+    const webcamVideo = document.getElementById("webcamVideo");
+
+    async function initializeHandTracking() {
+      try {
+        const Hands = window.Hands;
+        handDetector = new Hands.Hands({
+          locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+          }
+        });
+
+        handDetector.setOptions({
+          maxNumHands: 1,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.7,
+          minTrackingConfidence: 0.5
+        });
+
+        handDetector.onResults(onHandResults);
+
+        // Request camera access
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+
+        webcamStream = stream;
+        webcamVideo.srcObject = stream;
+        webcamVideo.onloadedmetadata = () => {
+          console.log("✓ Webcam initialized for hand tracking");
+          startHandDetection();
+        };
+
+        handTrackingEnabled = true;
+        console.log("✓ Hand tracking system ready");
+      } catch (error) {
+        console.error("✗ Hand tracking initialization failed:", error);
+        alert("Camera access denied. Hand tracking disabled. Using mouse control.");
+        handTrackingToggle.checked = false;
+        handTrackingEnabled = false;
+      }
+    }
+
+    function startHandDetection() {
+      const camera = new window.Camera(webcamVideo, {
+        onFrame: async () => {
+          await handDetector.send({ image: webcamVideo });
+        },
+        width: 1280,
+        height: 720
+      });
+      camera.start();
+    }
+
+    function onHandResults(results) {
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        handCursor.classList.remove("active");
+        handConfidence = 0;
+        return;
+      }
+
+      // Get first hand (primary hand)
+      const handLandmarks = results.multiHandLandmarks[0];
+      
+      // Palm center = average of wrist and middle finger base
+      const wrist = handLandmarks[0]; // Wrist
+      const middleBase = handLandmarks[9]; // Middle finger MCP
+      
+      const palmX = (wrist.x + middleBase.x) / 2 * window.innerWidth;
+      const palmY = (wrist.y + middleBase.y) / 2 * window.innerHeight;
+      
+      lastHandPosition = { x: palmX, y: palmY };
+      handConfidence = results.multiHandedness?.[0]?.score || 0.8;
+
+      // Update cursor position
+      updateHandCursor(palmX, palmY);
+
+      // Update info overlay
+      if (debugCheckbox.checked) {
+        handInfoOverlay.classList.add("visible");
+        handInfoOverlay.innerHTML = `
+          Hand Pos: (${Math.round(palmX)}, ${Math.round(palmY)})<br/>
+          Confidence: ${(handConfidence * 100).toFixed(0)}%<br/>
+          Landmarks: ${handLandmarks.length}
+        `;
+      } else {
+        handInfoOverlay.classList.remove("visible");
+      }
+    }
+
+    function updateHandCursor(x, y) {
+      handCursor.classList.add("active");
+      handCursor.style.left = x + "px";
+      handCursor.style.top = y + "px";
+
+      // Check if hovering over buttons
+      const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();
+      const zoomOutRect = document.getElementById("zoomOutBtn").getBoundingClientRect();
+
+      const isOverButton = 
+        (x >= zoomInRect.left && x <= zoomInRect.right && y >= zoomInRect.top && y <= zoomInRect.bottom) ||
+        (x >= zoomOutRect.left && x <= zoomOutRect.right && y >= zoomOutRect.top && y <= zoomOutRect.bottom);
+
+      handCursor.classList.toggle("hovering", isOverButton);
+
+      // In SELECTION mode: sample color at hand position
+      if (appState === APP_STATES.SELECTION && handTrackingEnabled) {
+        // Check if hand is over painting area
+        const paintingRect = paintingCanvas.getBoundingClientRect();
+        const isOverPainting = 
+          x >= paintingRect.left && x <= paintingRect.right &&
+          y >= paintingRect.top && y <= paintingRect.bottom;
+
+        if (isOverPainting) {
+          // Convert screen coordinates to canvas coordinates
+          const scaleX = maskCanvas.width / paintingRect.width;
+          const scaleY = maskCanvas.height / paintingRect.height;
+          
+          const canvasX = (x - paintingRect.left) * scaleX;
+          const canvasY = (y - paintingRect.top) * scaleY;
+
+          const colorData = sampleMaskColor(Math.round(canvasX), Math.round(canvasY));
+          const pigment = identifyPigment(colorData);
+          
+          if (pigment) {
+            selectPigment(pigment);
+          }
+        }
+      }
+    }
+
+    // ===== PIGMENT DATABASE (REAL CHEMISTRY) =====
+    const PIGMENTS = {
+      red: {
+        id: "vermilion",
+        name: "Vermilion",
+        commonName: "Mercury Sulfide",
+        formula: "HgS",
+        color: "#C41E3A",
+        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Cinnabar-sample.jpg/440px-Cinnabar-sample.jpg",
+        imageAlt: "Natural cinnabar mineral (mercury sulfide)",
+        description: "A brilliant red pigment created from mercury sulfide. Historically one of the most prized reds in Asian and European art.",
+        whyRed: "Mercury and sulfur atoms in the crystal structure create specific energy levels that absorb blue and green light wavelengths, reflecting red light to our eyes.",
+        chemistry: {
+          elements: "Mercury (Hg) + Sulfur (S)",
+          structure: "Hexagonal crystal lattice",
+          bandGap: "~2.1 eV",
+          lightAbsorption: "Absorbs λ < 620nm"
+        },
+        historical: "Extensively used in Chinese lacquerware, Japanese art, and European paintings from medieval times through the 19th century.",
+        properties: [
+          "Extremely bright and saturated",
+          "Chemically stable when not exposed to light",
+          "Toxic: contains mercury vapor (avoid inhalation)",
+          "Darkens over time in some conditions (photodegradation)"
+        ],
+        occurrence: "Naturally occurs as cinnabar mineral; synthesized in laboratories"
+      },
+      white: {
+        id: "lead_white",
+        name: "Lead White",
+        commonName: "Basic Lead Carbonate",
+        formula: "2PbCO₃·Pb(OH)₂",
+        color: "#F5F5F0",
+        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Lead%28II%29_carbonate.jpg/440px-Lead%28II%29_carbonate.jpg",
+        imageAlt: "Lead carbonate powder (lead white pigment)",
+        description: "The most important white pigment in fine art for over 2,000 years. Used in oil painting, tempera, and frescoes.",
+        whyWhite: "The crystal structure of lead carbonate scatters and reflects all visible light wavelengths equally, making it pure white. Its particles also scatter light internally (Mie scattering).",
+        chemistry: {
+          elements: "Lead (Pb) + Carbon (C) + Oxygen (O) + Hydrogen (H)",
+          structure: "Monoclinic crystal system",
+          refractiveIndex: "1.94 (very high)",
+          opacityMechanism: "Mie scattering of light particles"
+        },
+        historical: "Known as 'ceruse' in ancient Rome. Produced by corroding lead strips with vinegar or dung. Essential to Old Masters' techniques.",
+        properties: [
+          "Excellent covering power (opaque)",
+          "Mixes smoothly with oils",
+          "Slightly toxic (lead content)",
+          "Can yellow slightly over centuries",
+          "Dries faster than titanium white"
+        ],
+        occurrence: "Created synthetically; not found naturally as a paint pigment. Modern alternative: titanium dioxide (TiO₂)"
+      }
+    };
+
+    // ===== DOM ELEMENTS =====
+    const paintingCanvas = document.getElementById("paintingCanvas");
+    const maskCanvas = document.getElementById("maskCanvas");
+    const debugCheckbox = document.getElementById("debugMode");
+    const materialEmpty = document.getElementById("materialEmpty");
+    const materialContent = document.getElementById("materialContent");
+    const detailHeader = document.getElementById("detailHeader");
+    const detailTitle = document.getElementById("detailTitle");
+    const cursorInfo = document.getElementById("cursorInfo");
+    const selectionFeedback = document.getElementById("selectionFeedback");
+    const selectionName = document.getElementById("selectionName");
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const ctx = paintingCanvas.getContext("2d");
+    const maskCtx = maskCanvas.getContext("2d");
+
+    let paintingImage = null;
+    let maskImage = null;
+
+    // ===== IMAGE LOADING =====
+    function loadImages() {
+      // For now, we'll create placeholder canvases
+      // User will replace with actual images later
+
+      // Create a simple flag-like placeholder
+      createPlaceholderPainting();
+      createPlaceholderMask();
+
+      console.log("✓ Placeholder images loaded (user will add real images)");
+    }
+
+    function createPlaceholderPainting() {
+      // Simple placeholder: red and white rectangle (like a flag)
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = 800;
+      tempCanvas.height = 600;
+      const tempCtx = tempCanvas.getContext("2d");
+
+      // White background
+      tempCtx.fillStyle = "#fff";
+      tempCtx.fillRect(0, 0, 800, 600);
+
+      // Red circle in center (symbolic of Japan flag)
+      tempCtx.fillStyle = "#C41E3A";
+      tempCtx.beginPath();
+      tempCtx.arc(400, 300, 150, 0, Math.PI * 2);
+      tempCtx.fill();
+
+      paintingImage = tempCanvas;
+      drawPainting();
+    }
+
+    function createPlaceholderMask() {
+      // Same composition but with pure colors for masking
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = 800;
+      tempCanvas.height = 600;
+      const tempCtx = tempCanvas.getContext("2d");
+
+      // White areas (255, 255, 255)
+      tempCtx.fillStyle = "#FFFFFF";
+      tempCtx.fillRect(0, 0, 800, 600);
+
+      // Red areas (255, 0, 0) - pure red for unambiguous detection
+      tempCtx.fillStyle = "#FF0000";
+      tempCtx.beginPath();
+      tempCtx.arc(400, 300, 150, 0, Math.PI * 2);
+      tempCtx.fill();
+
+      maskImage = tempCanvas;
+      drawMask();
+    }
+
+    function drawPainting() {
+      if (!paintingImage) return;
+      ctx.clearRect(0, 0, paintingCanvas.width, paintingCanvas.height);
+      ctx.drawImage(paintingImage, 0, 0, paintingCanvas.width, paintingCanvas.height);
+    }
+
+    function drawMask() {
+      if (!maskImage) return;
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      maskCtx.drawImage(maskImage, 0, 0, maskCanvas.width, maskCanvas.height);
+    }
+
+    // ===== CLICK DETECTION =====
+    function getCanvasCoordinates(event) {
+      const rect = paintingCanvas.getBoundingClientRect();
+      const scaleX = maskCanvas.width / rect.width;
+      const scaleY = maskCanvas.height / rect.height;
+      
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+
+      return { x: Math.round(x), y: Math.round(y) };
+    }
+
+    function sampleMaskColor(x, y) {
+      if (!maskImage) return null;
+      
+      const imageData = maskCtx.getImageData(x, y, 1, 1);
+      const [r, g, b, a] = imageData.data;
+      
+      return { r, g, b, a, hex: rgbToHex(r, g, b) };
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + [r, g, b].map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+      }).join("").toUpperCase();
+    }
+
+    function identifyPigment(colorData) {
+      // Detect red (255, 0, 0) or white (255, 255, 255)
+      const { r, g, b } = colorData;
+
+      // Check for red: high R, low G, low B
+      if (r > 200 && g < 50 && b < 50) {
+        return PIGMENTS.red;
+      }
+      
+      // Check for white: all channels high
+      if (r > 200 && g > 200 && b > 200) {
+        return PIGMENTS.white;
+      }
+
+      return null;
+    }
+
+    function selectPigment(pigment) {
+      selectedPigment = pigment;
+      selectionName.textContent = pigment.name;
+      selectionFeedback.classList.add("active");
+      zoomInBtn.disabled = false;
+
+      // Display the color swatch on the zoom button
+      const colorSwatch = document.getElementById("colorSwatch");
+      colorSwatch.style.backgroundColor = pigment.color;
+
+      if (debugCheckbox.checked) {
+        console.log(`✓ Selected: ${pigment.name} (${pigment.color})`);
+      }
+    }
+
+    function displayPigment(pigment) {
+      selectedPigment = pigment;
+
+      detailTitle.textContent = pigment.name;
+
+      const html = `
+        <div class="material-image-section">
+          <img src="${pigment.image}" alt="${pigment.imageAlt}" class="material-image" />
+        </div>
+
+        <div class="material-color-indicator" style="background: ${pigment.color};"></div>
+        
+        <div class="material-label">Pigment Type</div>
+        <h2 class="material-name">${pigment.name}</h2>
+        
+        <div class="material-formula">${pigment.formula}</div>
+        
+        <div class="material-section">
+          <div class="material-section-title">Why is it this color?</div>
+          <div class="material-text">${pigment.whyRed || "🔬 " + pigment.description}</div>
+        </div>
+
+        <div class="material-section">
+          <div class="material-section-title">Chemical Composition</div>
+          ${Object.entries(pigment.chemistry).map(([key, value]) => `
+            <div class="material-property">
+              <span class="material-property-bullet">•</span>
+              <span><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</span>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="material-section">
+          <div class="material-section-title">Physical Properties</div>
+          ${pigment.properties.map(prop => `
+            <div class="material-property">
+              <span class="material-property-bullet">•</span>
+              <span>${prop}</span>
+            </div>
+          `).join("")}
+        </div>
+
+        <div class="material-section">
+          <div class="material-section-title">Historical Context</div>
+          <div class="material-text">${pigment.historical}</div>
+        </div>
+
+        <div class="material-note">
+          💡 Next: Explore the molecular structure of ${pigment.formula}
+        </div>
+      `;
+
+      materialContent.innerHTML = html;
+      materialEmpty.style.display = "none";
+      materialContent.style.display = "block";
+    }
+
+    // ===== EVENT HANDLERS =====
+    paintingCanvas.addEventListener("click", (e) => {
+      if (appState !== APP_STATES.SELECTION) return;
+
+      const coords = getCanvasCoordinates(e);
+      const colorData = sampleMaskColor(coords.x, coords.y);
+
+      if (debugCheckbox.checked) {
+        console.log(`Clicked at (${coords.x}, ${coords.y}) → Color: ${colorData.hex}`);
+      }
+
+      const pigment = identifyPigment(colorData);
+      if (pigment) {
+        selectPigment(pigment);
+      }
+    });
+
+    paintingCanvas.addEventListener("mousemove", (e) => {
+      if (!debugCheckbox.checked) return;
+
+      const coords = getCanvasCoordinates(e);
+      const colorData = sampleMaskColor(coords.x, coords.y);
+
+      cursorInfo.classList.add("visible");
+      cursorInfo.innerHTML = `
+        Pos: (${coords.x}, ${coords.y})<br/>
+        RGB: (${colorData.r}, ${colorData.g}, ${colorData.b})<br/>
+        Hex: ${colorData.hex}
+      `;
+    });
+
+    paintingCanvas.addEventListener("mouseleave", () => {
+      cursorInfo.classList.remove("visible");
+    });
+
+    // ===== ZOOM CONTROLS =====
+    zoomInBtn.addEventListener("click", () => {
+      if (selectedPigment) {
+        displayPigment(selectedPigment);
+        setAppState(APP_STATES.DETAIL);
+      }
+    });
+
+    zoomOutBtn.addEventListener("click", () => {
+      setAppState(APP_STATES.SELECTION);
+      selectionFeedback.classList.remove("active");
+      zoomInBtn.disabled = true;
+      selectedPigment = null;
+    });
+
+    // ===== HAND TRACKING DWELL DETECTION (Future: Button Activation) =====
+    let dwellStartTime = null;
+    let dwellButton = null;
+    const DWELL_TIME_MS = 1000; // 1 second for button activation
+
+    function checkButtonDwell() {
+      if (!handTrackingEnabled) return;
+
+      const zoomInRect = zoomInBtn.getBoundingClientRect();
+      const zoomOutRect = zoomOutBtn.getBoundingClientRect();
+      const { x, y } = lastHandPosition;
+
+      let hoveredButton = null;
+
+      // Check if hand is over Zoom In button
+      if (x >= zoomInRect.left && x <= zoomInRect.right && 
+          y >= zoomInRect.top && y <= zoomInRect.bottom &&
+          !zoomInBtn.disabled) {
+        hoveredButton = zoomInBtn;
+      }
+      // Check if hand is over Zoom Out button
+      else if (x >= zoomOutRect.left && x <= zoomOutRect.right && 
+               y >= zoomOutRect.top && y <= zoomOutRect.bottom) {
+        hoveredButton = zoomOutBtn;
+      }
+
+      // Update dwell state
+      if (hoveredButton !== dwellButton) {
+        dwellStartTime = null;
+        dwellButton = null;
+      }
+
+      if (hoveredButton) {
+        if (!dwellStartTime) {
+          dwellStartTime = Date.now();
+        }
+
+        const elapsedMs = Date.now() - dwellStartTime;
+        const progress = Math.min(elapsedMs / DWELL_TIME_MS, 1);
+
+        // Show progress visually (future: add progress bar or glow)
+        if (elapsedMs >= DWELL_TIME_MS) {
+          // Dwell complete - activate button
+          hoveredButton.click();
+          dwellStartTime = null;
+          dwellButton = null;
+        }
+      }
+    }
+
+    // Continuously check for button dwell
+    setInterval(() => {
+      if (handTrackingEnabled) {
+        checkButtonDwell();
+      }
+    }, 50);
+
+    debugCheckbox.addEventListener("change", (e) => {
+      maskCanvas.classList.toggle("visible", e.target.checked);
+    });
+
+    handTrackingToggle.addEventListener("change", async (e) => {
+      if (e.target.checked) {
+        if (!handTrackingEnabled) {
+          await initializeHandTracking();
+        }
+      } else {
+        if (webcamStream) {
+          webcamStream.getTracks().forEach(track => track.stop());
+        }
+        handCursor.classList.remove("active");
+        handTrackingEnabled = false;
+        console.log("✓ Hand tracking disabled");
+      }
+    });
+
+    // ===== CANVAS RESIZING =====
+    function resizeCanvases() {
+      const container = paintingCanvas.parentElement;
+      const rect = container.getBoundingClientRect();
+      
+      paintingCanvas.width = rect.width;
+      paintingCanvas.height = rect.height;
+      maskCanvas.width = rect.width;
+      maskCanvas.height = rect.height;
+
+      drawPainting();
+      drawMask();
+    }
+
+    window.addEventListener("resize", resizeCanvases);
+
+    // ===== INITIALIZATION =====
+    loadImages();
+    resizeCanvases();
+    setAppState(APP_STATES.SELECTION);
+
+    console.log(`
+╔════════════════════════════════════════════╗
+║   PAINTING PIGMENT EXPLORER - DEBUG INFO   ║
+╚════════════════════════════════════════════╝
+
+✓ Red Pigment: Vermilion (HgS)
+✓ White Pigment: Lead White (2PbCO₃·Pb(OH)₂)
+✓ Debug Mode: Toggle checkbox (top right)
+✓ Mask Visibility: Enabled when debug mode ON
+✓ States: SELECTION → DETAIL → SELECTION
+✓ Hand Tracking: Toggle "Hand Tracking" checkbox to enable
+
+HAND TRACKING FEATURES:
+  • Webcam-based detection (MediaPipe Hands)
+  • Cursor circle follows hand position
+  • Circle center detects colors (will add dwell detection)
+  • Button hover detection (visual feedback)
+  • Debug overlay shows hand position & confidence
+
+WORKFLOW:
+1. User moves hand over painting → circle follows
+2. Circle center selects color (future: dwell confirmation)
+3. Color selection shows pigment info
+4. Hover hand over button → button highlights
+5. Stay for 1s → button activates (future implementation)
+
+NEXT STEPS:
+1. Replace placeholder images with your real flag painting
+2. Paint the mask with #FF0000 for red areas, #FFFFFF for white
+3. Implement dwell detection for color selection
+4. Implement dwell-based button activation
+
+Colors to use in mask:
+  • Red regions: #FF0000 (pure red)
+  • White regions: #FFFFFF (pure white)
+  • Background: #000000 (black - ignored)
+    `);
+  </script>
+</body>
+</html>
