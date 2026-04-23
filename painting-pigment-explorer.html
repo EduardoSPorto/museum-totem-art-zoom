@@ -114,6 +114,72 @@
       box-shadow: 0 0 30px rgba(196, 30, 58, 0.6);
     }
 
+    /* ===== MAGNIFIER CIRCLE ===== */
+    .magnifier {
+      position: fixed;
+      width: 120px;
+      height: 120px;
+      border: 2px solid #FF0000;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 995;
+      transform: translate(-50%, -50%);
+      display: none;
+      transition: width 0.1s ease, height 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .magnifier.active {
+      display: block;
+    }
+
+    .magnifier.pinching {
+      width: 130px;
+      height: 130px;
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.6), inset 0 0 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .magnifier-fill {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      border-radius: 50%;
+      background: rgba(255, 0, 0, 0.1);
+      transition: background 0.1s ease;
+    }
+
+    .magnifier-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .magnifier-crosshair::before,
+    .magnifier-crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 0, 0, 0.5);
+    }
+
+    .magnifier-crosshair::before {
+      width: 10px;
+      height: 1px;
+      top: 9px;
+      left: 5px;
+    }
+
+    .magnifier-crosshair::after {
+      width: 1px;
+      height: 10px;
+      top: 5px;
+      left: 9px;
+    }
+
     /* Hand tracking info overlay */
     .hand-info-overlay {
       position: fixed;
@@ -133,6 +199,143 @@
 
     .hand-info-overlay.visible {
       display: block;
+    }
+
+    /* ===== CAMERA PREVIEW PANEL ===== */
+    .camera-preview-panel {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: 320px;
+      background: rgba(15, 20, 25, 0.95);
+      border: 2px solid rgba(100, 200, 255, 0.4);
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 990;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      display: none;
+    }
+
+    .camera-preview-panel.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .camera-preview-header {
+      background: linear-gradient(135deg, rgba(100, 200, 255, 0.2), rgba(100, 200, 255, 0.1));
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.8);
+      border-bottom: 1px solid rgba(100, 200, 255, 0.2);
+    }
+
+    #cameraPreviewCanvas {
+      display: block;
+      width: 100%;
+      height: 280px;
+      background: #000;
+    }
+
+    .camera-preview-status {
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border-top: 1px solid rgba(100, 200, 255, 0.2);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      font-size: 18px;
+      line-height: 1;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+
+    .status-dot.detected {
+      color: #4ade80;
+      animation: pulse-green 1.5s infinite;
+    }
+
+    .status-dot.searching {
+      color: #ef4444;
+      animation: pulse-red 1s infinite;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+      }
+      50% {
+        opacity: 0.6;
+        text-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
+      }
+    }
+
+    @keyframes pulse-red {
+      0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      }
+      50% {
+        opacity: 0.6;
+        text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+      }
+    }
+
+    .status-text {
+      color: var(--text-primary);
+    }
+
+    .confidence-container {
+      font-size: 12px;
+    }
+
+    .confidence-label {
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .confidence-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+      width: 0%;
+      transition: width 0.2s ease;
+      border-radius: 4px;
+    }
+
+    .confidence-fill.weak {
+      background: linear-gradient(90deg, #facc15 0%, #eab308 100%);
+    }
+
+    .confidence-percent {
+      text-align: right;
+      color: var(--text-secondary);
+      font-size: 11px;
     }
 
     /* ===== MAIN LAYOUT ===== */
@@ -259,10 +462,6 @@
 
     .app-state-selection .canvas-wrapper {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
       border: none;
       border-radius: 0;
       aspect-ratio: auto;
@@ -271,6 +470,7 @@
       z-index: 10;
       margin: 0;
       padding: 0;
+      /* Safe zone margins will be applied via JavaScript */
     }
 
     .app-state-detail .canvas-wrapper {
@@ -763,7 +963,34 @@
   <!-- HAND CURSOR CIRCLE -->
   <div class="hand-cursor" id="handCursor"></div>
 
-  <!-- HAND TRACKING INFO -->
+  <!-- MAGNIFIER CIRCLE (Selection Tool) -->
+  <div class="magnifier" id="magnifier">
+    <div class="magnifier-fill" id="magnifierFill"></div>
+    <div class="magnifier-crosshair"></div>
+  </div>
+
+  <!-- CAMERA PREVIEW PANEL (Fixed, Non-Closeable) -->
+  <div class="camera-preview-panel" id="cameraPreviewPanel">
+    <div class="camera-preview-header">
+      HAND TRACKING
+    </div>
+    <canvas id="cameraPreviewCanvas" width="300" height="280"></canvas>
+    <div class="camera-preview-status">
+      <div class="status-indicator">
+        <span class="status-dot" id="statusDot">●</span>
+        <span class="status-text" id="statusText">Searching...</span>
+      </div>
+      <div class="confidence-container">
+        <div class="confidence-label">Confidence</div>
+        <div class="confidence-bar">
+          <div class="confidence-fill" id="confidenceFill"></div>
+        </div>
+        <div class="confidence-percent" id="confidencePercent">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HAND TRACKING INFO (debug only) -->
   <div class="hand-info-overlay" id="handInfoOverlay"></div>
 
   <!-- CURSOR INFO (debug) -->
@@ -776,9 +1003,9 @@
   <!-- STATUS BAR -->
   <div class="status-bar"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
 
   <script>
     // ===== APP STATE MANAGEMENT =====
@@ -793,25 +1020,162 @@
     function setAppState(newState) {
       appState = newState;
       document.body.className = `app-state-${newState}`;
+      
+      // Show/hide magnifier based on state
+      if (newState === APP_STATES.SELECTION) {
+        // Show magnifier in selection mode
+        if (handTrackingEnabled) {
+          magnifier.classList.add("active");
+        }
+      } else if (newState === APP_STATES.DETAIL) {
+        // Hide magnifier in detail mode
+        magnifier.classList.remove("active");
+      }
+      
+      // Apply safe zone when entering selection mode
+      if (newState === APP_STATES.SELECTION) {
+        setTimeout(() => initializeSafeZone(), 50);
+      }
+      
       console.log(`→ State: ${newState.toUpperCase()}`);
     }
 
-    // ===== HAND TRACKING SYSTEM =====
+    // ===== SAFE DETECTION ZONE =====
+    // Constrain painting to center area where hand detection is stable
+    const SAFE_ZONE_MARGINS = {
+      horizontal: 0.15,  // 15% margin on each side = 70% usable width
+      vertical: 0.10     // 10% top, 15% bottom = 75% usable height
+    };
+
+    function initializeSafeZone() {
+      const canvasWrapper = document.querySelector(".canvas-wrapper");
+      if (!canvasWrapper) return;
+
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+
+      const safeWidth = screenWidth * (1 - SAFE_ZONE_MARGINS.horizontal * 2);
+      const safeHeight = screenHeight * (1 - SAFE_ZONE_MARGINS.vertical - 0.05); // Account for bottom controls
+
+      // Position canvas wrapper in safe zone
+      canvasWrapper.style.position = "fixed";
+      canvasWrapper.style.left = (screenWidth * SAFE_ZONE_MARGINS.horizontal) + "px";
+      canvasWrapper.style.top = (screenHeight * SAFE_ZONE_MARGINS.vertical) + "px";
+      canvasWrapper.style.width = safeWidth + "px";
+      canvasWrapper.style.height = safeHeight + "px";
+      canvasWrapper.style.zIndex = "10";
+
+      console.log(`✓ Safe detection zone applied: ${Math.round(safeWidth)}×${Math.round(safeHeight)}px`);
+    }
+
+    // ===== LIBRARY AVAILABILITY CHECK =====
+    function checkMediaPipeLibraries() {
+      const libraries = {
+        'Hands': window.Hands,
+        'Camera': window.Camera,
+        'drawingUtils': window.drawingUtils
+      };
+
+      console.log("📦 Checking MediaPipe Library Status...");
+      let allLoaded = true;
+      for (const [name, lib] of Object.entries(libraries)) {
+        const status = lib ? "✓" : "✗";
+        const loaded = lib ? "Loaded" : "NOT FOUND";
+        console.log(`  ${status} ${name}: ${loaded}`);
+        if (!lib) allLoaded = false;
+      }
+
+      if (!allLoaded) {
+        console.warn("⚠️  Some libraries failed to load from CDN");
+        console.warn("    This usually means:");
+        console.warn("    • Internet connection is down");
+        console.warn("    • CDN is temporarily unavailable");
+        console.warn("    • Browser is blocking external scripts");
+      }
+
+      return allLoaded;
+    }
+
+    // Check libraries on page load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const ready = checkMediaPipeLibraries();
+        if (!ready) {
+          console.warn("⚠️  Some MediaPipe libraries failed to load from CDN.");
+          console.warn("    Hand tracking will not work until libraries are loaded.");
+          console.warn("    Try: Reload page → Check internet → Wait 15 seconds");
+        }
+      }, 5000);
+    });
     let handTrackingEnabled = false;
     let handDetector = null;
     let webcamStream = null;
     let lastHandPosition = { x: 0, y: 0 };
+    let smoothedHandPosition = { x: 0, y: 0 };
     let handConfidence = 0;
+    const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
+    
+    // ===== MAGNIFIER VARIABLES =====
+    const magnifier = document.getElementById("magnifier");
+    const magnifierFill = document.getElementById("magnifierFill");
+    let magnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let isPinching = false;
+    let pinchStartTime = null;
+    const PINCH_CONFIRMATION_MS = 100;
+    const PINCH_THRESHOLD = 0.08;  // ~30px at standard distance
+    const PINCH_RELEASE_THRESHOLD = 0.12;  // Hysteresis to avoid flutter
+    
+    // Button activation
+    let currentButtonHover = null;
+    let buttonDwellStartTime = null;
+    const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
     
     const handCursor = document.getElementById("handCursor");
     const handTrackingToggle = document.getElementById("handTrackingMode");
     const handInfoOverlay = document.getElementById("handInfoOverlay");
     const webcamVideo = document.getElementById("webcamVideo");
+    const cameraPreviewCanvas = document.getElementById("cameraPreviewCanvas");
+    const cameraPreviewCtx = cameraPreviewCanvas.getContext("2d");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const confidenceFill = document.getElementById("confidenceFill");
+    const confidencePercent = document.getElementById("confidencePercent");
+
+    async function waitForMediaPipeLibraries(maxWaitMs = 15000) {
+      const startTime = Date.now();
+      console.log("⏳ Waiting for MediaPipe libraries (max 15 seconds)...");
+      
+      while (Date.now() - startTime < maxWaitMs) {
+        if (window.Hands && window.Camera) {
+          console.log("✓ All MediaPipe libraries loaded successfully");
+          return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      console.error("✗ MediaPipe libraries did not load within timeout (15s)");
+      console.error("✗ Window.Hands:", typeof window.Hands);
+      console.error("✗ Window.Camera:", typeof window.Camera);
+      return false;
+    }
 
     async function initializeHandTracking() {
       try {
-        const Hands = window.Hands;
-        handDetector = new Hands.Hands({
+        console.log("⏳ Waiting for MediaPipe libraries...");
+        const librariesReady = await waitForMediaPipeLibraries();
+        
+        if (!librariesReady) {
+          throw new Error("MediaPipe libraries failed to load from CDN. This usually means internet connection is unavailable or very slow. Please reload the page and ensure you have a working internet connection.");
+        }
+
+        if (!window.Hands) {
+          throw new Error("Hands library not available: window.Hands is undefined");
+        }
+
+        console.log("📦 Initializing MediaPipe Hands...");
+
+        // Create Hands instance
+        handDetector = new window.Hands({
           locateFile: (file) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
           }
@@ -820,49 +1184,305 @@
         handDetector.setOptions({
           maxNumHands: 1,
           modelComplexity: 1,
-          minDetectionConfidence: 0.7,
-          minTrackingConfidence: 0.5
+          minDetectionConfidence: 0.8,  // Increased from 0.7 for stability
+          minTrackingConfidence: 0.7    // Increased from 0.5 for stability
         });
 
         handDetector.onResults(onHandResults);
+        console.log("✓ MediaPipe Hands initialized");
 
         // Request camera access
+        console.log("📷 Requesting camera access...");
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+          video: { 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 },
+            facingMode: "user"
+          },
+          audio: false
         });
 
+        console.log("✓ Camera access granted");
         webcamStream = stream;
         webcamVideo.srcObject = stream;
+        
         webcamVideo.onloadedmetadata = () => {
           console.log("✓ Webcam initialized for hand tracking");
           startHandDetection();
         };
 
         handTrackingEnabled = true;
-        console.log("✓ Hand tracking system ready");
+        console.log("✓ Hand tracking system fully ready");
+        
+        // Reset magnifier position to center
+        magnifierPosition = { 
+          x: window.innerWidth / 2, 
+          y: window.innerHeight / 2 
+        };
+        
+        // Show camera preview panel
+        const cameraPreviewPanel = document.getElementById("cameraPreviewPanel");
+        if (cameraPreviewPanel) {
+          cameraPreviewPanel.classList.add("active");
+        }
       } catch (error) {
         console.error("✗ Hand tracking initialization failed:", error);
-        alert("Camera access denied. Hand tracking disabled. Using mouse control.");
+        console.error("Error details:", error.message);
+        console.error("Stack:", error.stack);
+        
+        if (error.name === 'NotAllowedError') {
+          alert("❌ Camera access was denied.\n\nTo use hand tracking, please:\n1. Allow camera access in browser settings\n2. Reload the page\n3. Click 'Hand Tracking' again\n\nUsing mouse control for now.");
+        } else if (error.name === 'NotFoundError') {
+          alert("❌ No camera found.\n\nPlease ensure your device has a webcam connected.\n\nUsing mouse control for now.");
+        } else if (error.message.includes("CDN") || error.message.includes("libraries")) {
+          alert("❌ Could not load MediaPipe from the internet.\n\nPlease check:\n1. Your internet connection is working\n2. CDN is accessible (https://cdn.jsdelivr.net)\n3. Try reloading the page\n4. Wait 15+ seconds for models to download\n\nUsing mouse control for now.");
+        } else {
+          alert("❌ Hand tracking initialization failed.\n\nError: " + error.message + "\n\nUsing mouse control for now.");
+        }
+        
         handTrackingToggle.checked = false;
         handTrackingEnabled = false;
       }
     }
 
     function startHandDetection() {
-      const camera = new window.Camera(webcamVideo, {
-        onFrame: async () => {
-          await handDetector.send({ image: webcamVideo });
-        },
-        width: 1280,
-        height: 720
+      try {
+        if (!window.Camera) {
+          throw new Error("MediaPipe Camera library not loaded");
+        }
+
+        console.log("🎥 Starting hand detection loop...");
+        
+        const camera = new window.Camera(webcamVideo, {
+          onFrame: async () => {
+            if (handDetector) {
+              await handDetector.send({ image: webcamVideo });
+            }
+          },
+          width: 1280,
+          height: 720
+        });
+
+        camera.start();
+        console.log("✓ Hand detection loop started");
+      } catch (error) {
+        console.error("✗ Failed to start hand detection:", error);
+        alert("Error starting hand detection: " + error.message);
+        handTrackingToggle.checked = false;
+        handTrackingEnabled = false;
+      }
+    }
+
+    function drawCameraPreview(videoElement, landmarks) {
+      // Clear canvas
+      cameraPreviewCtx.fillStyle = "#000";
+      cameraPreviewCtx.fillRect(0, 0, cameraPreviewCanvas.width, cameraPreviewCanvas.height);
+
+      // Draw video frame (mirrored)
+      cameraPreviewCtx.save();
+      cameraPreviewCtx.scale(-1, 1);
+      cameraPreviewCtx.drawImage(
+        videoElement,
+        -cameraPreviewCanvas.width,
+        0,
+        cameraPreviewCanvas.width,
+        cameraPreviewCanvas.height
+      );
+      cameraPreviewCtx.restore();
+
+      if (landmarks && landmarks.length > 0) {
+        // Draw hand skeleton
+        drawHandSkeleton(landmarks);
+        // Draw palm center
+        drawPalmCenter(landmarks);
+      }
+    }
+
+    function drawHandSkeleton(landmarks) {
+      // Hand bone connections (20 connections from MediaPipe)
+      const connections = [
+        // Thumb
+        [0, 1], [1, 2], [2, 3], [3, 4],
+        // Index
+        [0, 5], [5, 6], [6, 7], [7, 8],
+        // Middle
+        [0, 9], [9, 10], [10, 11], [11, 12],
+        // Ring
+        [0, 13], [13, 14], [14, 15], [15, 16],
+        // Pinky
+        [0, 17], [17, 18], [18, 19], [19, 20]
+      ];
+
+      // Draw connections (bones)
+      cameraPreviewCtx.strokeStyle = "rgba(100, 200, 255, 0.4)";
+      cameraPreviewCtx.lineWidth = 2;
+
+      for (const [start, end] of connections) {
+        const p1 = landmarks[start];
+        const p2 = landmarks[end];
+
+        // Flip X coordinate for mirroring
+        const x1 = (1 - p1.x) * cameraPreviewCanvas.width;
+        const y1 = p1.y * cameraPreviewCanvas.height;
+        const x2 = (1 - p2.x) * cameraPreviewCanvas.width;
+        const y2 = p2.y * cameraPreviewCanvas.height;
+
+        cameraPreviewCtx.beginPath();
+        cameraPreviewCtx.moveTo(x1, y1);
+        cameraPreviewCtx.lineTo(x2, y2);
+        cameraPreviewCtx.stroke();
+      }
+
+      // Draw landmarks (joints)
+      const fingerColors = [
+        "rgba(255, 100, 100, 0.8)",  // Thumb - red
+        "rgba(100, 255, 100, 0.8)",  // Index - green
+        "rgba(100, 100, 255, 0.8)",  // Middle - blue
+        "rgba(255, 255, 100, 0.8)",  // Ring - yellow
+        "rgba(255, 100, 255, 0.8)"   // Pinky - magenta
+      ];
+
+      landmarks.forEach((landmark, idx) => {
+        // Determine which finger this landmark belongs to
+        let fingerIdx = 0;
+        if (idx >= 1 && idx <= 4) fingerIdx = 0;           // Thumb
+        else if (idx >= 5 && idx <= 8) fingerIdx = 1;      // Index
+        else if (idx >= 9 && idx <= 12) fingerIdx = 2;     // Middle
+        else if (idx >= 13 && idx <= 16) fingerIdx = 3;    // Ring
+        else if (idx >= 17 && idx <= 20) fingerIdx = 4;    // Pinky
+
+        const color = fingerColors[fingerIdx];
+        const x = (1 - landmark.x) * cameraPreviewCanvas.width;
+        const y = landmark.y * cameraPreviewCanvas.height;
+
+        // Draw circle for joint
+        cameraPreviewCtx.fillStyle = color;
+        cameraPreviewCtx.beginPath();
+        cameraPreviewCtx.arc(x, y, 4, 0, Math.PI * 2);
+        cameraPreviewCtx.fill();
+
+        // Wrist (0) is larger
+        if (idx === 0) {
+          cameraPreviewCtx.strokeStyle = "rgba(255, 150, 100, 0.6)";
+          cameraPreviewCtx.lineWidth = 2;
+          cameraPreviewCtx.beginPath();
+          cameraPreviewCtx.arc(x, y, 6, 0, Math.PI * 2);
+          cameraPreviewCtx.stroke();
+        }
       });
-      camera.start();
+    }
+
+    function detectPinch(landmarks) {
+      if (!landmarks || landmarks.length < 9) return false;
+      
+      // Get thumb tip (landmark 4) and index tip (landmark 8)
+      const thumbTip = landmarks[4];
+      const indexTip = landmarks[8];
+      
+      // Calculate distance between thumb and index
+      const distance = Math.sqrt(
+        Math.pow(thumbTip.x - indexTip.x, 2) + 
+        Math.pow(thumbTip.y - indexTip.y, 2)
+      );
+      
+      return distance;
+    }
+
+    function updatePinchState(pinchDistance) {
+      if (pinchDistance < PINCH_THRESHOLD) {
+        // Pinching
+        if (!isPinching) {
+          isPinching = true;
+          pinchStartTime = Date.now();
+        }
+        magnifier.classList.add("pinching");
+        return true;
+      } else if (pinchDistance > PINCH_RELEASE_THRESHOLD) {
+        // Released (hysteresis to avoid flutter)
+        if (isPinching) {
+          // Magnifier was dropped - confirm selection
+          confirmMagnifierSelection();
+          isPinching = false;
+          pinchStartTime = null;
+        }
+        magnifier.classList.remove("pinching");
+        return false;
+      }
+      
+      return isPinching;
+    }
+
+    function confirmMagnifierSelection() {
+      // Sample color at magnifier position
+      const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
+      if (colorData) {
+        const pigment = identifyPigment(colorData);
+        if (pigment) {
+          selectPigment(pigment);
+        }
+      }
+    }
+
+    function isPinchConfirmed() {
+      if (!isPinching || !pinchStartTime) return false;
+      return Date.now() - pinchStartTime > PINCH_CONFIRMATION_MS;
+    }
+
+    function drawPalmCenter(landmarks) {
+      // Palm center = wrist (0) + middle finger base (9) average
+      const wrist = landmarks[0];
+      const middleBase = landmarks[9];
+
+      const palmX = (1 - (wrist.x + middleBase.x) / 2) * cameraPreviewCanvas.width;
+      const palmY = ((wrist.y + middleBase.y) / 2) * cameraPreviewCanvas.height;
+
+      // Draw bright center dot
+      cameraPreviewCtx.fillStyle = "rgba(255, 200, 0, 1)";
+      cameraPreviewCtx.beginPath();
+      cameraPreviewCtx.arc(palmX, palmY, 6, 0, Math.PI * 2);
+      cameraPreviewCtx.fill();
+
+      // Draw glow around center
+      cameraPreviewCtx.strokeStyle = "rgba(255, 200, 0, 0.4)";
+      cameraPreviewCtx.lineWidth = 2;
+      cameraPreviewCtx.beginPath();
+      cameraPreviewCtx.arc(palmX, palmY, 12, 0, Math.PI * 2);
+      cameraPreviewCtx.stroke();
+    }
+
+    function updateStatusIndicator(isDetected, confidence) {
+      if (isDetected) {
+        statusDot.classList.remove("searching");
+        statusDot.classList.add("detected");
+        statusText.textContent = "Hand Detected";
+      } else {
+        statusDot.classList.remove("detected");
+        statusDot.classList.add("searching");
+        statusText.textContent = "Searching...";
+      }
+
+      // Update confidence bar
+      const confPercent = Math.round(confidence * 100);
+      confidenceFill.style.width = confPercent + "%";
+      confidencePercent.textContent = confPercent + "%";
+
+      // Change color based on confidence
+      if (confPercent >= 70) {
+        confidenceFill.classList.remove("weak");
+      } else {
+        confidenceFill.classList.add("weak");
+      }
     }
 
     function onHandResults(results) {
+      // Always draw the camera feed
+      drawCameraPreview(webcamVideo, results.multiHandLandmarks?.[0] || null);
+
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         handCursor.classList.remove("active");
+        magnifier.classList.remove("active");
         handConfidence = 0;
+        updateStatusIndicator(false, 0);
         return;
       }
 
@@ -873,26 +1493,86 @@
       const wrist = handLandmarks[0]; // Wrist
       const middleBase = handLandmarks[9]; // Middle finger MCP
       
-      const palmX = (wrist.x + middleBase.x) / 2 * window.innerWidth;
+      // Invert X coordinate so hand movement is intuitive
+      // (hand moves left → circle moves left, not right)
+      const palmX = (1 - (wrist.x + middleBase.x) / 2) * window.innerWidth;
       const palmY = (wrist.y + middleBase.y) / 2 * window.innerHeight;
       
       lastHandPosition = { x: palmX, y: palmY };
+      
+      // Apply exponential smoothing to reduce jitter
+      smoothedHandPosition.x = smoothedHandPosition.x * SMOOTHING_FACTOR + palmX * (1 - SMOOTHING_FACTOR);
+      smoothedHandPosition.y = smoothedHandPosition.y * SMOOTHING_FACTOR + palmY * (1 - SMOOTHING_FACTOR);
+      
       handConfidence = results.multiHandedness?.[0]?.score || 0.8;
 
-      // Update cursor position
-      updateHandCursor(palmX, palmY);
+      // Detect pinch (thumb-index distance)
+      const pinchDistance = detectPinch(handLandmarks);
+      const currentlyPinching = updatePinchState(pinchDistance);
 
-      // Update info overlay
+      // Update status indicator
+      updateStatusIndicator(true, handConfidence);
+
+      // Update white cursor position (using smoothed position for stability)
+      updateHandCursor(smoothedHandPosition.x, smoothedHandPosition.y);
+
+      // Show magnifier only in SELECTION mode
+      if (appState === APP_STATES.SELECTION) {
+        magnifier.classList.add("active");
+      } else {
+        magnifier.classList.remove("active");
+      }
+
+      // If pinching, move magnifier with hand (always draggable)
+      if (currentlyPinching) {
+        magnifierPosition.x = smoothedHandPosition.x;
+        magnifierPosition.y = smoothedHandPosition.y;
+      }
+
+      // Update magnifier visual position
+      magnifier.style.left = magnifierPosition.x + "px";
+      magnifier.style.top = magnifierPosition.y + "px";
+
+      // Sample color at magnifier position and update fill
+      if (appState === APP_STATES.SELECTION) {
+        const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
+        if (colorData) {
+          magnifierFill.style.backgroundColor = colorData.hex;
+        }
+      }
+
+      // Update info overlay (debug mode only)
       if (debugCheckbox.checked) {
         handInfoOverlay.classList.add("visible");
         handInfoOverlay.innerHTML = `
-          Hand Pos: (${Math.round(palmX)}, ${Math.round(palmY)})<br/>
+          Hand Pos: (${Math.round(smoothedHandPosition.x)}, ${Math.round(smoothedHandPosition.y)})<br/>
+          Magnifier: (${Math.round(magnifierPosition.x)}, ${Math.round(magnifierPosition.y)})<br/>
           Confidence: ${(handConfidence * 100).toFixed(0)}%<br/>
-          Landmarks: ${handLandmarks.length}
+          Pinch Distance: ${(pinchDistance * 100).toFixed(1)}px<br/>
+          Pinching: ${currentlyPinching ? "YES" : "NO"}
         `;
       } else {
         handInfoOverlay.classList.remove("visible");
       }
+    }
+
+    function sampleColorAtPosition(screenX, screenY) {
+      // Convert screen coordinates to canvas coordinates
+      const paintingRect = paintingCanvas.getBoundingClientRect();
+      
+      // Check if position is over the painting
+      if (screenX < paintingRect.left || screenX > paintingRect.right ||
+          screenY < paintingRect.top || screenY > paintingRect.bottom) {
+        return null;
+      }
+
+      const scaleX = maskCanvas.width / paintingRect.width;
+      const scaleY = maskCanvas.height / paintingRect.height;
+      
+      const canvasX = (screenX - paintingRect.left) * scaleX;
+      const canvasY = (screenY - paintingRect.top) * scaleY;
+
+      return sampleMaskColor(Math.round(canvasX), Math.round(canvasY));
     }
 
     function updateHandCursor(x, y) {
@@ -900,39 +1580,30 @@
       handCursor.style.left = x + "px";
       handCursor.style.top = y + "px";
 
-      // Check if hovering over buttons
+      // Check if white circle is hovering over buttons
       const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();
       const zoomOutRect = document.getElementById("zoomOutBtn").getBoundingClientRect();
 
-      const isOverButton = 
-        (x >= zoomInRect.left && x <= zoomInRect.right && y >= zoomInRect.top && y <= zoomInRect.bottom) ||
-        (x >= zoomOutRect.left && x <= zoomOutRect.right && y >= zoomOutRect.top && y <= zoomOutRect.bottom);
+      const isOverZoomInBtn = 
+        x >= zoomInRect.left && x <= zoomInRect.right && 
+        y >= zoomInRect.top && y <= zoomInRect.bottom;
 
+      const isOverZoomOutBtn = 
+        x >= zoomOutRect.left && x <= zoomOutRect.right && 
+        y >= zoomOutRect.top && y <= zoomOutRect.bottom;
+
+      const isOverButton = isOverZoomInBtn || isOverZoomOutBtn;
+
+      // Highlight white circle when hovering button
       handCursor.classList.toggle("hovering", isOverButton);
 
-      // In SELECTION mode: sample color at hand position
-      if (appState === APP_STATES.SELECTION && handTrackingEnabled) {
-        // Check if hand is over painting area
-        const paintingRect = paintingCanvas.getBoundingClientRect();
-        const isOverPainting = 
-          x >= paintingRect.left && x <= paintingRect.right &&
-          y >= paintingRect.top && y <= paintingRect.bottom;
-
-        if (isOverPainting) {
-          // Convert screen coordinates to canvas coordinates
-          const scaleX = maskCanvas.width / paintingRect.width;
-          const scaleY = maskCanvas.height / paintingRect.height;
-          
-          const canvasX = (x - paintingRect.left) * scaleX;
-          const canvasY = (y - paintingRect.top) * scaleY;
-
-          const colorData = sampleMaskColor(Math.round(canvasX), Math.round(canvasY));
-          const pigment = identifyPigment(colorData);
-          
-          if (pigment) {
-            selectPigment(pigment);
-          }
-        }
+      // Update button hover state (for dwell timer)
+      if (appState === APP_STATES.SELECTION && isOverZoomInBtn && !zoomInBtn.disabled) {
+        currentButtonHover = "zoomInBtn";
+      } else if (appState === APP_STATES.DETAIL && isOverZoomOutBtn) {
+        currentButtonHover = "zoomOutBtn";
+      } else {
+        currentButtonHover = null;
       }
     }
 
@@ -1241,79 +1912,72 @@
       selectionFeedback.classList.remove("active");
       zoomInBtn.disabled = true;
       selectedPigment = null;
+      
+      // Reset magnifier position to center for fresh start
+      magnifierPosition = { 
+        x: window.innerWidth / 2, 
+        y: window.innerHeight / 2 
+      };
     });
 
-    // ===== HAND TRACKING DWELL DETECTION (Future: Button Activation) =====
-    let dwellStartTime = null;
-    let dwellButton = null;
-    const DWELL_TIME_MS = 1000; // 1 second for button activation
-
-    function checkButtonDwell() {
+    // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
+    
+    function checkButtonActivation() {
       if (!handTrackingEnabled) return;
 
-      const zoomInRect = zoomInBtn.getBoundingClientRect();
-      const zoomOutRect = zoomOutBtn.getBoundingClientRect();
-      const { x, y } = lastHandPosition;
-
-      let hoveredButton = null;
-
-      // Check if hand is over Zoom In button
-      if (x >= zoomInRect.left && x <= zoomInRect.right && 
-          y >= zoomInRect.top && y <= zoomInRect.bottom &&
-          !zoomInBtn.disabled) {
-        hoveredButton = zoomInBtn;
-      }
-      // Check if hand is over Zoom Out button
-      else if (x >= zoomOutRect.left && x <= zoomOutRect.right && 
-               y >= zoomOutRect.top && y <= zoomOutRect.bottom) {
-        hoveredButton = zoomOutBtn;
+      // Only process if white circle is hovering a button
+      if (!currentButtonHover) {
+        buttonDwellStartTime = null;
+        return;
       }
 
-      // Update dwell state
-      if (hoveredButton !== dwellButton) {
-        dwellStartTime = null;
-        dwellButton = null;
+      const button = document.getElementById(currentButtonHover);
+      if (!button || button.disabled) return;
+
+      // Track hover dwell for activation
+      if (!buttonDwellStartTime) {
+        buttonDwellStartTime = Date.now();
       }
 
-      if (hoveredButton) {
-        if (!dwellStartTime) {
-          dwellStartTime = Date.now();
-        }
+      const elapsedMs = Date.now() - buttonDwellStartTime;
 
-        const elapsedMs = Date.now() - dwellStartTime;
-        const progress = Math.min(elapsedMs / DWELL_TIME_MS, 1);
-
-        // Show progress visually (future: add progress bar or glow)
-        if (elapsedMs >= DWELL_TIME_MS) {
-          // Dwell complete - activate button
-          hoveredButton.click();
-          dwellStartTime = null;
-          dwellButton = null;
-        }
+      // Activate button after dwell timeout
+      if (elapsedMs >= BUTTON_DWELL_MS) {
+        button.click();
+        buttonDwellStartTime = null;
       }
     }
 
-    // Continuously check for button dwell
-    setInterval(() => {
-      if (handTrackingEnabled) {
-        checkButtonDwell();
+    function handleButtonPinch(buttonId) {
+      // Pinch while over button = immediate activation
+      if (isPinchConfirmed()) {
+        const button = document.getElementById(buttonId);
+        if (button && !button.disabled) {
+          button.click();
+        }
       }
-    }, 50);
+    }
 
     debugCheckbox.addEventListener("change", (e) => {
       maskCanvas.classList.toggle("visible", e.target.checked);
     });
 
     handTrackingToggle.addEventListener("change", async (e) => {
+      const cameraPreviewPanel = document.getElementById("cameraPreviewPanel");
+      
       if (e.target.checked) {
         if (!handTrackingEnabled) {
           await initializeHandTracking();
+          if (handTrackingEnabled) {
+            cameraPreviewPanel.classList.add("active");
+          }
         }
       } else {
         if (webcamStream) {
           webcamStream.getTracks().forEach(track => track.stop());
         }
         handCursor.classList.remove("active");
+        cameraPreviewPanel.classList.remove("active");
         handTrackingEnabled = false;
         console.log("✓ Hand tracking disabled");
       }
@@ -1335,48 +1999,119 @@
 
     window.addEventListener("resize", resizeCanvases);
 
+    // ===== MAIN INTERACTION LOOP =====
+    setInterval(() => {
+      if (handTrackingEnabled) {
+        checkButtonActivation();  // Handle hover-based dwell
+        
+        // Handle pinch-based button activation
+        if (isPinching && isPinchConfirmed()) {
+          if (appState === APP_STATES.SELECTION && currentButtonHover === "zoomInBtn") {
+            handleButtonPinch("zoomInBtn");
+          } else if (appState === APP_STATES.DETAIL && currentButtonHover === "zoomOutBtn") {
+            handleButtonPinch("zoomOutBtn");
+          }
+        }
+      }
+    }, 50);
+
     // ===== INITIALIZATION =====
     loadImages();
     resizeCanvases();
     setAppState(APP_STATES.SELECTION);
+    initializeSafeZone();
+
+    // Re-initialize safe zone on window resize
+    window.addEventListener("resize", () => {
+      resizeCanvases();
+      initializeSafeZone();
+    });
 
     console.log(`
-╔════════════════════════════════════════════╗
-║   PAINTING PIGMENT EXPLORER - DEBUG INFO   ║
-╚════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════════╗
+║        PAINTING PIGMENT EXPLORER - MAGNIFIER INTERFACE        ║
+╚════════════════════════════════════════════════════════════════╝
 
 ✓ Red Pigment: Vermilion (HgS)
 ✓ White Pigment: Lead White (2PbCO₃·Pb(OH)₂)
-✓ Debug Mode: Toggle checkbox (top right)
-✓ Mask Visibility: Enabled when debug mode ON
-✓ States: SELECTION → DETAIL → SELECTION
-✓ Hand Tracking: Toggle "Hand Tracking" checkbox to enable
+✓ Safe Detection Zone: Painting constrained to center area
+✓ Hand Tracking: Pinch detection enabled
 
-HAND TRACKING FEATURES:
-  • Webcam-based detection (MediaPipe Hands)
-  • Cursor circle follows hand position
-  • Circle center detects colors (will add dwell detection)
-  • Button hover detection (visual feedback)
-  • Debug overlay shows hand position & confidence
+INTERFACE ELEMENTS:
 
-WORKFLOW:
-1. User moves hand over painting → circle follows
-2. Circle center selects color (future: dwell confirmation)
-3. Color selection shows pigment info
-4. Hover hand over button → button highlights
-5. Stay for 1s → button activates (future implementation)
+1. WHITE CIRCLE (Hand Position Cursor)
+   • Follows your hand in real-time
+   • Used ONLY for button activation
+   • Highlights when hovering buttons
+
+2. RED CIRCLE (Magnifier - Selection Tool)
+   • Move your hand to grab and drag it
+   • Pinch to grab magnifier
+   • Shows sampled color inside (center fill)
+   • Drop (release pinch) to confirm selection
+   • Can pick up and move again anytime
+
+3. CAMERA PREVIEW (Top-Right)
+   • Live hand skeleton
+   • Detection status (🟢 Detected / 🔴 Searching)
+   • Confidence level bar
+
+INTERACTION WORKFLOW:
+
+SELECTION MODE:
+1. Move white circle to position
+2. Pinch to grab red magnifier
+3. Drag magnifier over painting (while pinching)
+4. Watch magnifier fill change color as you move
+5. Release pinch (drop) to confirm selection
+6. Pigment info + color swatch appear on "ZOOM IN" button
+7. Move white circle to "ZOOM IN" button
+8. EITHER:
+   ├─ Pinch while hovering → Instant activation
+   └─ Hover 1 second → Auto-activate
+9. Enter DETAIL MODE
+
+DETAIL MODE:
+1. Full pigment information displayed
+2. Pigment name revealed (not shown until now!)
+3. Move white circle to "ZOOM OUT" button
+4. EITHER:
+   ├─ Pinch while hovering → Instant activation
+   └─ Hover 1 second → Auto-activate
+5. Return to SELECTION MODE
+
+KEY FEATURES:
+✓ Magnifier = Physical metaphor (pick up, drag, drop)
+✓ White circle = Intentional action point (only for buttons)
+✓ Pinch detection = Primary interaction method
+✓ Hover dwell = Fallback option (accessibility)
+✓ Safe zone = Full hand always visible for precise detection
+✓ Smooth motion = Jitter reduction enabled
+
+DEBUG MODE (F12 Console):
+✓ Shows hand position, magnifier position
+✓ Shows pinch distance and state
+✓ Shows confidence and detection quality
+
+PINCH DETECTION THRESHOLDS:
+  • Pinching: Distance < 30px (thumb touches index)
+  • Released: Distance > 45px (hand opens)
+  • Hysteresis prevents accidental fluttering
 
 NEXT STEPS:
-1. Replace placeholder images with your real flag painting
-2. Paint the mask with #FF0000 for red areas, #FFFFFF for white
-3. Implement dwell detection for color selection
-4. Implement dwell-based button activation
+1. Replace placeholder painting with your real flag image
+2. Paint mask with #FF0000 (red) and #FFFFFF (white)
+3. Test magnifier drag and color sampling
+4. Test pinch and hover button activation
+5. Adjust if needed (thresholds, timings, visuals)
 
-Colors to use in mask:
-  • Red regions: #FF0000 (pure red)
-  • White regions: #FFFFFF (pure white)
-  • Background: #000000 (black - ignored)
+CUSTOMIZATION AVAILABLE:
+  • PINCH_THRESHOLD: How close thumb-index must be
+  • PINCH_RELEASE_THRESHOLD: Hysteresis margin
+  • BUTTON_DWELL_MS: Hover time to activate
+  • SAFE_ZONE_MARGINS: Camera detection area
     `);
   </script>
 </body>
 </html>
+      
