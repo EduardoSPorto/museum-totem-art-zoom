@@ -201,7 +201,99 @@
       display: block;
     }
 
-    /* ===== CAMERA PREVIEW PANEL ===== */
+    /* ===== MOLECULE SECTION (P3) ===== */
+    .molecule-section {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0f1419;
+      z-index: 20;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .app-state-molecule .molecule-section {
+      display: flex;
+    }
+
+    .molecule-header {
+      display: none;  /* Hide header for full-screen look */
+    }
+
+    .molecule-container {
+      display: flex;
+      flex: 1;
+      gap: 0;
+      padding: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .molecule-viewport {
+      flex: 1;
+      background: #0f1419;
+      border: none;
+      border-radius: 0;
+      overflow: hidden;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .molecule-legend {
+      display: none;  /* Hide legend for full-screen look, show as info bar at bottom */
+    }
+
+    .legend-title {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .legend-formula {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-red);
+      font-family: "Courier New", monospace;
+    }
+
+    .legend-atoms {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .legend-atom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .legend-atom-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-atom-text {
+      color: var(--text-primary);
+    }
+
+    .legend-info {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
     .camera-preview-panel {
       position: fixed;
       top: 16px;
@@ -696,7 +788,41 @@
       100% { transform: scaleX(0); transform-origin: right; }
     }
 
-    /* ===== ZOOM CONTROLS ===== */
+    .app-state-selection #zoomOutBtn {
+      display: none;
+    }
+
+    .app-state-selection #zoomInBtn {
+      display: inline-flex;
+    }
+
+    .app-state-selection #zoomInMoleculeBtn {
+      display: none;
+    }
+
+    .app-state-detail #zoomOutBtn {
+      display: inline-flex;
+    }
+
+    .app-state-detail #zoomInBtn {
+      display: inline-flex;
+    }
+
+    .app-state-detail #zoomInMoleculeBtn {
+      display: inline-flex;
+    }
+
+    .app-state-molecule #zoomOutBtn {
+      display: inline-flex;
+    }
+
+    .app-state-molecule #zoomInBtn {
+      display: none;
+    }
+
+    .app-state-molecule #zoomInMoleculeBtn {
+      display: none;
+    }
     .zoom-controls {
       position: fixed;
       bottom: 24px;
@@ -938,6 +1064,22 @@
     <p class="selection-feedback-subtitle">Click "Zoom In" to explore ↓</p>
   </div>
 
+  <!-- MOLECULE SECTION (P3) -->
+  <div class="molecule-section" id="moleculeSection">
+    <div class="molecule-header">
+      <h1 id="moleculeTitle">Molecule Structure</h1>
+    </div>
+    <div class="molecule-container">
+      <div class="molecule-viewport" id="moleculeViewport"></div>
+      <div class="molecule-legend" id="moleculeLegend">
+        <div class="legend-title">Atomic Structure</div>
+        <div class="legend-formula" id="legendFormula">HgS</div>
+        <div class="legend-atoms" id="legendAtoms"></div>
+        <div class="legend-info" id="legendInfo"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ZOOM CONTROLS -->
   <div class="zoom-controls">
     <button class="zoom-button" id="zoomOutBtn">
@@ -957,6 +1099,15 @@
         <path d="M11 8v6M8 11h6"></path>
       </svg>
       Zoom In
+    </button>
+
+    <button class="zoom-button" id="zoomInMoleculeBtn" disabled style="display: none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+        <path d="M11 8v6M8 11h6"></path>
+      </svg>
+      View Molecule
     </button>
   </div>
 
@@ -1006,12 +1157,17 @@
   <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- 3Dmol.js for molecular visualization -->
+  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
 
   <script>
     // ===== APP STATE MANAGEMENT =====
     const APP_STATES = {
       SELECTION: "selection",
-      DETAIL: "detail"
+      DETAIL: "detail",
+      MOLECULE: "molecule"
     };
 
     let appState = APP_STATES.SELECTION;
@@ -1027,14 +1183,23 @@
         if (handTrackingEnabled) {
           magnifier.classList.add("active");
         }
-      } else if (newState === APP_STATES.DETAIL) {
-        // Hide magnifier in detail mode
+      } else {
+        // Hide magnifier in detail and molecule modes
         magnifier.classList.remove("active");
       }
       
       // Apply safe zone when entering selection mode
       if (newState === APP_STATES.SELECTION) {
         setTimeout(() => initializeSafeZone(), 50);
+      }
+      
+      // Initialize 3D scene when entering molecule mode
+      if (newState === APP_STATES.MOLECULE) {
+        setTimeout(() => {
+          if (!scene) {
+            initializeMoleculeScene();
+          }
+        }, 50);
       }
       
       console.log(`→ State: ${newState.toUpperCase()}`);
@@ -1068,7 +1233,113 @@
       console.log(`✓ Safe detection zone applied: ${Math.round(safeWidth)}×${Math.round(safeHeight)}px`);
     }
 
-    // ===== LIBRARY AVAILABILITY CHECK =====
+    // ===== 3D MOLECULE VISUALIZATION (using 3Dmol) =====
+    // 3Dmol.js handles all 3D rendering, no manual setup needed
+    // moleculeViewer is initialized in displayMolecule() when needed
+
+    function displayMolecule(pigment) {
+      // Initialize 3Dmol viewer if needed
+      if (!moleculeViewer) {
+        const viewportElement = document.getElementById("moleculeViewport");
+        if (!viewportElement) {
+          console.error("✗ Molecule viewport not found");
+          return;
+        }
+        moleculeViewer = $3Dmol.createViewer(viewportElement, {
+          backgroundColor: '#0f1419'
+        });
+      }
+
+      // Get MOL file data
+      const pigmentKey = pigment.id === "vermilion" ? "red" : "white";
+      const molData = PIGMENT_MOL_FILES[pigmentKey];
+
+      if (!molData) {
+        console.warn("No MOL file for", pigment.name);
+        return;
+      }
+
+      // Load molecule structure
+      moleculeViewer.removeAllModels();
+      moleculeViewer.addModel(molData, "mol");
+
+      // Style atoms by element
+      moleculeViewer.setStyle({}, {
+        atoms: {
+          colorscheme: "Jmol"  // Standard element coloring
+        },
+        bonds: {
+          colorscheme: "Jmol"
+        }
+      });
+
+      // Add cartoon style for better visibility
+      moleculeViewer.setStyle({}, {
+        stick: {
+          colorscheme: "Jmol",
+          radius: 0.15
+        },
+        sphere: {
+          colorscheme: "Jmol",
+          scale: 0.25
+        }
+      });
+
+      // Zoom to fit
+      moleculeViewer.zoomTo();
+      moleculeViewer.render();
+
+      // Update legend
+      const mol = pigment.molecule;
+      const legendFormula = document.getElementById("legendFormula");
+      const legendAtoms = document.getElementById("legendAtoms");
+      const legendInfo = document.getElementById("legendInfo");
+      const moleculeTitle = document.getElementById("moleculeTitle");
+
+      legendFormula.textContent = mol.formula;
+      legendAtoms.innerHTML = "";
+
+      mol.atoms.forEach((atom) => {
+        const atomDiv = document.createElement("div");
+        atomDiv.className = "legend-atom";
+        
+        // Element colors (Jmol style)
+        const elementColors = {
+          "H": "#FFFFFF", "C": "#909090", "N": "#3050F8", "O": "#FF0D0D",
+          "S": "#FFFF30", "Pb": "#575961", "Hg": "#B8B8D0"
+        };
+        const color = elementColors[atom.element] || "#CCCCCC";
+        
+        atomDiv.innerHTML = `
+          <div class="legend-atom-color" style="background: ${color};"></div>
+          <span class="legend-atom-text">${atom.element}</span>
+        `;
+        legendAtoms.appendChild(atomDiv);
+      });
+
+      legendInfo.innerHTML = `
+        <strong>${mol.name}</strong><br/>
+        Formula: ${mol.formula}<br/>
+        ${mol.structure}
+      `;
+
+      moleculeTitle.textContent = mol.name;
+      
+      console.log(`✓ Loaded molecule: ${pigment.name}`);
+    }
+
+    // 3Dmol handles rotation/zoom natively - no manual controls needed
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+      if (renderer && camera && appState === APP_STATES.MOLECULE) {
+        const width = moleculeViewport.clientWidth;
+        const height = moleculeViewport.clientHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+      }
+    });
     function checkMediaPipeLibraries() {
       const libraries = {
         'Hands': window.Hands,
@@ -1608,6 +1879,34 @@
     }
 
     // ===== PIGMENT DATABASE (REAL CHEMISTRY) =====
+    // ===== EMBEDDED MOL FILES (Offline) =====
+    const PIGMENT_MOL_FILES = {
+      red: `
+  Vermilion (HgS)
+  
+  2  1  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 Hg  0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000    0.0000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0  0  0  0
+M  END
+      `,
+      white: `
+  Lead Carbonate (PbCO3)
+  
+  5  4  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 Pb  0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000    1.3000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000   -1.3000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    3.2000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0  0  0  0
+  2  3  2  0  0  0  0
+  2  4  1  0  0  0  0
+  2  5  1  0  0  0  0
+M  END
+      `
+    };
+
     const PIGMENTS = {
       red: {
         id: "vermilion",
@@ -1632,7 +1931,20 @@
           "Toxic: contains mercury vapor (avoid inhalation)",
           "Darkens over time in some conditions (photodegradation)"
         ],
-        occurrence: "Naturally occurs as cinnabar mineral; synthesized in laboratories"
+        occurrence: "Naturally occurs as cinnabar mineral; synthesized in laboratories",
+        molecule: {
+          name: "Mercury Sulfide",
+          formula: "HgS",
+          molecularWeight: 232.66,
+          atoms: [
+            { element: "Hg", x: 0, y: 0, z: 0, radius: 1.4, color: "#D4AF37" },
+            { element: "S", x: 2.2, y: 0, z: 0, radius: 1.0, color: "#FFFF00" }
+          ],
+          bonds: [
+            { from: 0, to: 1, type: "single", length: 2.2, color: "#888888" }
+          ],
+          structure: "Hexagonal crystal system - each Hg binds to 4 S atoms in real crystal"
+        }
       },
       white: {
         id: "lead_white",
@@ -1658,7 +1970,26 @@
           "Can yellow slightly over centuries",
           "Dries faster than titanium white"
         ],
-        occurrence: "Created synthetically; not found naturally as a paint pigment. Modern alternative: titanium dioxide (TiO₂)"
+        occurrence: "Created synthetically; not found naturally as a paint pigment. Modern alternative: titanium dioxide (TiO₂)",
+        molecule: {
+          name: "Lead Carbonate",
+          formula: "PbCO₃",
+          molecularWeight: 267.21,
+          atoms: [
+            { element: "Pb", x: 0, y: 0, z: 0, radius: 1.4, color: "#6B7280" },
+            { element: "C", x: 2.0, y: 0, z: 0, radius: 0.8, color: "#202020" },
+            { element: "O", x: 2.0, y: 1.2, z: 0, radius: 0.7, color: "#FF4444" },
+            { element: "O", x: 2.0, y: -1.2, z: 0, radius: 0.7, color: "#FF4444" },
+            { element: "O", x: 3.2, y: 0, z: 0, radius: 0.7, color: "#FF4444" }
+          ],
+          bonds: [
+            { from: 0, to: 1, type: "single", length: 2.0, color: "#666666" },
+            { from: 1, to: 2, type: "double", length: 1.2, color: "#666666" },
+            { from: 1, to: 3, type: "single", length: 1.2, color: "#666666" },
+            { from: 1, to: 4, type: "single", length: 1.2, color: "#666666" }
+          ],
+          structure: "Monoclinic crystal - Lead carbonate forms the core white pigment"
+        }
       }
     };
 
@@ -1677,6 +2008,17 @@
     const zoomOutBtn = document.getElementById("zoomOutBtn");
     const ctx = paintingCanvas.getContext("2d");
     const maskCtx = maskCanvas.getContext("2d");
+
+    // ===== MOLECULE SECTION (P3) =====
+    const moleculeSection = document.getElementById("moleculeSection");
+    const moleculeViewport = document.getElementById("moleculeViewport");
+    const moleculeLegend = document.getElementById("moleculeLegend");
+    const moleculeTitle = document.getElementById("moleculeTitle");
+    const legendFormula = document.getElementById("legendFormula");
+    const legendAtoms = document.getElementById("legendAtoms");
+    const legendInfo = document.getElementById("legendInfo");
+
+    let moleculeViewer = null;
 
     let paintingImage = null;
     let maskImage = null;
@@ -1908,16 +2250,39 @@
     });
 
     zoomOutBtn.addEventListener("click", () => {
-      setAppState(APP_STATES.SELECTION);
-      selectionFeedback.classList.remove("active");
-      zoomInBtn.disabled = true;
-      selectedPigment = null;
-      
-      // Reset magnifier position to center for fresh start
-      magnifierPosition = { 
-        x: window.innerWidth / 2, 
-        y: window.innerHeight / 2 
-      };
+      if (appState === APP_STATES.DETAIL) {
+        setAppState(APP_STATES.SELECTION);
+        selectionFeedback.classList.remove("active");
+        zoomInBtn.disabled = true;
+        selectedPigment = null;
+        
+        // Reset magnifier position to center for fresh start
+        magnifierPosition = { 
+          x: window.innerWidth / 2, 
+          y: window.innerHeight / 2 
+        };
+      } else if (appState === APP_STATES.MOLECULE) {
+        setAppState(APP_STATES.DETAIL);
+        document.getElementById("zoomInMoleculeBtn").style.display = "none";
+        document.getElementById("zoomInMoleculeBtn").disabled = true;
+      }
+    });
+
+    zoomInBtn.addEventListener("click", () => {
+      if (selectedPigment) {
+        setAppState(APP_STATES.DETAIL);
+        displayPigment(selectedPigment);
+        document.getElementById("zoomInMoleculeBtn").style.display = "inline-flex";
+        document.getElementById("zoomInMoleculeBtn").disabled = false;
+      }
+    });
+
+    const zoomInMoleculeBtn = document.getElementById("zoomInMoleculeBtn");
+    zoomInMoleculeBtn.addEventListener("click", () => {
+      if (selectedPigment) {
+        setAppState(APP_STATES.MOLECULE);
+        displayMolecule(selectedPigment);
+      }
     });
 
     // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
@@ -2029,89 +2394,70 @@
 
     console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║        PAINTING PIGMENT EXPLORER - MAGNIFIER INTERFACE        ║
+║   PAINTING PIGMENT EXPLORER - THREE SECTION INTERFACE        ║
 ╚════════════════════════════════════════════════════════════════╝
 
+✓ Phase 1: PAINTING (Magnifier Selection)
+✓ Phase 2: MATERIAL (Pigment Information)
+✓ Phase 3: MOLECULE (3D Structure)
 ✓ Red Pigment: Vermilion (HgS)
 ✓ White Pigment: Lead White (2PbCO₃·Pb(OH)₂)
 ✓ Safe Detection Zone: Painting constrained to center area
 ✓ Hand Tracking: Pinch detection enabled
+✓ 3D Visualization: Three.js molecule viewer
 
-INTERFACE ELEMENTS:
+SECTION NAVIGATION:
 
-1. WHITE CIRCLE (Hand Position Cursor)
-   • Follows your hand in real-time
-   • Used ONLY for button activation
-   • Highlights when hovering buttons
+P1 - PAINTING:
+   • Red magnifier circle = selection tool
+   • Pinch to grab and drag magnifier
+   • Release pinch to confirm color selection
+   • White circle = hand position (for buttons only)
 
-2. RED CIRCLE (Magnifier - Selection Tool)
-   • Move your hand to grab and drag it
-   • Pinch to grab magnifier
-   • Shows sampled color inside (center fill)
-   • Drop (release pinch) to confirm selection
-   • Can pick up and move again anytime
+        ↓ [ZOOM IN button]
 
-3. CAMERA PREVIEW (Top-Right)
-   • Live hand skeleton
-   • Detection status (🟢 Detected / 🔴 Searching)
-   • Confidence level bar
+P2 - MATERIAL:
+   • Full pigment information display
+   • Chemical formula and properties
+   • Why the pigment has that color
+   • Historical context
+   • Can still move magnifier to select new color
 
-INTERACTION WORKFLOW:
+        ↓ [VIEW MOLECULE button]
 
-SELECTION MODE:
-1. Move white circle to position
-2. Pinch to grab red magnifier
-3. Drag magnifier over painting (while pinching)
-4. Watch magnifier fill change color as you move
-5. Release pinch (drop) to confirm selection
-6. Pigment info + color swatch appear on "ZOOM IN" button
-7. Move white circle to "ZOOM IN" button
-8. EITHER:
-   ├─ Pinch while hovering → Instant activation
-   └─ Hover 1 second → Auto-activate
-9. Enter DETAIL MODE
+P3 - MOLECULE:
+   • Interactive 3D molecular structure
+   • Element legend showing atom types
+   • Auto-rotating molecule (pause on click)
+   • Click + drag to rotate manually
+   • Scroll to zoom in/out
+   • Shows: atoms, bonds, molecular weight
+   • No magnifier in this view
 
-DETAIL MODE:
-1. Full pigment information displayed
-2. Pigment name revealed (not shown until now!)
-3. Move white circle to "ZOOM OUT" button
-4. EITHER:
-   ├─ Pinch while hovering → Instant activation
-   └─ Hover 1 second → Auto-activate
-5. Return to SELECTION MODE
+        ↓ [ZOOM OUT button]
 
-KEY FEATURES:
+Back to P2
+
+INTERACTION FEATURES:
 ✓ Magnifier = Physical metaphor (pick up, drag, drop)
-✓ White circle = Intentional action point (only for buttons)
+✓ White circle = Intentional action point (buttons only)
 ✓ Pinch detection = Primary interaction method
-✓ Hover dwell = Fallback option (accessibility)
-✓ Safe zone = Full hand always visible for precise detection
-✓ Smooth motion = Jitter reduction enabled
+✓ Hover dwell = Fallback option (1 second)
+✓ Auto-rotating molecule = Museum engagement
+✓ 3D controls = Mouse drag or hand gesture (future)
 
-DEBUG MODE (F12 Console):
-✓ Shows hand position, magnifier position
-✓ Shows pinch distance and state
-✓ Shows confidence and detection quality
-
-PINCH DETECTION THRESHOLDS:
-  • Pinching: Distance < 30px (thumb touches index)
-  • Released: Distance > 45px (hand opens)
-  • Hysteresis prevents accidental fluttering
-
-NEXT STEPS:
-1. Replace placeholder painting with your real flag image
-2. Paint mask with #FF0000 (red) and #FFFFFF (white)
-3. Test magnifier drag and color sampling
-4. Test pinch and hover button activation
-5. Adjust if needed (thresholds, timings, visuals)
-
-CUSTOMIZATION AVAILABLE:
+CUSTOMIZATION:
   • PINCH_THRESHOLD: How close thumb-index must be
-  • PINCH_RELEASE_THRESHOLD: Hysteresis margin
-  • BUTTON_DWELL_MS: Hover time to activate
+  • BUTTON_DWELL_MS: Hover time to activate (1000ms)
   • SAFE_ZONE_MARGINS: Camera detection area
+  • Three.js scene: Lighting, colors, atom sizes
+
+DEBUG FEATURES:
+✓ F12 Console shows state transitions
+✓ Hand position and magnifier position tracking
+✓ Pinch distance and state display
+✓ Confidence and detection quality info
     `);
   </script>
 </body>
 </html>
-      
