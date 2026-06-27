@@ -208,7 +208,7 @@
     // 3Dmol.js handles all 3D rendering, no manual setup needed
     // moleculeViewer is initialized in displayMolecule() when needed
 
-    function displayMolecule(pigment) {
+    async function displayMolecule(pigment) {
       // Initialize 3Dmol viewer if needed
       if (!moleculeViewer) {
         const viewportElement = document.getElementById("moleculeViewport");
@@ -222,12 +222,26 @@
       }
 
       // Get MOL file data
-      const pigmentKey = pigment.id === "vermilion" ? "red" : "white";
-      const molData = PIGMENT_MOL_FILES[pigmentKey];
+      const molPath = PIGMENT_MOL_FILES[pigment.key];
 
-      if (!molData) {
+      if (!molPath) {
         console.warn("No MOL file for", pigment.name);
         return;
+      }
+
+      let molData = moleculeFileCache[molPath];
+      if (!molData) {
+        try {
+          const response = await fetch(molPath);
+          if (!response.ok) {
+            throw new Error(`${response.status} ${response.statusText}`);
+          }
+          molData = await response.text();
+          moleculeFileCache[molPath] = molData;
+        } catch (error) {
+          console.error(`✗ Failed to load MOL file: ${molPath}`, error);
+          return;
+        }
       }
 
       // Load molecule structure
@@ -277,7 +291,8 @@
         // Element colors (Jmol style)
         const elementColors = {
           "H": "#FFFFFF", "C": "#909090", "N": "#3050F8", "O": "#FF0D0D",
-          "S": "#FFFF30", "Pb": "#575961", "Hg": "#B8B8D0"
+          "S": "#FFFF30", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#FFD98F",
+          "Cu": "#C88033"
         };
         const color = elementColors[atom.element] || "#CCCCCC";
         
@@ -814,7 +829,7 @@
       const canvasX = (screenX - paintingRect.left) * scaleX;
       const canvasY = (screenY - paintingRect.top) * scaleY;
 
-      return sampleMaskColor(Math.round(canvasX), Math.round(canvasY));
+      return MaskReader.sampleMaskColor(Math.round(canvasX), Math.round(canvasY));
     }
 
     function updateHandCursor(x, y) {
@@ -872,6 +887,7 @@
     const legendInfo = document.getElementById("legendInfo");
 
     let moleculeViewer = null;
+    const moleculeFileCache = {};
 
     // ===== CLICK DETECTION =====
 
@@ -973,6 +989,7 @@
 
       const coords = MaskReader.getCanvasCoordinates(e);
       const colorData = MaskReader.sampleMaskColor(coords.x, coords.y);
+      if (!colorData) return;
 
       if (debugCheckbox.checked) {
         console.log(`Clicked at (${coords.x}, ${coords.y}) → Color: ${colorData.hex}`);
@@ -989,6 +1006,7 @@
 
       const coords = MaskReader.getCanvasCoordinates(e);
       const colorData = MaskReader.sampleMaskColor(coords.x, coords.y);
+      if (!colorData) return;
 
       cursorInfo.classList.add("visible");
       cursorInfo.innerHTML = `

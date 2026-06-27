@@ -1,85 +1,209 @@
 const PIGMENTS = {
-  red: {
-    id: "vermilion",
-    name: "Vermilion",
-    commonName: "Mercury Sulfide",
-    formula: "HgS",
-    color: "#C41E3A",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Cinnabar-sample.jpg/440px-Cinnabar-sample.jpg",
-    imageAlt: "Natural cinnabar mineral (mercury sulfide)",
-    description: "A brilliant red pigment created from mercury sulfide. Historically one of the most prized reds in Asian and European art.",
-    whyRed: "Mercury and sulfur atoms in the crystal structure create specific energy levels that absorb blue and green light wavelengths, reflecting red light to our eyes.",
+  black: {
+    key: "black",
+    id: "carbon_black",
+    name: "Carbon Black",
+    commonName: "Carbon Black",
+    formula: "C",
+    color: "#000000",
+    image: "assets/materials/Carbon_black_000000.jpg",
+    imageAlt: "Carbon black pigment",
+    description: "A black pigment made of finely divided carbon particles.",
+    whyRed: "Carbon black absorbs most visible wavelengths because its carbon-rich structure converts incoming light into heat instead of reflecting it.",
     chemistry: {
-      elements: "Mercury (Hg) + Sulfur (S)",
-      structure: "Hexagonal crystal lattice",
-      bandGap: "~2.1 eV",
-      lightAbsorption: "Absorbs λ < 620nm"
+      elements: "Carbon (C)",
+      structure: "Graphitic carbon particles",
+      lightAbsorption: "Broad visible-spectrum absorption"
     },
-    historical: "Extensively used in Chinese lacquerware, Japanese art, and European paintings from medieval times through the 19th century.",
+    historical: "Carbon-based black pigments are among the oldest materials used in drawing and painting.",
     properties: [
-      "Extremely bright and saturated",
-      "Chemically stable when not exposed to light",
-      "Toxic: contains mercury vapor (avoid inhalation)",
-      "Darkens over time in some conditions (photodegradation)"
+      "Very strong tinting strength",
+      "High opacity in small amounts",
+      "Chemically stable"
     ],
-    occurrence: "Naturally occurs as cinnabar mineral; synthesized in laboratories",
+    occurrence: "Produced by incomplete combustion of carbon-rich materials.",
     molecule: {
-      name: "Mercury Sulfide",
-      formula: "HgS",
-      molecularWeight: 232.66,
+      name: "Carbon Black",
+      formula: "C",
+      molecularWeight: 12.01,
       atoms: [
-        { element: "Hg", x: 0, y: 0, z: 0, radius: 1.4, color: "#D4AF37" },
-        { element: "S", x: 2.2, y: 0, z: 0, radius: 1.0, color: "#FFFF00" }
+        { element: "C" }
       ],
-      bonds: [
-        { from: 0, to: 1, type: "single", length: 2.2, color: "#888888" }
+      bonds: [],
+      structure: "Graphitic fragment representative of carbon black"
+    }
+  },
+  blue: {
+    key: "blue",
+    id: "blue_pigment",
+    name: "Blue Pigment",
+    commonName: "Azurite",
+    formula: "Cu3(CO3)2(OH)2",
+    color: "#0000FF",
+    image: "assets/materials/placeholder_blue_pigment_0000ff.jpg",
+    imageAlt: "Blue pigment",
+    description: "A blue pigment represented by azurite in the molecule dataset.",
+    whyRed: "Copper ions absorb parts of the visible spectrum and leave blue light dominant in the reflected color.",
+    chemistry: {
+      elements: "Copper (Cu) + Carbon (C) + Oxygen (O) + Hydrogen (H)",
+      structure: "Basic copper carbonate",
+      lightAbsorption: "Copper-centered electronic transitions"
+    },
+    historical: "Copper-based blue pigments such as azurite were widely used before modern synthetic blues.",
+    properties: [
+      "Distinct blue color",
+      "Mineral pigment character",
+      "Sensitive to some chemical environments"
+    ],
+    occurrence: "Naturally occurring copper carbonate mineral.",
+    molecule: {
+      name: "Azurite",
+      formula: "Cu3(CO3)2(OH)2",
+      molecularWeight: 344.67,
+      atoms: [
+        { element: "Cu" },
+        { element: "C" },
+        { element: "O" }
       ],
-      structure: "Hexagonal crystal system - each Hg binds to 4 S atoms in real crystal"
+      bonds: [],
+      structure: "Simplified azurite model"
+    }
+  },
+  red: {
+    key: "red",
+    id: "lake_red",
+    name: "Lake Red",
+    commonName: "Lake Red",
+    formula: "C14H8O4",
+    color: "#FF0000",
+    image: "assets/materials/lake_red_Titian_ff0000.jpg",
+    imageAlt: "Lake red pigment",
+    description: "A red lake pigment represented by an alizarin molecule model.",
+    whyRed: "The conjugated organic structure absorbs higher-energy visible light and reflects red wavelengths.",
+    chemistry: {
+      elements: "Carbon (C) + Hydrogen (H) + Oxygen (O)",
+      structure: "Organic lake pigment chromophore",
+      lightAbsorption: "Conjugated pi-electron system"
+    },
+    historical: "Red lake pigments were prized for luminous red glazes in historical painting.",
+    properties: [
+      "Transparent to semi-transparent",
+      "Useful in layered glazes",
+      "Color depends on substrate and binder"
+    ],
+    occurrence: "Prepared by fixing an organic dye onto an inorganic substrate.",
+    molecule: {
+      name: "Alizarin",
+      formula: "C14H8O4",
+      molecularWeight: 240.21,
+      atoms: [
+        { element: "C" },
+        { element: "H" },
+        { element: "O" }
+      ],
+      bonds: [],
+      structure: "Representative lake pigment molecule"
+    }
+  },
+  signature: {
+    key: "signature",
+    id: "artist_signature",
+    name: "Artist Signature",
+    commonName: "Benette Casaretto Motta",
+    formula: "Signature",
+    color: "#FF00FF",
+    image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
+    imageAlt: "Artist signature",
+    description: "The artist signature region from the artwork mask.",
+    whyRed: "This mask color identifies the artist signature area rather than a pigment material.",
+    chemistry: {
+      area: "Artist signature",
+      maskColor: "#FF00FF"
+    },
+    historical: "Signature area for Benette Casaretto Motta.",
+    properties: [
+      "Mapped from the magenta mask color",
+      "Informational artwork region"
+    ],
+    occurrence: "Artwork annotation region.",
+    molecule: {
+      name: "Artist Signature",
+      formula: "Signature",
+      molecularWeight: 0,
+      atoms: [],
+      bonds: [],
+      structure: "No molecule file is available for this artwork region"
     }
   },
   white: {
-    id: "lead_white",
-    name: "Lead White",
-    commonName: "Basic Lead Carbonate",
-    formula: "2PbCO₃·Pb(OH)₂",
-    color: "#F5F5F0",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Lead%28II%29_carbonate.jpg/440px-Lead%28II%29_carbonate.jpg",
-    imageAlt: "Lead carbonate powder (lead white pigment)",
-    description: "The most important white pigment in fine art for over 2,000 years. Used in oil painting, tempera, and frescoes.",
-    whyWhite: "The crystal structure of lead carbonate scatters and reflects all visible light wavelengths equally, making it pure white. Its particles also scatter light internally (Mie scattering).",
+    key: "white",
+    id: "white_pigment",
+    name: "White Pigment",
+    commonName: "Lead Carbonate",
+    formula: "PbCO3",
+    color: "#FFFFFF",
+    image: "assets/materials/placeholder_white_pigment_ffffff.jpg",
+    imageAlt: "White pigment",
+    description: "A white pigment represented by a lead carbonate molecule model.",
+    whyRed: "White pigment particles scatter visible wavelengths broadly, so the surface reflects light without a strong hue.",
     chemistry: {
-      elements: "Lead (Pb) + Carbon (C) + Oxygen (O) + Hydrogen (H)",
-      structure: "Monoclinic crystal system",
-      refractiveIndex: "1.94 (very high)",
-      opacityMechanism: "Mie scattering of light particles"
+      elements: "Lead (Pb) + Carbon (C) + Oxygen (O)",
+      structure: "Carbonate pigment",
+      opacityMechanism: "Light scattering"
     },
-    historical: "Known as 'ceruse' in ancient Rome. Produced by corroding lead strips with vinegar or dung. Essential to Old Masters' techniques.",
+    historical: "Lead carbonate whites were important historical painting pigments.",
     properties: [
-      "Excellent covering power (opaque)",
-      "Mixes smoothly with oils",
-      "Slightly toxic (lead content)",
-      "Can yellow slightly over centuries",
-      "Dries faster than titanium white"
+      "High covering power",
+      "Smooth handling in paint",
+      "Toxic because of lead content"
     ],
-    occurrence: "Created synthetically; not found naturally as a paint pigment. Modern alternative: titanium dioxide (TiO₂)",
+    occurrence: "Historically manufactured as a lead carbonate pigment.",
     molecule: {
       name: "Lead Carbonate",
-      formula: "PbCO₃",
+      formula: "PbCO3",
       molecularWeight: 267.21,
       atoms: [
-        { element: "Pb", x: 0, y: 0, z: 0, radius: 1.4, color: "#6B7280" },
-        { element: "C", x: 2.0, y: 0, z: 0, radius: 0.8, color: "#202020" },
-        { element: "O", x: 2.0, y: 1.2, z: 0, radius: 0.7, color: "#FF4444" },
-        { element: "O", x: 2.0, y: -1.2, z: 0, radius: 0.7, color: "#FF4444" },
-        { element: "O", x: 3.2, y: 0, z: 0, radius: 0.7, color: "#FF4444" }
+        { element: "Pb" },
+        { element: "C" },
+        { element: "O" }
       ],
-      bonds: [
-        { from: 0, to: 1, type: "single", length: 2.0, color: "#666666" },
-        { from: 1, to: 2, type: "double", length: 1.2, color: "#666666" },
-        { from: 1, to: 3, type: "single", length: 1.2, color: "#666666" },
-        { from: 1, to: 4, type: "single", length: 1.2, color: "#666666" }
+      bonds: [],
+      structure: "Lead carbonate model"
+    }
+  },
+  yellow: {
+    key: "yellow",
+    id: "cadmium_yellow",
+    name: "Cadmium Yellow",
+    commonName: "Cadmium Sulfide",
+    formula: "CdS",
+    color: "#FFFF00",
+    image: "assets/materials/Cadmiumgelb-_Pigment_ffff00.jpg",
+    imageAlt: "Cadmium yellow pigment",
+    description: "A yellow cadmium sulfide pigment.",
+    whyRed: "Cadmium sulfide absorbs shorter blue-violet wavelengths and reflects the yellow portion of visible light.",
+    chemistry: {
+      elements: "Cadmium (Cd) + Sulfur (S)",
+      structure: "Cadmium sulfide crystal",
+      bandGap: "Visible-light semiconductor band gap"
+    },
+    historical: "Cadmium yellow became an important modern yellow pigment because of its strong color and opacity.",
+    properties: [
+      "Bright saturated yellow",
+      "High opacity",
+      "Contains cadmium"
+    ],
+    occurrence: "Synthetic cadmium sulfide pigment.",
+    molecule: {
+      name: "Cadmium Sulfide",
+      formula: "CdS",
+      molecularWeight: 144.48,
+      atoms: [
+        { element: "Cd" },
+        { element: "S" }
       ],
-      structure: "Monoclinic crystal - Lead carbonate forms the core white pigment"
+      bonds: [],
+      structure: "Cadmium sulfide model"
     }
   }
 };

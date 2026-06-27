@@ -14,46 +14,24 @@ const MaskReader = (() => {
   }
 
   function loadImages() {
-    createPlaceholderPainting();
-    createPlaceholderMask();
+    loadImage("assets/artwork/visible_anjo_adonay.png", (image) => {
+      paintingImage = image;
+      drawPainting();
+    });
 
-    console.log("✓ Placeholder images loaded (user will add real images)");
+    loadImage("assets/artwork/color_anjo_adonay.png", (image) => {
+      maskImage = image;
+      drawMask();
+    });
+
+    console.log("✓ Artwork and mask images loading");
   }
 
-  function createPlaceholderPainting() {
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = 800;
-    tempCanvas.height = 600;
-    const tempCtx = tempCanvas.getContext("2d");
-
-    tempCtx.fillStyle = "#fff";
-    tempCtx.fillRect(0, 0, 800, 600);
-
-    tempCtx.fillStyle = "#C41E3A";
-    tempCtx.beginPath();
-    tempCtx.arc(400, 300, 150, 0, Math.PI * 2);
-    tempCtx.fill();
-
-    paintingImage = tempCanvas;
-    drawPainting();
-  }
-
-  function createPlaceholderMask() {
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = 800;
-    tempCanvas.height = 600;
-    const tempCtx = tempCanvas.getContext("2d");
-
-    tempCtx.fillStyle = "#FFFFFF";
-    tempCtx.fillRect(0, 0, 800, 600);
-
-    tempCtx.fillStyle = "#FF0000";
-    tempCtx.beginPath();
-    tempCtx.arc(400, 300, 150, 0, Math.PI * 2);
-    tempCtx.fill();
-
-    maskImage = tempCanvas;
-    drawMask();
+  function loadImage(src, onLoad) {
+    const image = new Image();
+    image.onload = () => onLoad(image);
+    image.onerror = () => console.error(`✗ Failed to load image: ${src}`);
+    image.src = src;
   }
 
   function drawPainting() {

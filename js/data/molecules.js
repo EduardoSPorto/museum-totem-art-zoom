@@ -1,26 +1,7 @@
 const PIGMENT_MOL_FILES = {
-  red: `
-Vermilion (HgS)
-
-2  1  0  0  0  0  0  0  0  0999 V2000
-  0.0000    0.0000    0.0000 Hg  0  0  0  0  0  0  0  0  0  0  0  0
-  2.0000    0.0000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
-1  2  1  0  0  0  0
-M  END
-  `,
-  white: `
-Lead Carbonate (PbCO3)
-
-5  4  0  0  0  0  0  0  0  0999 V2000
-  0.0000    0.0000    0.0000 Pb  0  0  0  0  0  0  0  0  0  0  0  0
-  2.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
-  2.0000    1.3000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
-  2.0000   -1.3000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
-  3.2000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
-1  2  1  0  0  0  0
-2  3  2  0  0  0  0
-2  4  1  0  0  0  0
-2  5  1  0  0  0  0
-M  END
-  `
+  black: "assets/molecules/Carbon_black_000000.mol",
+  blue: "assets/molecules/placeholder_blue_pigment_0000ff.mol",
+  red: "assets/molecules/lake_red_ff0000.mol",
+  white: "assets/molecules/placeholder_white_pigment_ffffff.mol",
+  yellow: "assets/molecules/Cadmium_yellow_ffff00.mol"
 };
