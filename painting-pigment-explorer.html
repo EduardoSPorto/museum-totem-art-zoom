@@ -237,6 +237,7 @@
             throw new Error(`${response.status} ${response.statusText}`);
           }
           molData = await response.text();
+          molData = normalizeMolData(molData);
           moleculeFileCache[molPath] = molData;
         } catch (error) {
           console.error(`✗ Failed to load MOL file: ${molPath}`, error);
@@ -246,7 +247,7 @@
 
       // Load molecule structure
       moleculeViewer.removeAllModels();
-      moleculeViewer.addModel(molData, "mol");
+      moleculeViewer.addModel(molData, "sdf");
 
       // Style atoms by element
       moleculeViewer.setStyle({}, {
@@ -312,6 +313,47 @@
       moleculeTitle.textContent = mol.name;
       
       console.log(`✓ Loaded molecule: ${pigment.name}`);
+    }
+
+    function normalizeMolData(molData) {
+      const lines = molData.replace(/\r\n/g, "\n").split("\n");
+      const countsLineIndex = lines.findIndex((line) => line.includes("V2000"));
+      if (countsLineIndex === -1) return molData;
+
+      const [atomCountText, bondCountText] = lines[countsLineIndex].trim().split(/\s+/);
+      const atomCount = Number.parseInt(atomCountText, 10);
+      const bondCount = Number.parseInt(bondCountText, 10);
+      if (!Number.isFinite(atomCount) || !Number.isFinite(bondCount)) return molData;
+
+      const normalized = [...lines];
+      const bondStartIndex = countsLineIndex + 1 + atomCount;
+      const actualBondCount = normalized
+        .slice(bondStartIndex)
+        .findIndex((line) => line.trim().startsWith("M  END"));
+      const normalizedBondCount = actualBondCount >= 0 ? actualBondCount : bondCount;
+      normalized[countsLineIndex] = `${String(atomCount).padStart(3)}${String(normalizedBondCount).padStart(3)}  0  0  0  0  0  0  0 0999 V2000`;
+
+      for (let i = 0; i < atomCount; i += 1) {
+        const lineIndex = countsLineIndex + 1 + i;
+        const parts = (normalized[lineIndex] || "").trim().split(/\s+/);
+        if (parts.length < 4) continue;
+
+        const x = Number.parseFloat(parts[0]);
+        const y = Number.parseFloat(parts[1]);
+        const z = Number.parseFloat(parts[2]);
+        const element = parts[3];
+        normalized[lineIndex] = `${x.toFixed(4).padStart(10)}${y.toFixed(4).padStart(10)}${z.toFixed(4).padStart(10)} ${element.padEnd(3)} 0  0  0  0  0  0  0  0  0  0  0  0`;
+      }
+
+      for (let i = 0; i < normalizedBondCount; i += 1) {
+        const lineIndex = bondStartIndex + i;
+        const parts = (normalized[lineIndex] || "").trim().split(/\s+/);
+        if (parts.length < 3) continue;
+
+        normalized[lineIndex] = `${parts[0].padStart(3)}${parts[1].padStart(3)}${parts[2].padStart(3)}  0  0  0  0`;
+      }
+
+      return normalized.join("\n");
     }
 
     // 3Dmol handles rotation/zoom natively - no manual controls needed
@@ -897,18 +939,42 @@
         return PIGMENTS[mappedPigmentKey];
       }
 
-      // TODO: remove this transitional fallback once the mask asset is guaranteed to be exact RGB.
-      const { r, g, b } = colorData;
-
-      if (r > 200 && g < 50 && b < 50) {
-        return PIGMENTS.red;
-      }
-
-      if (r > 200 && g > 200 && b > 200) {
-        return PIGMENTS.white;
+      const nearestPigmentKey = findNearestPigmentKey(colorData);
+      if (nearestPigmentKey && PIGMENTS[nearestPigmentKey]) {
+        return PIGMENTS[nearestPigmentKey];
       }
 
       return null;
+    }
+
+    function findNearestPigmentKey(colorData) {
+      let bestMatch = null;
+      let bestDistance = Infinity;
+
+      Object.entries(PIGMENT_COLOR_MAP).forEach(([hex, pigmentKey]) => {
+        const color = hexToRgb(hex);
+        const distance = Math.hypot(
+          colorData.r - color.r,
+          colorData.g - color.g,
+          colorData.b - color.b
+        );
+
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestMatch = pigmentKey;
+        }
+      });
+
+      return bestDistance <= 120 ? bestMatch : null;
+    }
+
+    function hexToRgb(hex) {
+      const value = Number.parseInt(hex.replace("#", ""), 16);
+      return {
+        r: (value >> 16) & 255,
+        g: (value >> 8) & 255,
+        b: value & 255
+      };
     }
 
     function selectPigment(pigment) {

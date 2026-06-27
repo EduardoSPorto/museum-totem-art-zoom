@@ -29,13 +29,5 @@ function setAppState(newState) {
     }, 50);
   }
 
-  if (newState === APP_STATES.MOLECULE) {
-    setTimeout(() => {
-      if (typeof scene === "undefined" || !scene) {
-        initializeMoleculeScene();
-      }
-    }, 50);
-  }
-
   console.log(`→ State: ${newState.toUpperCase()}`);
 }
