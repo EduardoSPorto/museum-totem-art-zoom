@@ -172,6 +172,7 @@
   <script src="js/data/pigments.js"></script>
   <script src="js/data/molecules.js"></script>
   <script src="js/data/colorMap.js"></script>
+  <script src="js/core/maskReader.js"></script>
   <script src="js/state.js"></script>
 
   <script>
@@ -861,9 +862,6 @@
     const selectionName = document.getElementById("selectionName");
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
-    const ctx = paintingCanvas.getContext("2d");
-    const maskCtx = maskCanvas.getContext("2d");
-
     // ===== MOLECULE SECTION (P3) =====
     const moleculeSection = document.getElementById("moleculeSection");
     const moleculeViewport = document.getElementById("moleculeViewport");
@@ -875,102 +873,7 @@
 
     let moleculeViewer = null;
 
-    let paintingImage = null;
-    let maskImage = null;
-
-    // ===== IMAGE LOADING =====
-    function loadImages() {
-      // For now, we'll create placeholder canvases
-      // User will replace with actual images later
-
-      // Create a simple flag-like placeholder
-      createPlaceholderPainting();
-      createPlaceholderMask();
-
-      console.log("✓ Placeholder images loaded (user will add real images)");
-    }
-
-    function createPlaceholderPainting() {
-      // Simple placeholder: red and white rectangle (like a flag)
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = 800;
-      tempCanvas.height = 600;
-      const tempCtx = tempCanvas.getContext("2d");
-
-      // White background
-      tempCtx.fillStyle = "#fff";
-      tempCtx.fillRect(0, 0, 800, 600);
-
-      // Red circle in center (symbolic of Japan flag)
-      tempCtx.fillStyle = "#C41E3A";
-      tempCtx.beginPath();
-      tempCtx.arc(400, 300, 150, 0, Math.PI * 2);
-      tempCtx.fill();
-
-      paintingImage = tempCanvas;
-      drawPainting();
-    }
-
-    function createPlaceholderMask() {
-      // Same composition but with pure colors for masking
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = 800;
-      tempCanvas.height = 600;
-      const tempCtx = tempCanvas.getContext("2d");
-
-      // White areas (255, 255, 255)
-      tempCtx.fillStyle = "#FFFFFF";
-      tempCtx.fillRect(0, 0, 800, 600);
-
-      // Red areas (255, 0, 0) - pure red for unambiguous detection
-      tempCtx.fillStyle = "#FF0000";
-      tempCtx.beginPath();
-      tempCtx.arc(400, 300, 150, 0, Math.PI * 2);
-      tempCtx.fill();
-
-      maskImage = tempCanvas;
-      drawMask();
-    }
-
-    function drawPainting() {
-      if (!paintingImage) return;
-      ctx.clearRect(0, 0, paintingCanvas.width, paintingCanvas.height);
-      ctx.drawImage(paintingImage, 0, 0, paintingCanvas.width, paintingCanvas.height);
-    }
-
-    function drawMask() {
-      if (!maskImage) return;
-      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-      maskCtx.drawImage(maskImage, 0, 0, maskCanvas.width, maskCanvas.height);
-    }
-
     // ===== CLICK DETECTION =====
-    function getCanvasCoordinates(event) {
-      const rect = paintingCanvas.getBoundingClientRect();
-      const scaleX = maskCanvas.width / rect.width;
-      const scaleY = maskCanvas.height / rect.height;
-      
-      const x = (event.clientX - rect.left) * scaleX;
-      const y = (event.clientY - rect.top) * scaleY;
-
-      return { x: Math.round(x), y: Math.round(y) };
-    }
-
-    function sampleMaskColor(x, y) {
-      if (!maskImage) return null;
-      
-      const imageData = maskCtx.getImageData(x, y, 1, 1);
-      const [r, g, b, a] = imageData.data;
-      
-      return { r, g, b, a, hex: rgbToHex(r, g, b) };
-    }
-
-    function rgbToHex(r, g, b) {
-      return "#" + [r, g, b].map(x => {
-        const hex = x.toString(16);
-        return hex.length === 1 ? "0" + hex : hex;
-      }).join("").toUpperCase();
-    }
 
     function identifyPigment(colorData) {
       const mappedPigmentKey = PIGMENT_COLOR_MAP[colorData.hex];
@@ -978,7 +881,7 @@
         return PIGMENTS[mappedPigmentKey];
       }
 
-      // Fallback for any slightly antialiased or compressed mask pixels.
+      // TODO: remove this transitional fallback once the mask asset is guaranteed to be exact RGB.
       const { r, g, b } = colorData;
 
       if (r > 200 && g < 50 && b < 50) {
@@ -1068,8 +971,8 @@
     paintingCanvas.addEventListener("click", (e) => {
       if (appState !== APP_STATES.SELECTION) return;
 
-      const coords = getCanvasCoordinates(e);
-      const colorData = sampleMaskColor(coords.x, coords.y);
+      const coords = MaskReader.getCanvasCoordinates(e);
+      const colorData = MaskReader.sampleMaskColor(coords.x, coords.y);
 
       if (debugCheckbox.checked) {
         console.log(`Clicked at (${coords.x}, ${coords.y}) → Color: ${colorData.hex}`);
@@ -1084,8 +987,8 @@
     paintingCanvas.addEventListener("mousemove", (e) => {
       if (!debugCheckbox.checked) return;
 
-      const coords = getCanvasCoordinates(e);
-      const colorData = sampleMaskColor(coords.x, coords.y);
+      const coords = MaskReader.getCanvasCoordinates(e);
+      const colorData = MaskReader.sampleMaskColor(coords.x, coords.y);
 
       cursorInfo.classList.add("visible");
       cursorInfo.innerHTML = `
@@ -1208,16 +1111,7 @@
 
     // ===== CANVAS RESIZING =====
     function resizeCanvases() {
-      const container = paintingCanvas.parentElement;
-      const rect = container.getBoundingClientRect();
-      
-      paintingCanvas.width = rect.width;
-      paintingCanvas.height = rect.height;
-      maskCanvas.width = rect.width;
-      maskCanvas.height = rect.height;
-
-      drawPainting();
-      drawMask();
+      MaskReader.resizeCanvases(paintingCanvas, maskCanvas);
     }
 
     window.addEventListener("resize", resizeCanvases);
@@ -1239,7 +1133,8 @@
     }, 50);
 
     // ===== INITIALIZATION =====
-    loadImages();
+    MaskReader.init(paintingCanvas, maskCanvas);
+    MaskReader.loadImages();
     resizeCanvases();
     setAppState(APP_STATES.SELECTION);
     initializeSafeZone();
