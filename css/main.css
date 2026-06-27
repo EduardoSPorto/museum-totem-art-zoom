@@ -21,55 +21,6 @@ html, body {
   min-height: 100vh;
 }
 
-/* ===== DEBUG MODE ===== */
-.debug-panel {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  background: rgba(0,0,0,0.6);
-  border: 1px solid var(--debug-color);
-  border-radius: 10px;
-  padding: 10px 14px;
-  backdrop-filter: blur(8px);
-  font-size: 12px;
-  z-index: 999;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  max-width: 400px;
-}
-
-.debug-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.debug-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--debug-color);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-label[for="debugMode"] {
-  cursor: pointer;
-  user-select: none;
-}
-
-input[type="checkbox"] {
-  cursor: pointer;
-  accent-color: var(--debug-color);
-}
-
 /* ===== HAND TRACKING CURSOR ===== */
 .hand-cursor {
   position: fixed;
@@ -473,10 +424,6 @@ input[type="checkbox"] {
   margin-left: auto;
 }
 
-.app-state-detail .zoom-button#zoomInBtn {
-  display: none;
-}
-
 .app-state-detail .material-card {
   position: relative;
   top: auto;
@@ -766,23 +713,6 @@ input[type="checkbox"] {
   opacity: 1;
 }
 
-/* ===== STATUS BAR ===== */
-.status-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent-red), var(--accent-white));
-  animation: slideRight 1.2s ease-in-out infinite;
-}
-
-@keyframes slideRight {
-  0% { transform: scaleX(0); transform-origin: left; }
-  50% { transform: scaleX(1); transform-origin: left; }
-  100% { transform: scaleX(0); transform-origin: right; }
-}
-
 .app-state-selection #zoomOutBtn {
   display: none;
 }
@@ -791,19 +721,11 @@ input[type="checkbox"] {
   display: inline-flex;
 }
 
-.app-state-selection #zoomInMoleculeBtn {
-  display: none;
-}
-
 .app-state-detail #zoomOutBtn {
   display: inline-flex;
 }
 
 .app-state-detail #zoomInBtn {
-  display: inline-flex;
-}
-
-.app-state-detail #zoomInMoleculeBtn {
   display: inline-flex;
 }
 
@@ -815,9 +737,6 @@ input[type="checkbox"] {
   display: none;
 }
 
-.app-state-molecule #zoomInMoleculeBtn {
-  display: none;
-}
 .zoom-controls {
   position: fixed;
   bottom: 24px;

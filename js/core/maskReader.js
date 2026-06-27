@@ -16,11 +16,13 @@ const MaskReader = (() => {
   function loadImages() {
     loadImage("assets/artwork/visible_anjo_adonay.png", (image) => {
       paintingImage = image;
+      resizeCanvases(paintingCanvas, maskCanvas);
       drawPainting();
     });
 
     loadImage("assets/artwork/color_anjo_adonay.png", (image) => {
       maskImage = image;
+      resizeCanvases(paintingCanvas, maskCanvas);
       drawMask();
     });
 
@@ -52,10 +54,30 @@ const MaskReader = (() => {
     const container = paintingCanvasElement.parentElement;
     const rect = container.getBoundingClientRect();
 
-    paintingCanvasElement.width = rect.width;
-    paintingCanvasElement.height = rect.height;
-    maskCanvasElement.width = rect.width;
-    maskCanvasElement.height = rect.height;
+    const sourceWidth = paintingImage?.naturalWidth || maskImage?.naturalWidth || 2657;
+    const sourceHeight = paintingImage?.naturalHeight || maskImage?.naturalHeight || 3717;
+    const sourceAspect = sourceWidth / sourceHeight;
+    const containerAspect = rect.width / rect.height;
+
+    let canvasWidth = rect.width;
+    let canvasHeight = rect.height;
+    if (containerAspect > sourceAspect) {
+      canvasHeight = rect.height;
+      canvasWidth = canvasHeight * sourceAspect;
+    } else {
+      canvasWidth = rect.width;
+      canvasHeight = canvasWidth / sourceAspect;
+    }
+
+    paintingCanvasElement.width = Math.round(canvasWidth);
+    paintingCanvasElement.height = Math.round(canvasHeight);
+    paintingCanvasElement.style.width = `${canvasWidth}px`;
+    paintingCanvasElement.style.height = `${canvasHeight}px`;
+
+    maskCanvasElement.width = Math.round(canvasWidth);
+    maskCanvasElement.height = Math.round(canvasHeight);
+    maskCanvasElement.style.width = `${canvasWidth}px`;
+    maskCanvasElement.style.height = `${canvasHeight}px`;
 
     drawPainting();
     drawMask();

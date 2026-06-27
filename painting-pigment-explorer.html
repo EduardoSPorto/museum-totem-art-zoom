@@ -8,21 +8,7 @@
 </head>
 
 <body>
-  <!-- DEBUG PANEL -->
-  <div class="debug-panel">
-    <div class="debug-toggle">
-      <div class="debug-indicator"></div>
-      <label for="debugMode">Debug Mode</label>
-    </div>
-    <input type="checkbox" id="debugMode">
-    
-    <div style="width: 1px; height: 20px; background: var(--border-color); margin: 0 12px;"></div>
-    
-    <div class="debug-toggle">
-      <label for="handTrackingMode">Hand Tracking</label>
-    </div>
-    <input type="checkbox" id="handTrackingMode">
-  </div>
+  <input type="checkbox" id="debugMode" hidden>
 
   <!-- MAIN CONTAINER -->
   <div class="container">
@@ -30,8 +16,8 @@
     <!-- LEFT: PAINTING / DETAIL HEADER -->
     <div>
       <div class="header">
-        <h1>The Flag of Japan</h1>
-        <p>Click on any area to explore the pigment</p>
+        <h1>Anjo Adonay</h1>
+        <p>Click on any mapped color to explore the material</p>
       </div>
 
       <div class="detail-header" id="detailHeader">
@@ -45,7 +31,7 @@
           <canvas id="maskCanvas"></canvas>
         </div>
         <div class="canvas-hint">
-          Click on red or white areas to discover pigments
+          Click on mapped color areas to discover materials
         </div>
       </div>
     </div>
@@ -108,14 +94,6 @@
       Zoom In
     </button>
 
-    <button class="zoom-button" id="zoomInMoleculeBtn" disabled style="display: none;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-        <path d="M11 8v6M8 11h6"></path>
-      </svg>
-      View Molecule
-    </button>
   </div>
 
   <!-- HAND CURSOR CIRCLE -->
@@ -157,9 +135,6 @@
   <!-- HAND TRACKING ELEMENTS (hidden) -->
   <video id="webcamVideo" style="display: none;"></video>
   <canvas id="handOverlayCanvas" style="position: fixed; top: 0; left: 0; z-index: 1000; pointer-events: none; display: none;"></canvas>
-
-  <!-- STATUS BAR -->
-  <div class="status-bar"></div>
 
   <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
   <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
@@ -360,12 +335,9 @@
 
     // Handle window resize
     window.addEventListener("resize", () => {
-      if (renderer && camera && appState === APP_STATES.MOLECULE) {
-        const width = moleculeViewport.clientWidth;
-        const height = moleculeViewport.clientHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
+      if (moleculeViewer && appState === APP_STATES.MOLECULE) {
+        moleculeViewer.resize();
+        moleculeViewer.render();
       }
     });
     function checkMediaPipeLibraries() {
@@ -430,7 +402,6 @@
     const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
     
     const handCursor = document.getElementById("handCursor");
-    const handTrackingToggle = document.getElementById("handTrackingMode");
     const handInfoOverlay = document.getElementById("handInfoOverlay");
     const webcamVideo = document.getElementById("webcamVideo");
     const cameraPreviewCanvas = document.getElementById("cameraPreviewCanvas");
@@ -529,17 +500,7 @@
         console.error("Error details:", error.message);
         console.error("Stack:", error.stack);
         
-        if (error.name === 'NotAllowedError') {
-          alert("❌ Camera access was denied.\n\nTo use hand tracking, please:\n1. Allow camera access in browser settings\n2. Reload the page\n3. Click 'Hand Tracking' again\n\nUsing mouse control for now.");
-        } else if (error.name === 'NotFoundError') {
-          alert("❌ No camera found.\n\nPlease ensure your device has a webcam connected.\n\nUsing mouse control for now.");
-        } else if (error.message.includes("CDN") || error.message.includes("libraries")) {
-          alert("❌ Could not load MediaPipe from the internet.\n\nPlease check:\n1. Your internet connection is working\n2. CDN is accessible (https://cdn.jsdelivr.net)\n3. Try reloading the page\n4. Wait 15+ seconds for models to download\n\nUsing mouse control for now.");
-        } else {
-          alert("❌ Hand tracking initialization failed.\n\nError: " + error.message + "\n\nUsing mouse control for now.");
-        }
-        
-        handTrackingToggle.checked = false;
+        console.warn("Using mouse control fallback.");
         handTrackingEnabled = false;
       }
     }
@@ -566,8 +527,6 @@
         console.log("✓ Hand detection loop started");
       } catch (error) {
         console.error("✗ Failed to start hand detection:", error);
-        alert("Error starting hand detection: " + error.message);
-        handTrackingToggle.checked = false;
         handTrackingEnabled = false;
       }
     }
@@ -897,9 +856,9 @@
       handCursor.classList.toggle("hovering", isOverButton);
 
       // Update button hover state (for dwell timer)
-      if (appState === APP_STATES.SELECTION && isOverZoomInBtn && !zoomInBtn.disabled) {
+      if (isOverZoomInBtn && !zoomInBtn.disabled) {
         currentButtonHover = "zoomInBtn";
-      } else if (appState === APP_STATES.DETAIL && isOverZoomOutBtn) {
+      } else if (isOverZoomOutBtn && !zoomOutBtn.disabled) {
         currentButtonHover = "zoomOutBtn";
       } else {
         currentButtonHover = null;
@@ -981,7 +940,7 @@
       selectedPigment = pigment;
       selectionName.textContent = pigment.name;
       selectionFeedback.classList.add("active");
-      zoomInBtn.disabled = false;
+      updateZoomControls();
 
       // Display the color swatch on the zoom button
       const colorSwatch = document.getElementById("colorSwatch");
@@ -1087,18 +1046,10 @@
     });
 
     // ===== ZOOM CONTROLS =====
-    zoomInBtn.addEventListener("click", () => {
-      if (selectedPigment) {
-        displayPigment(selectedPigment);
-        setAppState(APP_STATES.DETAIL);
-      }
-    });
-
     zoomOutBtn.addEventListener("click", () => {
       if (appState === APP_STATES.DETAIL) {
         setAppState(APP_STATES.SELECTION);
         selectionFeedback.classList.remove("active");
-        zoomInBtn.disabled = true;
         selectedPigment = null;
         
         // Reset magnifier position to center for fresh start
@@ -1106,29 +1057,35 @@
           x: window.innerWidth / 2, 
           y: window.innerHeight / 2 
         };
+        updateZoomControls();
       } else if (appState === APP_STATES.MOLECULE) {
         setAppState(APP_STATES.DETAIL);
-        document.getElementById("zoomInMoleculeBtn").style.display = "none";
-        document.getElementById("zoomInMoleculeBtn").disabled = true;
+        updateZoomControls();
       }
     });
 
     zoomInBtn.addEventListener("click", () => {
-      if (selectedPigment) {
+      if (!selectedPigment) return;
+
+      if (appState === APP_STATES.SELECTION) {
         setAppState(APP_STATES.DETAIL);
         displayPigment(selectedPigment);
-        document.getElementById("zoomInMoleculeBtn").style.display = "inline-flex";
-        document.getElementById("zoomInMoleculeBtn").disabled = false;
+        selectionFeedback.classList.remove("active");
+        updateZoomControls();
+      } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.key]) {
+        setAppState(APP_STATES.MOLECULE);
+        displayMolecule(selectedPigment);
+        updateZoomControls();
       }
     });
 
-    const zoomInMoleculeBtn = document.getElementById("zoomInMoleculeBtn");
-    zoomInMoleculeBtn.addEventListener("click", () => {
-      if (selectedPigment) {
-        setAppState(APP_STATES.MOLECULE);
-        displayMolecule(selectedPigment);
-      }
-    });
+    function updateZoomControls() {
+      zoomOutBtn.disabled = appState === APP_STATES.SELECTION;
+      zoomInBtn.disabled =
+        (appState === APP_STATES.SELECTION && !selectedPigment) ||
+        (appState === APP_STATES.DETAIL && (!selectedPigment || !PIGMENT_MOL_FILES[selectedPigment.key])) ||
+        appState === APP_STATES.MOLECULE;
+    }
 
     // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
     
@@ -1170,27 +1127,18 @@
 
     debugCheckbox.addEventListener("change", (e) => {
       maskCanvas.classList.toggle("visible", e.target.checked);
+      if (!e.target.checked) {
+        cursorInfo.classList.remove("visible");
+        handInfoOverlay.classList.remove("visible");
+      }
     });
 
-    handTrackingToggle.addEventListener("change", async (e) => {
-      const cameraPreviewPanel = document.getElementById("cameraPreviewPanel");
-      
-      if (e.target.checked) {
-        if (!handTrackingEnabled) {
-          await initializeHandTracking();
-          if (handTrackingEnabled) {
-            cameraPreviewPanel.classList.add("active");
-          }
-        }
-      } else {
-        if (webcamStream) {
-          webcamStream.getTracks().forEach(track => track.stop());
-        }
-        handCursor.classList.remove("active");
-        cameraPreviewPanel.classList.remove("active");
-        handTrackingEnabled = false;
-        console.log("✓ Hand tracking disabled");
-      }
+    window.addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() !== "d" || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      debugCheckbox.checked = !debugCheckbox.checked;
+      debugCheckbox.dispatchEvent(new Event("change"));
+      console.log(`Debug mode ${debugCheckbox.checked ? "enabled" : "disabled"}`);
     });
 
     // ===== CANVAS RESIZING =====
@@ -1207,9 +1155,9 @@
         
         // Handle pinch-based button activation
         if (isPinching && isPinchConfirmed()) {
-          if (appState === APP_STATES.SELECTION && currentButtonHover === "zoomInBtn") {
+          if (currentButtonHover === "zoomInBtn") {
             handleButtonPinch("zoomInBtn");
-          } else if (appState === APP_STATES.DETAIL && currentButtonHover === "zoomOutBtn") {
+          } else if (currentButtonHover === "zoomOutBtn") {
             handleButtonPinch("zoomOutBtn");
           }
         }
@@ -1221,7 +1169,9 @@
     MaskReader.loadImages();
     resizeCanvases();
     setAppState(APP_STATES.SELECTION);
+    updateZoomControls();
     initializeSafeZone();
+    initializeHandTracking();
 
     // Re-initialize safe zone on window resize
     window.addEventListener("resize", () => {
@@ -1237,11 +1187,10 @@
 ✓ Phase 1: PAINTING (Magnifier Selection)
 ✓ Phase 2: MATERIAL (Pigment Information)
 ✓ Phase 3: MOLECULE (3D Structure)
-✓ Red Pigment: Vermilion (HgS)
-✓ White Pigment: Lead White (2PbCO₃·Pb(OH)₂)
+✓ Real artwork and material assets loaded
 ✓ Safe Detection Zone: Painting constrained to center area
-✓ Hand Tracking: Pinch detection enabled
-✓ 3D Visualization: Three.js molecule viewer
+✓ Hand Tracking: Auto-start with mouse fallback
+✓ 3D Visualization: 3Dmol molecule viewer
 
 SECTION NAVIGATION:
 
@@ -1258,14 +1207,11 @@ P2 - MATERIAL:
    • Chemical formula and properties
    • Why the pigment has that color
    • Historical context
-   • Can still move magnifier to select new color
 
-        ↓ [VIEW MOLECULE button]
+        ↓ [ZOOM IN button]
 
 P3 - MOLECULE:
    • Interactive 3D molecular structure
-   • Element legend showing atom types
-   • Auto-rotating molecule (pause on click)
    • Click + drag to rotate manually
    • Scroll to zoom in/out
    • Shows: atoms, bonds, molecular weight
