@@ -249,6 +249,7 @@
       // Zoom to fit
       moleculeViewer.zoomTo();
       moleculeViewer.render();
+      stopMoleculeGrab();
 
       // Update legend
       const mol = pigment.molecule;
@@ -288,6 +289,56 @@
       moleculeTitle.textContent = mol.name;
       
       console.log(`✓ Loaded molecule: ${pigment.name}`);
+    }
+
+    function updateMoleculeHandManipulation(isCurrentlyPinching, handPosition) {
+      if (appState !== APP_STATES.MOLECULE || !moleculeViewer) {
+        stopMoleculeGrab();
+        return;
+      }
+
+      if (!isCurrentlyPinching) {
+        stopMoleculeGrab();
+        return;
+      }
+
+      if (!moleculeHandControl.active) {
+        if (currentButtonHover) return;
+
+        moleculeHandControl.active = true;
+        moleculeHandControl.lastPosition = { ...handPosition };
+        handCursor.classList.add("grabbing");
+        return;
+      }
+
+      const deltaX = handPosition.x - moleculeHandControl.lastPosition.x;
+      const deltaY = handPosition.y - moleculeHandControl.lastPosition.y;
+      moleculeHandControl.lastPosition = { ...handPosition };
+
+      rotateMoleculeFromHandDelta(deltaX, deltaY);
+    }
+
+    function rotateMoleculeFromHandDelta(deltaX, deltaY) {
+      if (!moleculeViewer || (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5)) return;
+
+      const horizontalDegrees = deltaX * MOLECULE_ROTATION_SENSITIVITY;
+      const verticalDegrees = deltaY * MOLECULE_ROTATION_SENSITIVITY;
+
+      try {
+        moleculeViewer.rotate(horizontalDegrees, "y");
+        moleculeViewer.rotate(verticalDegrees, "x");
+        moleculeViewer.render();
+      } catch (error) {
+        console.warn("Hand molecule rotation failed:", error);
+      }
+    }
+
+    function stopMoleculeGrab() {
+      moleculeHandControl.active = false;
+      moleculeHandControl.lastPosition = null;
+      if (typeof handCursor !== "undefined") {
+        handCursor.classList.remove("grabbing");
+      }
     }
 
     function normalizeMolData(molData) {
@@ -385,6 +436,13 @@
     let smoothedHandPosition = { x: 0, y: 0 };
     let handConfidence = 0;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
+    const HAND_INTERACTION_REGION = {
+      centerX: 0.5,
+      centerY: 0.5,
+      widthRatio: 0.5,
+      heightRatio: 0.5,
+      clampToRegion: true
+    };
     
     // ===== MAGNIFIER VARIABLES =====
     const magnifier = document.getElementById("magnifier");
@@ -395,6 +453,11 @@
     const PINCH_CONFIRMATION_MS = 100;
     const PINCH_THRESHOLD = 0.08;  // ~30px at standard distance
     const PINCH_RELEASE_THRESHOLD = 0.12;  // Hysteresis to avoid flutter
+    const MOLECULE_ROTATION_SENSITIVITY = 0.45;
+    const moleculeHandControl = {
+      active: false,
+      lastPosition: null
+    };
     
     // Button activation
     let currentButtonHover = null;
@@ -547,6 +610,7 @@
         cameraPreviewCanvas.height
       );
       cameraPreviewCtx.restore();
+      drawInteractionRegion();
 
       if (landmarks && landmarks.length > 0) {
         // Draw hand skeleton
@@ -646,6 +710,47 @@
       return distance;
     }
 
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function mapHandPointToScreen(rawX, rawY) {
+      const region = HAND_INTERACTION_REGION;
+      const mirroredX = 1 - rawX;
+      const left = region.centerX - region.widthRatio / 2;
+      const top = region.centerY - region.heightRatio / 2;
+
+      let normalizedX = (mirroredX - left) / region.widthRatio;
+      let normalizedY = (rawY - top) / region.heightRatio;
+
+      if (region.clampToRegion) {
+        normalizedX = clamp(normalizedX, 0, 1);
+        normalizedY = clamp(normalizedY, 0, 1);
+      }
+
+      return {
+        x: normalizedX * window.innerWidth,
+        y: normalizedY * window.innerHeight,
+        normalizedX,
+        normalizedY
+      };
+    }
+
+    function drawInteractionRegion() {
+      const region = HAND_INTERACTION_REGION;
+      const left = (region.centerX - region.widthRatio / 2) * cameraPreviewCanvas.width;
+      const top = (region.centerY - region.heightRatio / 2) * cameraPreviewCanvas.height;
+      const width = region.widthRatio * cameraPreviewCanvas.width;
+      const height = region.heightRatio * cameraPreviewCanvas.height;
+
+      cameraPreviewCtx.save();
+      cameraPreviewCtx.strokeStyle = "rgba(251, 191, 36, 0.9)";
+      cameraPreviewCtx.lineWidth = 2;
+      cameraPreviewCtx.setLineDash([8, 6]);
+      cameraPreviewCtx.strokeRect(left, top, width, height);
+      cameraPreviewCtx.restore();
+    }
+
     function updatePinchState(pinchDistance) {
       if (pinchDistance < PINCH_THRESHOLD) {
         // Pinching
@@ -658,8 +763,7 @@
       } else if (pinchDistance > PINCH_RELEASE_THRESHOLD) {
         // Released (hysteresis to avoid flutter)
         if (isPinching) {
-          // Magnifier was dropped - confirm selection
-          confirmMagnifierSelection();
+          handlePinchRelease();
           isPinching = false;
           pinchStartTime = null;
         }
@@ -668,6 +772,16 @@
       }
       
       return isPinching;
+    }
+
+    function handlePinchRelease() {
+      if (appState === APP_STATES.SELECTION) {
+        confirmMagnifierSelection();
+      }
+
+      if (appState === APP_STATES.MOLECULE) {
+        stopMoleculeGrab();
+      }
     }
 
     function confirmMagnifierSelection() {
@@ -691,8 +805,10 @@
       const wrist = landmarks[0];
       const middleBase = landmarks[9];
 
-      const palmX = (1 - (wrist.x + middleBase.x) / 2) * cameraPreviewCanvas.width;
-      const palmY = ((wrist.y + middleBase.y) / 2) * cameraPreviewCanvas.height;
+      const rawPalmX = (wrist.x + middleBase.x) / 2;
+      const rawPalmY = (wrist.y + middleBase.y) / 2;
+      const palmX = (1 - rawPalmX) * cameraPreviewCanvas.width;
+      const palmY = rawPalmY * cameraPreviewCanvas.height;
 
       // Draw bright center dot
       cameraPreviewCtx.fillStyle = "rgba(255, 200, 0, 1)";
@@ -739,6 +855,7 @@
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         handCursor.classList.remove("active");
         magnifier.classList.remove("active");
+        stopMoleculeGrab();
         handConfidence = 0;
         updateStatusIndicator(false, 0);
         return;
@@ -750,11 +867,11 @@
       // Palm center = average of wrist and middle finger base
       const wrist = handLandmarks[0]; // Wrist
       const middleBase = handLandmarks[9]; // Middle finger MCP
-      
-      // Invert X coordinate so hand movement is intuitive
-      // (hand moves left → circle moves left, not right)
-      const palmX = (1 - (wrist.x + middleBase.x) / 2) * window.innerWidth;
-      const palmY = (wrist.y + middleBase.y) / 2 * window.innerHeight;
+      const rawPalmX = (wrist.x + middleBase.x) / 2;
+      const rawPalmY = (wrist.y + middleBase.y) / 2;
+      const mappedPalm = mapHandPointToScreen(rawPalmX, rawPalmY);
+      const palmX = mappedPalm.x;
+      const palmY = mappedPalm.y;
       
       lastHandPosition = { x: palmX, y: palmY };
       
@@ -773,6 +890,7 @@
 
       // Update white cursor position (using smoothed position for stability)
       updateHandCursor(smoothedHandPosition.x, smoothedHandPosition.y);
+      updateMoleculeHandManipulation(currentlyPinching, smoothedHandPosition);
 
       // Show magnifier only in SELECTION mode
       if (appState === APP_STATES.SELECTION) {
@@ -1048,6 +1166,7 @@
     // ===== ZOOM CONTROLS =====
     zoomOutBtn.addEventListener("click", () => {
       if (appState === APP_STATES.DETAIL) {
+        stopMoleculeGrab();
         setAppState(APP_STATES.SELECTION);
         selectionFeedback.classList.remove("active");
         selectedPigment = null;
@@ -1059,6 +1178,7 @@
         };
         updateZoomControls();
       } else if (appState === APP_STATES.MOLECULE) {
+        stopMoleculeGrab();
         setAppState(APP_STATES.DETAIL);
         updateZoomControls();
       }
@@ -1073,6 +1193,7 @@
         selectionFeedback.classList.remove("active");
         updateZoomControls();
       } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.key]) {
+        stopMoleculeGrab();
         setAppState(APP_STATES.MOLECULE);
         displayMolecule(selectedPigment);
         updateZoomControls();
@@ -1091,6 +1212,7 @@
     
     function checkButtonActivation() {
       if (!handTrackingEnabled) return;
+      if (moleculeHandControl.active) return;
 
       // Only process if white circle is hovering a button
       if (!currentButtonHover) {
