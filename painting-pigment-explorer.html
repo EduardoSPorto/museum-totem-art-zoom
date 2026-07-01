@@ -1077,6 +1077,7 @@
     function selectPigment(pigment) {
       selectedPigment = pigment;
       selectionName.textContent = pigment.name;
+      document.documentElement.style.setProperty("--pigment-accent", pigment.color);
       selectionFeedback.classList.add("active");
       pulseSelectionHighlight(pigment);
       updateZoomControls();
