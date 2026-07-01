@@ -108,21 +108,10 @@
 
   <!-- CAMERA PREVIEW PANEL (Fixed, Non-Closeable) -->
   <div class="camera-preview-panel" id="cameraPreviewPanel">
-    <div class="camera-preview-header">
-      HAND TRACKING
-    </div>
     <canvas id="cameraPreviewCanvas" width="300" height="280"></canvas>
     <div class="camera-preview-status">
       <div class="status-indicator">
         <span class="status-dot" id="statusDot">●</span>
-        <span class="status-text" id="statusText">Searching...</span>
-      </div>
-      <div class="confidence-container">
-        <div class="confidence-label">Confidence</div>
-        <div class="confidence-bar">
-          <div class="confidence-fill" id="confidenceFill"></div>
-        </div>
-        <div class="confidence-percent" id="confidencePercent">0%</div>
       </div>
     </div>
   </div>
@@ -476,8 +465,6 @@
     const cameraPreviewCtx = cameraPreviewCanvas.getContext("2d");
     const statusDot = document.getElementById("statusDot");
     const statusText = document.getElementById("statusText");
-    const confidenceFill = document.getElementById("confidenceFill");
-    const confidencePercent = document.getElementById("confidencePercent");
 
     async function waitForMediaPipeLibraries(maxWaitMs = 15000) {
       const startTime = Date.now();
@@ -607,6 +594,7 @@
       // Draw video frame (mirrored)
       cameraPreviewCtx.save();
       cameraPreviewCtx.scale(-1, 1);
+      cameraPreviewCtx.filter = "grayscale(100%)";
       cameraPreviewCtx.drawImage(
         videoElement,
         -cameraPreviewCanvas.width,
@@ -614,6 +602,7 @@
         cameraPreviewCanvas.width,
         cameraPreviewCanvas.height
       );
+      cameraPreviewCtx.filter = "none";
       cameraPreviewCtx.restore();
       drawInteractionRegion();
 
@@ -743,16 +732,24 @@
 
     function drawInteractionRegion() {
       const region = HAND_INTERACTION_REGION;
+
       const left = (region.centerX - region.widthRatio / 2) * cameraPreviewCanvas.width;
       const top = (region.centerY - region.heightRatio / 2) * cameraPreviewCanvas.height;
       const width = region.widthRatio * cameraPreviewCanvas.width;
       const height = region.heightRatio * cameraPreviewCanvas.height;
 
       cameraPreviewCtx.save();
-      cameraPreviewCtx.strokeStyle = "rgba(251, 191, 36, 0.9)";
+
+      cameraPreviewCtx.strokeStyle = "#FFFFFF";
       cameraPreviewCtx.lineWidth = 2;
-      cameraPreviewCtx.setLineDash([8, 6]);
+
+      cameraPreviewCtx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      cameraPreviewCtx.shadowBlur = 4;
+
+      cameraPreviewCtx.globalCompositeOperation = "difference";
+
       cameraPreviewCtx.strokeRect(left, top, width, height);
+
       cameraPreviewCtx.restore();
     }
 
@@ -829,28 +826,16 @@
       cameraPreviewCtx.stroke();
     }
 
-    function updateStatusIndicator(isDetected, confidence) {
-      if (isDetected) {
-        statusDot.classList.remove("searching");
-        statusDot.classList.add("detected");
-        statusText.textContent = "Hand Detected";
-      } else {
-        statusDot.classList.remove("detected");
-        statusDot.classList.add("searching");
-        statusText.textContent = "Searching...";
-      }
-
-      // Update confidence bar
-      const confPercent = Math.round(confidence * 100);
-      confidenceFill.style.width = confPercent + "%";
-      confidencePercent.textContent = confPercent + "%";
-
-      // Change color based on confidence
-      if (confPercent >= 70) {
-        confidenceFill.classList.remove("weak");
-      } else {
-        confidenceFill.classList.add("weak");
-      }
+    function updateStatusIndicator(isDetected) {
+        if (isDetected) {
+            statusDot.textContent = "●";
+            statusDot.classList.add("detected");
+            statusDot.classList.remove("searching");
+        } else {
+            statusDot.textContent = "✕";
+            statusDot.classList.add("searching");
+            statusDot.classList.remove("detected");
+        }
     }
 
     function onHandResults(results) {
