@@ -32,11 +32,11 @@ The software features a modular navigation system divided into three sequential 
 
 
 * 
-**Level 2 - Material (Data):** Upon selecting a point in Level 1, the application transitions to display historical and chemical data about the selected pigment or information about the artist.
+**Level 2 - Material (Context):** Upon selecting a point in Level 1, the application transitions to display historical and cultural information about the selected material, including its name, origin, production, and historical use. Chemistry is intentionally kept to a minimum in this layer.
 
 
 * 
-**Level 3 - Molecule (3D Visualization):** After zooming in, the system displays the 3D molecular model corresponding to the pigment. In this layer, the pinch gesture assumes also a "grab" function, allowing the user to freely rotate the 3D object in space.
+**Level 3 - Molecule (3D Visualization):** After zooming in, the system displays the material name, molecular model, and chemical information corresponding to the pigment. In this layer, the pinch gesture assumes also a "grab" function, allowing the user to freely rotate the 3D object in space.
 
 
 

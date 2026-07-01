@@ -65,7 +65,7 @@
     <div class="molecule-container">
       <div class="molecule-viewport" id="moleculeViewport"></div>
       <div class="molecule-legend" id="moleculeLegend">
-        <div class="legend-title">Atomic Structure</div>
+        <div class="legend-title">Chemical Information</div>
         <div class="legend-formula" id="legendFormula">HgS</div>
         <div class="legend-atoms" id="legendAtoms"></div>
         <div class="legend-info" id="legendInfo"></div>
@@ -281,12 +281,16 @@
       });
 
       legendInfo.innerHTML = `
-        <strong>${mol.name}</strong><br/>
+        <strong>${pigment.name}</strong><br/>
+        Model: ${mol.name}<br/>
         Formula: ${mol.formula}<br/>
-        ${mol.structure}
+        ${mol.structure}<br/>
+        ${Object.entries(pigment.chemistry).map(([key, value]) => `
+          <span><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</span><br/>
+        `).join("")}
       `;
 
-      moleculeTitle.textContent = mol.name;
+      moleculeTitle.textContent = pigment.name;
       
       console.log(`✓ Loaded molecule: ${pigment.name}`);
     }
@@ -1081,43 +1085,26 @@
 
         <div class="material-color-indicator" style="background: ${pigment.color};"></div>
         
-        <div class="material-label">Pigment Type</div>
+        <div class="material-label">Material Name</div>
         <h2 class="material-name">${pigment.name}</h2>
         
-        <div class="material-formula">${pigment.formula}</div>
-        
         <div class="material-section">
-          <div class="material-section-title">Why is it this color?</div>
-          <div class="material-text">${pigment.whyRed || "🔬 " + pigment.description}</div>
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">Chemical Composition</div>
-          ${Object.entries(pigment.chemistry).map(([key, value]) => `
-            <div class="material-property">
-              <span class="material-property-bullet">•</span>
-              <span><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</span>
-            </div>
-          `).join("")}
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">Physical Properties</div>
-          ${pigment.properties.map(prop => `
-            <div class="material-property">
-              <span class="material-property-bullet">•</span>
-              <span>${prop}</span>
-            </div>
-          `).join("")}
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">Historical Context</div>
+          <div class="material-section-title">Historical & Cultural Context</div>
           <div class="material-text">${pigment.historical}</div>
         </div>
 
+        <div class="material-section">
+          <div class="material-section-title">Origin / Production</div>
+          <div class="material-text">${pigment.occurrence}</div>
+        </div>
+
+        <div class="material-section">
+          <div class="material-section-title">Common Name</div>
+          <div class="material-text">${pigment.commonName}</div>
+        </div>
+
         <div class="material-note">
-          💡 Next: Explore the molecular structure of ${pigment.formula}
+          💡 Next: Explore the molecular structure of ${pigment.name}
         </div>
       `;
 
@@ -1325,10 +1312,10 @@ P1 - PAINTING:
         ↓ [ZOOM IN button]
 
 P2 - MATERIAL:
-   • Full pigment information display
-   • Chemical formula and properties
-   • Why the pigment has that color
-   • Historical context
+  • Material name and artwork image
+  • Historical and cultural context
+  • Origin, production, and historical use
+  • Minimal chemistry to keep the focus on meaning
 
         ↓ [ZOOM IN button]
 
@@ -1336,7 +1323,7 @@ P3 - MOLECULE:
    • Interactive 3D molecular structure
    • Click + drag to rotate manually
    • Scroll to zoom in/out
-   • Shows: atoms, bonds, molecular weight
+  • Shows: material name, formula, atoms, bonds, molecular weight, and chemical details
    • No magnifier in this view
 
         ↓ [ZOOM OUT button]
