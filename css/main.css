@@ -792,6 +792,10 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.zoom-zone.is-hidden {
+  display: none !important;
+}
+
 #zoomOutBtn {
   left: 0;
   justify-content: flex-start;

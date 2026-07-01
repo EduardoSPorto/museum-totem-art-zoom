@@ -961,12 +961,14 @@
       // Check if white circle is hovering over buttons
       const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();
       const zoomOutRect = document.getElementById("zoomOutBtn").getBoundingClientRect();
+      const zoomInVisible = !zoomInBtn.classList.contains("is-hidden");
+      const zoomOutVisible = !zoomOutBtn.classList.contains("is-hidden");
 
-      const isOverZoomInBtn = 
+      const isOverZoomInBtn = zoomInVisible &&
         x >= zoomInRect.left && x <= zoomInRect.right && 
         y >= zoomInRect.top && y <= zoomInRect.bottom;
 
-      const isOverZoomOutBtn = 
+      const isOverZoomOutBtn = zoomOutVisible &&
         x >= zoomOutRect.left && x <= zoomOutRect.right && 
         y >= zoomOutRect.top && y <= zoomOutRect.bottom;
 
@@ -1216,11 +1218,26 @@
     });
 
     function updateZoomControls() {
-      zoomOutBtn.disabled = appState === APP_STATES.SELECTION;
-      zoomInBtn.disabled =
-        (appState === APP_STATES.SELECTION && !selectedPigment) ||
-        (appState === APP_STATES.DETAIL && (!selectedPigment || !PIGMENT_MOL_FILES[selectedPigment.key])) ||
-        appState === APP_STATES.MOLECULE;
+      const canZoomOut = appState === APP_STATES.DETAIL || appState === APP_STATES.MOLECULE;
+      const canZoomIn =
+        (appState === APP_STATES.SELECTION && !!selectedPigment) ||
+        (appState === APP_STATES.DETAIL && !!selectedPigment && !!PIGMENT_MOL_FILES[selectedPigment.key]);
+
+      zoomOutBtn.classList.toggle("is-hidden", !canZoomOut);
+      zoomInBtn.classList.toggle("is-hidden", !canZoomIn);
+
+      zoomOutBtn.disabled = !canZoomOut;
+      zoomInBtn.disabled = !canZoomIn;
+
+      if (!canZoomIn && currentButtonHover === "zoomInBtn") {
+        currentButtonHover = null;
+        buttonDwellStartTime = null;
+      }
+
+      if (!canZoomOut && currentButtonHover === "zoomOutBtn") {
+        currentButtonHover = null;
+        buttonDwellStartTime = null;
+      }
     }
 
     // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
