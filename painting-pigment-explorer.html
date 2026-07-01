@@ -52,12 +52,6 @@
     </div>
   </div>
 
-  <!-- SELECTION FEEDBACK POPUP -->
-  <div class="selection-feedback" id="selectionFeedback">
-    <p class="selection-feedback-name" id="selectionName">Vermilion</p>
-    <p class="selection-feedback-subtitle">Click "Zoom In" to explore ↓</p>
-  </div>
-
   <!-- MOLECULE SECTION (P3) -->
   <div class="molecule-section" id="moleculeSection">
     <div class="molecule-header">
@@ -999,8 +993,6 @@
     const detailHeader = document.getElementById("detailHeader");
     const detailTitle = document.getElementById("detailTitle");
     const cursorInfo = document.getElementById("cursorInfo");
-    const selectionFeedback = document.getElementById("selectionFeedback");
-    const selectionName = document.getElementById("selectionName");
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
     // ===== MOLECULE SECTION (P3) =====
@@ -1092,9 +1084,7 @@
 
     function selectPigment(pigment) {
       selectedPigment = pigment;
-      selectionName.textContent = pigment.name;
       document.documentElement.style.setProperty("--pigment-accent", pigment.color);
-      selectionFeedback.classList.add("active");
       pulseSelectionHighlight(pigment);
       updateZoomControls();
 
@@ -1185,7 +1175,6 @@
       if (appState === APP_STATES.DETAIL) {
         stopMoleculeGrab();
         setAppState(APP_STATES.SELECTION);
-        selectionFeedback.classList.remove("active");
         selectedPigment = null;
         
         // Reset magnifier position to center for fresh start
@@ -1207,7 +1196,6 @@
       if (appState === APP_STATES.SELECTION) {
         setAppState(APP_STATES.DETAIL);
         displayPigment(selectedPigment);
-        selectionFeedback.classList.remove("active");
         updateZoomControls();
       } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.key]) {
         stopMoleculeGrab();
@@ -1222,9 +1210,11 @@
       const canZoomIn =
         (appState === APP_STATES.SELECTION && !!selectedPigment) ||
         (appState === APP_STATES.DETAIL && !!selectedPigment && !!PIGMENT_MOL_FILES[selectedPigment.key]);
+      const shouldInviteZoomIn = appState === APP_STATES.SELECTION && !!selectedPigment;
 
       zoomOutBtn.classList.toggle("is-hidden", !canZoomOut);
       zoomInBtn.classList.toggle("is-hidden", !canZoomIn);
+      zoomInBtn.classList.toggle("is-attention", shouldInviteZoomIn);
 
       zoomOutBtn.disabled = !canZoomOut;
       zoomInBtn.disabled = !canZoomIn;
@@ -1232,6 +1222,10 @@
       if (!canZoomIn && currentButtonHover === "zoomInBtn") {
         currentButtonHover = null;
         buttonDwellStartTime = null;
+      }
+
+      if (!shouldInviteZoomIn && zoomInBtn.classList.contains("is-attention")) {
+        zoomInBtn.classList.remove("is-attention");
       }
 
       if (!canZoomOut && currentButtonHover === "zoomOutBtn") {
