@@ -29,6 +29,7 @@
         <div class="canvas-container">
           <canvas id="paintingCanvas"></canvas>
           <canvas id="maskCanvas"></canvas>
+          <div class="highlight-overlay-layer" id="highlightOverlayLayer" aria-hidden="true"></div>
         </div>
         <div class="canvas-hint">
           Click on mapped color areas to discover materials
@@ -990,6 +991,7 @@
     // ===== DOM ELEMENTS =====
     const paintingCanvas = document.getElementById("paintingCanvas");
     const maskCanvas = document.getElementById("maskCanvas");
+    const highlightOverlayLayer = document.getElementById("highlightOverlayLayer");
     const debugCheckbox = document.getElementById("debugMode");
     const materialEmpty = document.getElementById("materialEmpty");
     const materialContent = document.getElementById("materialContent");
@@ -1008,6 +1010,15 @@
     const legendFormula = document.getElementById("legendFormula");
     const legendAtoms = document.getElementById("legendAtoms");
     const legendInfo = document.getElementById("legendInfo");
+
+    const PIGMENT_HIGHLIGHT_FILES = {
+      black: "assets/highlights/highlight_carbon_black_000000.png",
+      blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
+      red: "assets/highlights/highlight_lake_red_titian_ff0000.png",
+      signature: "assets/highlights/highlight_artist_ff00ff.png",
+      white: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
+      yellow: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
+    };
 
     let moleculeViewer = null;
     const moleculeFileCache = {};
@@ -1058,10 +1069,31 @@
       };
     }
 
+    function pulseSelectionHighlight(pigment) {
+      if (!highlightOverlayLayer || !pigment) return;
+
+      const highlightPath = PIGMENT_HIGHLIGHT_FILES[pigment.key];
+      if (!highlightPath) return;
+
+      highlightOverlayLayer.replaceChildren();
+
+      const highlightImage = document.createElement("img");
+      highlightImage.className = "selection-highlight";
+      highlightImage.alt = "";
+      highlightImage.setAttribute("aria-hidden", "true");
+      highlightImage.src = highlightPath;
+      highlightImage.addEventListener("animationend", () => {
+        highlightImage.remove();
+      }, { once: true });
+
+      highlightOverlayLayer.appendChild(highlightImage);
+    }
+
     function selectPigment(pigment) {
       selectedPigment = pigment;
       selectionName.textContent = pigment.name;
       selectionFeedback.classList.add("active");
+      pulseSelectionHighlight(pigment);
       updateZoomControls();
 
       // Display the color swatch on the zoom button
