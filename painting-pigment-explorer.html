@@ -285,7 +285,7 @@
       console.log(`✓ Loaded molecule: ${pigment.name}`);
     }
 
-    function updateMoleculeHandManipulation(isCurrentlyPinching, handPosition) {
+    function updateMoleculeHandManipulation(isCurrentlyPinching, handPose) {
       if (appState !== APP_STATES.MOLECULE || !moleculeViewer) {
         stopMoleculeGrab();
         return;
@@ -300,27 +300,30 @@
         if (currentButtonHover) return;
 
         moleculeHandControl.active = true;
-        moleculeHandControl.lastPosition = { ...handPosition };
+        moleculeHandControl.startPosition = { x: handPose.rawX, y: handPose.rawY };
+        moleculeHandControl.startView = moleculeViewer.getView().slice();
         handCursor.classList.add("grabbing");
-        return;
       }
 
-      const deltaX = handPosition.x - moleculeHandControl.lastPosition.x;
-      const deltaY = handPosition.y - moleculeHandControl.lastPosition.y;
-      moleculeHandControl.lastPosition = { ...handPosition };
-
-      rotateMoleculeFromHandDelta(deltaX, deltaY);
+      rotateMoleculeFromHandPose(handPose);
     }
 
-    function rotateMoleculeFromHandDelta(deltaX, deltaY) {
-      if (!moleculeViewer || (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5)) return;
+    function rotateMoleculeFromHandPose(handPose) {
+      if (!moleculeViewer || !moleculeHandControl.startPosition || !moleculeHandControl.startView) return;
 
-      const horizontalDegrees = deltaX * MOLECULE_ROTATION_SENSITIVITY;
-      const verticalDegrees = deltaY * MOLECULE_ROTATION_SENSITIVITY;
+      const deltaX = handPose.rawX - moleculeHandControl.startPosition.x;
+      const deltaY = handPose.rawY - moleculeHandControl.startPosition.y;
+
+      if (Math.abs(deltaX) < 0.01 && Math.abs(deltaY) < 0.01) return;
+
+      const horizontalDegrees = clamp(deltaX * MOLECULE_ROTATION_SENSITIVITY, -120, 120);
+      const verticalDegrees = clamp(-deltaY * MOLECULE_ROTATION_SENSITIVITY, -120, 120);
 
       try {
-        moleculeViewer.rotate(horizontalDegrees, "y");
-        moleculeViewer.rotate(verticalDegrees, "x");
+        // Rebuild the view from the pinch-start pose so the hand acts like a grasp, not a drag.
+        moleculeViewer.setView(moleculeHandControl.startView);
+        moleculeViewer.rotate(horizontalDegrees, "vy");
+        moleculeViewer.rotate(verticalDegrees, "vx");
         moleculeViewer.render();
       } catch (error) {
         console.warn("Hand molecule rotation failed:", error);
@@ -329,7 +332,8 @@
 
     function stopMoleculeGrab() {
       moleculeHandControl.active = false;
-      moleculeHandControl.lastPosition = null;
+      moleculeHandControl.startPosition = null;
+      moleculeHandControl.startView = null;
       if (typeof handCursor !== "undefined") {
         handCursor.classList.remove("grabbing");
       }
@@ -428,6 +432,7 @@
     let webcamStream = null;
     let lastHandPosition = { x: 0, y: 0 };
     let smoothedHandPosition = { x: 0, y: 0 };
+    let smoothedRawHandPosition = { x: 0.5, y: 0.5 };
     let handConfidence = 0;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
     const HAND_INTERACTION_REGION = {
@@ -447,10 +452,11 @@
     const PINCH_CONFIRMATION_MS = 100;
     const PINCH_THRESHOLD = 0.08;  // ~30px at standard distance
     const PINCH_RELEASE_THRESHOLD = 0.12;  // Hysteresis to avoid flutter
-    const MOLECULE_ROTATION_SENSITIVITY = 0.45;
+    const MOLECULE_ROTATION_SENSITIVITY = 180;
     const moleculeHandControl = {
       active: false,
-      lastPosition: null
+      startPosition: null,
+      startView: null
     };
     
     // Button activation
@@ -868,6 +874,8 @@
       // Apply exponential smoothing to reduce jitter
       smoothedHandPosition.x = smoothedHandPosition.x * SMOOTHING_FACTOR + palmX * (1 - SMOOTHING_FACTOR);
       smoothedHandPosition.y = smoothedHandPosition.y * SMOOTHING_FACTOR + palmY * (1 - SMOOTHING_FACTOR);
+      smoothedRawHandPosition.x = smoothedRawHandPosition.x * SMOOTHING_FACTOR + rawPalmX * (1 - SMOOTHING_FACTOR);
+      smoothedRawHandPosition.y = smoothedRawHandPosition.y * SMOOTHING_FACTOR + rawPalmY * (1 - SMOOTHING_FACTOR);
       
       handConfidence = results.multiHandedness?.[0]?.score || 0.8;
 
@@ -880,7 +888,12 @@
 
       // Update white cursor position (using smoothed position for stability)
       updateHandCursor(smoothedHandPosition.x, smoothedHandPosition.y);
-      updateMoleculeHandManipulation(currentlyPinching, smoothedHandPosition);
+      updateMoleculeHandManipulation(currentlyPinching, {
+        rawX: smoothedRawHandPosition.x,
+        rawY: smoothedRawHandPosition.y,
+        screenX: smoothedHandPosition.x,
+        screenY: smoothedHandPosition.y
+      });
 
       // Show magnifier only in SELECTION mode
       if (appState === APP_STATES.SELECTION) {
