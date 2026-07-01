@@ -134,8 +134,8 @@
     // ===== SAFE DETECTION ZONE =====
     // Constrain painting to center area where hand detection is stable
     const SAFE_ZONE_MARGINS = {
-      horizontal: 0.15,  // 15% margin on each side = 70% usable width
-      vertical: 0.10     // 10% top, 15% bottom = 75% usable height
+      horizontal: 0.08,  // Wider painting area while keeping safe detection margins
+      vertical: 0.06     // Slightly tighter top margin to enlarge the artwork
     };
 
     function initializeSafeZone() {
@@ -146,7 +146,7 @@
       const screenHeight = window.innerHeight;
 
       const safeWidth = screenWidth * (1 - SAFE_ZONE_MARGINS.horizontal * 2);
-      const safeHeight = screenHeight * (1 - SAFE_ZONE_MARGINS.vertical - 0.05); // Account for bottom controls
+      const safeHeight = screenHeight * (1 - SAFE_ZONE_MARGINS.vertical - 0.04); // Account for bottom controls
 
       // Position canvas wrapper in safe zone
       canvasWrapper.style.position = "fixed";
@@ -159,11 +159,29 @@
       console.log(`✓ Safe detection zone applied: ${Math.round(safeWidth)}×${Math.round(safeHeight)}px`);
     }
 
+    function applyPigmentAccent(pigment) {
+      if (!pigment || !pigment.color) return;
+
+      const pigmentRgb = hexToRgb(pigment.color);
+      const textRgb = hexToRgb("#2F2A24");
+      const accentInkRgb = {
+        r: Math.round((pigmentRgb.r * 0.42) + (textRgb.r * 0.58)),
+        g: Math.round((pigmentRgb.g * 0.42) + (textRgb.g * 0.58)),
+        b: Math.round((pigmentRgb.b * 0.42) + (textRgb.b * 0.58))
+      };
+
+      document.documentElement.style.setProperty("--pigment-accent", pigment.color);
+      document.documentElement.style.setProperty("--pigment-accent-rgb", `${pigmentRgb.r}, ${pigmentRgb.g}, ${pigmentRgb.b}`);
+      document.documentElement.style.setProperty("--pigment-accent-ink-rgb", `${accentInkRgb.r}, ${accentInkRgb.g}, ${accentInkRgb.b}`);
+    }
+
     // ===== 3D MOLECULE VISUALIZATION (using 3Dmol) =====
     // 3Dmol.js handles all 3D rendering, no manual setup needed
     // moleculeViewer is initialized in displayMolecule() when needed
 
     async function displayMolecule(pigment) {
+      applyPigmentAccent(pigment);
+
       // Initialize 3Dmol viewer if needed
       if (!moleculeViewer) {
         const viewportElement = document.getElementById("moleculeViewport");
@@ -1085,7 +1103,7 @@
 
     function selectPigment(pigment) {
       selectedPigment = pigment;
-      document.documentElement.style.setProperty("--pigment-accent", pigment.color);
+      applyPigmentAccent(pigment);
       pulseSelectionHighlight(pigment);
       updateZoomControls();
 
@@ -1096,6 +1114,7 @@
 
     function displayPigment(pigment) {
       selectedPigment = pigment;
+      applyPigmentAccent(pigment);
 
       detailTitle.textContent = pigment.name;
 
