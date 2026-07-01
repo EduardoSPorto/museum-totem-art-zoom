@@ -76,23 +76,18 @@
 
   <!-- ZOOM CONTROLS -->
   <div class="zoom-controls">
-    <button class="zoom-button" id="zoomOutBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-        <path d="M8 11h6"></path>
-      </svg>
-      Zoom Out
+    <button class="zoom-zone" id="zoomOutBtn" aria-label="Zoom Out">
+      <span class="zoom-zone-content zoom-zone-content--left">
+        <span class="zoom-zone-arrow" aria-hidden="true">←</span>
+        <span class="zoom-zone-label">Zoom Out</span>
+      </span>
     </button>
 
-    <button class="zoom-button" id="zoomInBtn" disabled>
-      <div class="zoom-button-color" id="colorSwatch"></div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-        <path d="M11 8v6M8 11h6"></path>
-      </svg>
-      Zoom In
+    <button class="zoom-zone" id="zoomInBtn" aria-label="Zoom In" disabled>
+      <span class="zoom-zone-content zoom-zone-content--right">
+        <span class="zoom-zone-arrow" aria-hidden="true">→</span>
+        <span class="zoom-zone-label">Zoom In</span>
+      </span>
     </button>
 
   </div>
@@ -850,10 +845,14 @@
 
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         handCursor.classList.remove("active");
+        zoomInBtn.classList.remove("is-hovered");
+        zoomOutBtn.classList.remove("is-hovered");
         magnifier.classList.remove("active");
         stopMoleculeGrab();
         handConfidence = 0;
         updateStatusIndicator(false, 0);
+        currentButtonHover = null;
+        buttonDwellStartTime = null;
         return;
       }
 
@@ -975,6 +974,8 @@
 
       // Highlight white circle when hovering button
       handCursor.classList.toggle("hovering", isOverButton);
+      zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled);
+      zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled);
 
       // Update button hover state (for dwell timer)
       if (isOverZoomInBtn && !zoomInBtn.disabled) {
@@ -1094,10 +1095,6 @@
       selectionFeedback.classList.add("active");
       pulseSelectionHighlight(pigment);
       updateZoomControls();
-
-      // Display the color swatch on the zoom button
-      const colorSwatch = document.getElementById("colorSwatch");
-      colorSwatch.style.backgroundColor = pigment.color;
 
       if (debugCheckbox.checked) {
         console.log(`✓ Selected: ${pigment.name} (${pigment.color})`);
