@@ -55,7 +55,34 @@ Para isso, adotamos uma técnica de **Máscaras Ocultas Baseadas em RGB (Hidden 
 
 ---
 
-## Pré-requisitos e Instalação
+## 📂 Estrutura do Projeto
+
+Abaixo apresentamos a organização dos arquivos e pastas para facilitar a navegação no repositório:
+
+```text
+museum-totem-art-zoom/
+├── assets/                    # Mídias estáticas do sistema
+│   ├── artwork/               # Pintura original (visível) e máscara colorida RGB (oculta)
+│   ├── highlights/            # Camadas de brilho para destacar áreas selecionadas
+│   ├── materials/             # Imagens históricas dos pigmentos usadas no Nível 2
+│   └── molecules/             # Arquivos atômicos tridimensionais (.mol) carregados pelo 3Dmol.js
+├── css/
+│   └── main.css               # Estilos globais da interface (Vanilla CSS)
+├── js/
+│   ├── core/
+│   │   └── maskReader.js      # Motor que lê a cor do pixel clicado no canvas da máscara
+│   ├── data/
+│   │   ├── colorMap.js        # Dicionário mapeando Código Hexadecimal RGB -> ID do Pigmento
+│   │   ├── molecules.js       # Registro de arquivos .mol
+│   │   └── pigments.js        # Banco de dados de informações textuais de cada material
+│   └── state.js               # Gerenciador de estado global da aplicação
+├── painting-pigment-explorer.html # Arquivo HTML principal (Entrypoint) do sistema
+└── README.md                  # Documentação do projeto
+```
+
+---
+
+## ⚙️ Pré-requisitos e Instalação
 
 O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilações pesadas ou pacotes `npm`. O único requisito é um servidor web simples para que as requisições `fetch` dos arquivos locais (como os arquivos `.MOL`) contornem as regras de segurança CORS do navegador.
 
