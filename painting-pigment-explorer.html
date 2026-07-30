@@ -22,13 +22,14 @@
 
       <div class="detail-header" id="detailHeader">
         <h1 id="detailTitle">Pigment Name</h1>
-        <p>Double-click or zoom out to select another pigment</p>
+        <p>Here you can get to know the material</p>
       </div>
 
       <div class="canvas-wrapper">
         <div class="canvas-container">
           <canvas id="paintingCanvas"></canvas>
           <canvas id="maskCanvas"></canvas>
+          <div class="highlight-overlay-layer" id="highlightOverlayLayer" aria-hidden="true"></div>
         </div>
         <div class="canvas-hint">
           Click on mapped color areas to discover materials
@@ -51,21 +52,16 @@
     </div>
   </div>
 
-  <!-- SELECTION FEEDBACK POPUP -->
-  <div class="selection-feedback" id="selectionFeedback">
-    <p class="selection-feedback-name" id="selectionName">Vermilion</p>
-    <p class="selection-feedback-subtitle">Click "Zoom In" to explore ↓</p>
-  </div>
-
   <!-- MOLECULE SECTION (P3) -->
   <div class="molecule-section" id="moleculeSection">
-    <div class="molecule-header">
+    <div class="detail-header molecule-header">
       <h1 id="moleculeTitle">Molecule Structure</h1>
+      <p>Molecular structure and chemical information</p>
     </div>
     <div class="molecule-container">
       <div class="molecule-viewport" id="moleculeViewport"></div>
       <div class="molecule-legend" id="moleculeLegend">
-        <div class="legend-title">Atomic Structure</div>
+        <div class="legend-title">Chemical Information</div>
         <div class="legend-formula" id="legendFormula">HgS</div>
         <div class="legend-atoms" id="legendAtoms"></div>
         <div class="legend-info" id="legendInfo"></div>
@@ -75,23 +71,18 @@
 
   <!-- ZOOM CONTROLS -->
   <div class="zoom-controls">
-    <button class="zoom-button" id="zoomOutBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-        <path d="M8 11h6"></path>
-      </svg>
-      Zoom Out
+    <button class="zoom-zone" id="zoomOutBtn" aria-label="Zoom Out">
+      <span class="zoom-zone-content zoom-zone-content--left">
+        <span class="zoom-zone-arrow" aria-hidden="true">←</span>
+        <span class="zoom-zone-label">Zoom Out</span>
+      </span>
     </button>
 
-    <button class="zoom-button" id="zoomInBtn" disabled>
-      <div class="zoom-button-color" id="colorSwatch"></div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-        <path d="M11 8v6M8 11h6"></path>
-      </svg>
-      Zoom In
+    <button class="zoom-zone" id="zoomInBtn" aria-label="Zoom In" disabled>
+      <span class="zoom-zone-content zoom-zone-content--right">
+        <span class="zoom-zone-arrow" aria-hidden="true">→</span>
+        <span class="zoom-zone-label">Zoom In</span>
+      </span>
     </button>
 
   </div>
@@ -107,21 +98,10 @@
 
   <!-- CAMERA PREVIEW PANEL (Fixed, Non-Closeable) -->
   <div class="camera-preview-panel" id="cameraPreviewPanel">
-    <div class="camera-preview-header">
-      HAND TRACKING
-    </div>
     <canvas id="cameraPreviewCanvas" width="300" height="280"></canvas>
     <div class="camera-preview-status">
       <div class="status-indicator">
         <span class="status-dot" id="statusDot">●</span>
-        <span class="status-text" id="statusText">Searching...</span>
-      </div>
-      <div class="confidence-container">
-        <div class="confidence-label">Confidence</div>
-        <div class="confidence-bar">
-          <div class="confidence-fill" id="confidenceFill"></div>
-        </div>
-        <div class="confidence-percent" id="confidencePercent">0%</div>
       </div>
     </div>
   </div>
@@ -154,8 +134,8 @@
     // ===== SAFE DETECTION ZONE =====
     // Constrain painting to center area where hand detection is stable
     const SAFE_ZONE_MARGINS = {
-      horizontal: 0.15,  // 15% margin on each side = 70% usable width
-      vertical: 0.10     // 10% top, 15% bottom = 75% usable height
+      horizontal: 0.08,  // Wider painting area while keeping safe detection margins
+      vertical: 0.06     // Slightly tighter top margin to enlarge the artwork
     };
 
     function initializeSafeZone() {
@@ -166,7 +146,7 @@
       const screenHeight = window.innerHeight;
 
       const safeWidth = screenWidth * (1 - SAFE_ZONE_MARGINS.horizontal * 2);
-      const safeHeight = screenHeight * (1 - SAFE_ZONE_MARGINS.vertical - 0.05); // Account for bottom controls
+      const safeHeight = screenHeight * (1 - SAFE_ZONE_MARGINS.vertical - 0.04); // Account for bottom controls
 
       // Position canvas wrapper in safe zone
       canvasWrapper.style.position = "fixed";
@@ -179,11 +159,29 @@
       console.log(`✓ Safe detection zone applied: ${Math.round(safeWidth)}×${Math.round(safeHeight)}px`);
     }
 
+    function applyPigmentAccent(pigment) {
+      if (!pigment || !pigment.color) return;
+
+      const pigmentRgb = hexToRgb(pigment.color);
+      const textRgb = hexToRgb("#2F2A24");
+      const accentInkRgb = {
+        r: Math.round((pigmentRgb.r * 0.42) + (textRgb.r * 0.58)),
+        g: Math.round((pigmentRgb.g * 0.42) + (textRgb.g * 0.58)),
+        b: Math.round((pigmentRgb.b * 0.42) + (textRgb.b * 0.58))
+      };
+
+      document.documentElement.style.setProperty("--pigment-accent", pigment.color);
+      document.documentElement.style.setProperty("--pigment-accent-rgb", `${pigmentRgb.r}, ${pigmentRgb.g}, ${pigmentRgb.b}`);
+      document.documentElement.style.setProperty("--pigment-accent-ink-rgb", `${accentInkRgb.r}, ${accentInkRgb.g}, ${accentInkRgb.b}`);
+    }
+
     // ===== 3D MOLECULE VISUALIZATION (using 3Dmol) =====
     // 3Dmol.js handles all 3D rendering, no manual setup needed
     // moleculeViewer is initialized in displayMolecule() when needed
 
     async function displayMolecule(pigment) {
+      applyPigmentAccent(pigment);
+
       // Initialize 3Dmol viewer if needed
       if (!moleculeViewer) {
         const viewportElement = document.getElementById("moleculeViewport");
@@ -192,7 +190,7 @@
           return;
         }
         moleculeViewer = $3Dmol.createViewer(viewportElement, {
-          backgroundColor: '#0f1419'
+          backgroundColor: '#F5F0E7'
         });
       }
 
@@ -281,17 +279,21 @@
       });
 
       legendInfo.innerHTML = `
-        <strong>${mol.name}</strong><br/>
+        <strong>${pigment.name}</strong><br/>
+        Model: ${mol.name}<br/>
         Formula: ${mol.formula}<br/>
-        ${mol.structure}
+        ${mol.structure}<br/>
+        ${Object.entries(pigment.chemistry).map(([key, value]) => `
+          <span><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</span><br/>
+        `).join("")}
       `;
 
-      moleculeTitle.textContent = mol.name;
+      moleculeTitle.textContent = pigment.name;
       
       console.log(`✓ Loaded molecule: ${pigment.name}`);
     }
 
-    function updateMoleculeHandManipulation(isCurrentlyPinching, handPosition) {
+    function updateMoleculeHandManipulation(isCurrentlyPinching, handPose) {
       if (appState !== APP_STATES.MOLECULE || !moleculeViewer) {
         stopMoleculeGrab();
         return;
@@ -306,27 +308,30 @@
         if (currentButtonHover) return;
 
         moleculeHandControl.active = true;
-        moleculeHandControl.lastPosition = { ...handPosition };
+        moleculeHandControl.startPosition = { x: handPose.rawX, y: handPose.rawY };
+        moleculeHandControl.startView = moleculeViewer.getView().slice();
         handCursor.classList.add("grabbing");
-        return;
       }
 
-      const deltaX = handPosition.x - moleculeHandControl.lastPosition.x;
-      const deltaY = handPosition.y - moleculeHandControl.lastPosition.y;
-      moleculeHandControl.lastPosition = { ...handPosition };
-
-      rotateMoleculeFromHandDelta(deltaX, deltaY);
+      rotateMoleculeFromHandPose(handPose);
     }
 
-    function rotateMoleculeFromHandDelta(deltaX, deltaY) {
-      if (!moleculeViewer || (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5)) return;
+    function rotateMoleculeFromHandPose(handPose) {
+      if (!moleculeViewer || !moleculeHandControl.startPosition || !moleculeHandControl.startView) return;
 
-      const horizontalDegrees = deltaX * MOLECULE_ROTATION_SENSITIVITY;
-      const verticalDegrees = deltaY * MOLECULE_ROTATION_SENSITIVITY;
+      const deltaX = handPose.rawX - moleculeHandControl.startPosition.x;
+      const deltaY = handPose.rawY - moleculeHandControl.startPosition.y;
+
+      if (Math.abs(deltaX) < 0.01 && Math.abs(deltaY) < 0.01) return;
+
+      const horizontalDegrees = clamp(deltaX * MOLECULE_ROTATION_SENSITIVITY, -120, 120);
+      const verticalDegrees = clamp(-deltaY * MOLECULE_ROTATION_SENSITIVITY, -120, 120);
 
       try {
-        moleculeViewer.rotate(horizontalDegrees, "y");
-        moleculeViewer.rotate(verticalDegrees, "x");
+        // Rebuild the view from the pinch-start pose so the hand acts like a grasp, not a drag.
+        moleculeViewer.setView(moleculeHandControl.startView);
+        moleculeViewer.rotate(horizontalDegrees, "vy");
+        moleculeViewer.rotate(verticalDegrees, "vx");
         moleculeViewer.render();
       } catch (error) {
         console.warn("Hand molecule rotation failed:", error);
@@ -335,7 +340,8 @@
 
     function stopMoleculeGrab() {
       moleculeHandControl.active = false;
-      moleculeHandControl.lastPosition = null;
+      moleculeHandControl.startPosition = null;
+      moleculeHandControl.startView = null;
       if (typeof handCursor !== "undefined") {
         handCursor.classList.remove("grabbing");
       }
@@ -434,6 +440,7 @@
     let webcamStream = null;
     let lastHandPosition = { x: 0, y: 0 };
     let smoothedHandPosition = { x: 0, y: 0 };
+    let smoothedRawHandPosition = { x: 0.5, y: 0.5 };
     let handConfidence = 0;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
     const HAND_INTERACTION_REGION = {
@@ -453,10 +460,11 @@
     const PINCH_CONFIRMATION_MS = 100;
     const PINCH_THRESHOLD = 0.08;  // ~30px at standard distance
     const PINCH_RELEASE_THRESHOLD = 0.12;  // Hysteresis to avoid flutter
-    const MOLECULE_ROTATION_SENSITIVITY = 0.45;
+    const MOLECULE_ROTATION_SENSITIVITY = 180;
     const moleculeHandControl = {
       active: false,
-      lastPosition: null
+      startPosition: null,
+      startView: null
     };
     
     // Button activation
@@ -471,8 +479,6 @@
     const cameraPreviewCtx = cameraPreviewCanvas.getContext("2d");
     const statusDot = document.getElementById("statusDot");
     const statusText = document.getElementById("statusText");
-    const confidenceFill = document.getElementById("confidenceFill");
-    const confidencePercent = document.getElementById("confidencePercent");
 
     async function waitForMediaPipeLibraries(maxWaitMs = 15000) {
       const startTime = Date.now();
@@ -602,6 +608,7 @@
       // Draw video frame (mirrored)
       cameraPreviewCtx.save();
       cameraPreviewCtx.scale(-1, 1);
+      cameraPreviewCtx.filter = "grayscale(100%)";
       cameraPreviewCtx.drawImage(
         videoElement,
         -cameraPreviewCanvas.width,
@@ -609,6 +616,7 @@
         cameraPreviewCanvas.width,
         cameraPreviewCanvas.height
       );
+      cameraPreviewCtx.filter = "none";
       cameraPreviewCtx.restore();
       drawInteractionRegion();
 
@@ -738,16 +746,24 @@
 
     function drawInteractionRegion() {
       const region = HAND_INTERACTION_REGION;
+
       const left = (region.centerX - region.widthRatio / 2) * cameraPreviewCanvas.width;
       const top = (region.centerY - region.heightRatio / 2) * cameraPreviewCanvas.height;
       const width = region.widthRatio * cameraPreviewCanvas.width;
       const height = region.heightRatio * cameraPreviewCanvas.height;
 
       cameraPreviewCtx.save();
-      cameraPreviewCtx.strokeStyle = "rgba(251, 191, 36, 0.9)";
+
+      cameraPreviewCtx.strokeStyle = "#FFFFFF";
       cameraPreviewCtx.lineWidth = 2;
-      cameraPreviewCtx.setLineDash([8, 6]);
+
+      cameraPreviewCtx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      cameraPreviewCtx.shadowBlur = 4;
+
+      cameraPreviewCtx.globalCompositeOperation = "difference";
+
       cameraPreviewCtx.strokeRect(left, top, width, height);
+
       cameraPreviewCtx.restore();
     }
 
@@ -824,28 +840,16 @@
       cameraPreviewCtx.stroke();
     }
 
-    function updateStatusIndicator(isDetected, confidence) {
-      if (isDetected) {
-        statusDot.classList.remove("searching");
-        statusDot.classList.add("detected");
-        statusText.textContent = "Hand Detected";
-      } else {
-        statusDot.classList.remove("detected");
-        statusDot.classList.add("searching");
-        statusText.textContent = "Searching...";
-      }
-
-      // Update confidence bar
-      const confPercent = Math.round(confidence * 100);
-      confidenceFill.style.width = confPercent + "%";
-      confidencePercent.textContent = confPercent + "%";
-
-      // Change color based on confidence
-      if (confPercent >= 70) {
-        confidenceFill.classList.remove("weak");
-      } else {
-        confidenceFill.classList.add("weak");
-      }
+    function updateStatusIndicator(isDetected) {
+        if (isDetected) {
+            statusDot.textContent = "●";
+            statusDot.classList.add("detected");
+            statusDot.classList.remove("searching");
+        } else {
+            statusDot.textContent = "✕";
+            statusDot.classList.add("searching");
+            statusDot.classList.remove("detected");
+        }
     }
 
     function onHandResults(results) {
@@ -854,10 +858,14 @@
 
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         handCursor.classList.remove("active");
+        zoomInBtn.classList.remove("is-hovered");
+        zoomOutBtn.classList.remove("is-hovered");
         magnifier.classList.remove("active");
         stopMoleculeGrab();
         handConfidence = 0;
         updateStatusIndicator(false, 0);
+        currentButtonHover = null;
+        buttonDwellStartTime = null;
         return;
       }
 
@@ -878,6 +886,8 @@
       // Apply exponential smoothing to reduce jitter
       smoothedHandPosition.x = smoothedHandPosition.x * SMOOTHING_FACTOR + palmX * (1 - SMOOTHING_FACTOR);
       smoothedHandPosition.y = smoothedHandPosition.y * SMOOTHING_FACTOR + palmY * (1 - SMOOTHING_FACTOR);
+      smoothedRawHandPosition.x = smoothedRawHandPosition.x * SMOOTHING_FACTOR + rawPalmX * (1 - SMOOTHING_FACTOR);
+      smoothedRawHandPosition.y = smoothedRawHandPosition.y * SMOOTHING_FACTOR + rawPalmY * (1 - SMOOTHING_FACTOR);
       
       handConfidence = results.multiHandedness?.[0]?.score || 0.8;
 
@@ -890,7 +900,12 @@
 
       // Update white cursor position (using smoothed position for stability)
       updateHandCursor(smoothedHandPosition.x, smoothedHandPosition.y);
-      updateMoleculeHandManipulation(currentlyPinching, smoothedHandPosition);
+      updateMoleculeHandManipulation(currentlyPinching, {
+        rawX: smoothedRawHandPosition.x,
+        rawY: smoothedRawHandPosition.y,
+        screenX: smoothedHandPosition.x,
+        screenY: smoothedHandPosition.y
+      });
 
       // Show magnifier only in SELECTION mode
       if (appState === APP_STATES.SELECTION) {
@@ -959,12 +974,14 @@
       // Check if white circle is hovering over buttons
       const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();
       const zoomOutRect = document.getElementById("zoomOutBtn").getBoundingClientRect();
+      const zoomInVisible = !zoomInBtn.classList.contains("is-hidden");
+      const zoomOutVisible = !zoomOutBtn.classList.contains("is-hidden");
 
-      const isOverZoomInBtn = 
+      const isOverZoomInBtn = zoomInVisible &&
         x >= zoomInRect.left && x <= zoomInRect.right && 
         y >= zoomInRect.top && y <= zoomInRect.bottom;
 
-      const isOverZoomOutBtn = 
+      const isOverZoomOutBtn = zoomOutVisible &&
         x >= zoomOutRect.left && x <= zoomOutRect.right && 
         y >= zoomOutRect.top && y <= zoomOutRect.bottom;
 
@@ -972,6 +989,8 @@
 
       // Highlight white circle when hovering button
       handCursor.classList.toggle("hovering", isOverButton);
+      zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled);
+      zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled);
 
       // Update button hover state (for dwell timer)
       if (isOverZoomInBtn && !zoomInBtn.disabled) {
@@ -986,14 +1005,13 @@
     // ===== DOM ELEMENTS =====
     const paintingCanvas = document.getElementById("paintingCanvas");
     const maskCanvas = document.getElementById("maskCanvas");
+    const highlightOverlayLayer = document.getElementById("highlightOverlayLayer");
     const debugCheckbox = document.getElementById("debugMode");
     const materialEmpty = document.getElementById("materialEmpty");
     const materialContent = document.getElementById("materialContent");
     const detailHeader = document.getElementById("detailHeader");
     const detailTitle = document.getElementById("detailTitle");
     const cursorInfo = document.getElementById("cursorInfo");
-    const selectionFeedback = document.getElementById("selectionFeedback");
-    const selectionName = document.getElementById("selectionName");
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
     // ===== MOLECULE SECTION (P3) =====
@@ -1004,6 +1022,15 @@
     const legendFormula = document.getElementById("legendFormula");
     const legendAtoms = document.getElementById("legendAtoms");
     const legendInfo = document.getElementById("legendInfo");
+
+    const PIGMENT_HIGHLIGHT_FILES = {
+      black: "assets/highlights/highlight_carbon_black_000000.png",
+      blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
+      red: "assets/highlights/highlight_lake_red_titian_ff0000.png",
+      signature: "assets/highlights/highlight_artist_ff00ff.png",
+      white: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
+      yellow: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
+    };
 
     let moleculeViewer = null;
     const moleculeFileCache = {};
@@ -1054,15 +1081,31 @@
       };
     }
 
+    function pulseSelectionHighlight(pigment) {
+      if (!highlightOverlayLayer || !pigment) return;
+
+      const highlightPath = PIGMENT_HIGHLIGHT_FILES[pigment.key];
+      if (!highlightPath) return;
+
+      highlightOverlayLayer.replaceChildren();
+
+      const highlightImage = document.createElement("img");
+      highlightImage.className = "selection-highlight";
+      highlightImage.alt = "";
+      highlightImage.setAttribute("aria-hidden", "true");
+      highlightImage.src = highlightPath;
+      highlightImage.addEventListener("animationend", () => {
+        highlightImage.remove();
+      }, { once: true });
+
+      highlightOverlayLayer.appendChild(highlightImage);
+    }
+
     function selectPigment(pigment) {
       selectedPigment = pigment;
-      selectionName.textContent = pigment.name;
-      selectionFeedback.classList.add("active");
+      applyPigmentAccent(pigment);
+      pulseSelectionHighlight(pigment);
       updateZoomControls();
-
-      // Display the color swatch on the zoom button
-      const colorSwatch = document.getElementById("colorSwatch");
-      colorSwatch.style.backgroundColor = pigment.color;
 
       if (debugCheckbox.checked) {
         console.log(`✓ Selected: ${pigment.name} (${pigment.color})`);
@@ -1071,6 +1114,7 @@
 
     function displayPigment(pigment) {
       selectedPigment = pigment;
+      applyPigmentAccent(pigment);
 
       detailTitle.textContent = pigment.name;
 
@@ -1081,43 +1125,26 @@
 
         <div class="material-color-indicator" style="background: ${pigment.color};"></div>
         
-        <div class="material-label">Pigment Type</div>
+        <div class="material-label">Material Name</div>
         <h2 class="material-name">${pigment.name}</h2>
         
-        <div class="material-formula">${pigment.formula}</div>
-        
         <div class="material-section">
-          <div class="material-section-title">Why is it this color?</div>
-          <div class="material-text">${pigment.whyRed || "🔬 " + pigment.description}</div>
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">Chemical Composition</div>
-          ${Object.entries(pigment.chemistry).map(([key, value]) => `
-            <div class="material-property">
-              <span class="material-property-bullet">•</span>
-              <span><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</span>
-            </div>
-          `).join("")}
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">Physical Properties</div>
-          ${pigment.properties.map(prop => `
-            <div class="material-property">
-              <span class="material-property-bullet">•</span>
-              <span>${prop}</span>
-            </div>
-          `).join("")}
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">Historical Context</div>
+          <div class="material-section-title">Historical & Cultural Context</div>
           <div class="material-text">${pigment.historical}</div>
         </div>
 
+        <div class="material-section">
+          <div class="material-section-title">Origin / Production</div>
+          <div class="material-text">${pigment.occurrence}</div>
+        </div>
+
+        <div class="material-section">
+          <div class="material-section-title">Common Name</div>
+          <div class="material-text">${pigment.commonName}</div>
+        </div>
+
         <div class="material-note">
-          💡 Next: Explore the molecular structure of ${pigment.formula}
+          Zoom in to explore the molecular structure of ${pigment.name}
         </div>
       `;
 
@@ -1168,7 +1195,6 @@
       if (appState === APP_STATES.DETAIL) {
         stopMoleculeGrab();
         setAppState(APP_STATES.SELECTION);
-        selectionFeedback.classList.remove("active");
         selectedPigment = null;
         
         // Reset magnifier position to center for fresh start
@@ -1190,7 +1216,6 @@
       if (appState === APP_STATES.SELECTION) {
         setAppState(APP_STATES.DETAIL);
         displayPigment(selectedPigment);
-        selectionFeedback.classList.remove("active");
         updateZoomControls();
       } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.key]) {
         stopMoleculeGrab();
@@ -1201,11 +1226,32 @@
     });
 
     function updateZoomControls() {
-      zoomOutBtn.disabled = appState === APP_STATES.SELECTION;
-      zoomInBtn.disabled =
-        (appState === APP_STATES.SELECTION && !selectedPigment) ||
-        (appState === APP_STATES.DETAIL && (!selectedPigment || !PIGMENT_MOL_FILES[selectedPigment.key])) ||
-        appState === APP_STATES.MOLECULE;
+      const canZoomOut = appState === APP_STATES.DETAIL || appState === APP_STATES.MOLECULE;
+      const canZoomIn =
+        (appState === APP_STATES.SELECTION && !!selectedPigment) ||
+        (appState === APP_STATES.DETAIL && !!selectedPigment && !!PIGMENT_MOL_FILES[selectedPigment.key]);
+      const shouldInviteZoomIn = appState === APP_STATES.SELECTION && !!selectedPigment;
+
+      zoomOutBtn.classList.toggle("is-hidden", !canZoomOut);
+      zoomInBtn.classList.toggle("is-hidden", !canZoomIn);
+      zoomInBtn.classList.toggle("is-attention", shouldInviteZoomIn);
+
+      zoomOutBtn.disabled = !canZoomOut;
+      zoomInBtn.disabled = !canZoomIn;
+
+      if (!canZoomIn && currentButtonHover === "zoomInBtn") {
+        currentButtonHover = null;
+        buttonDwellStartTime = null;
+      }
+
+      if (!shouldInviteZoomIn && zoomInBtn.classList.contains("is-attention")) {
+        zoomInBtn.classList.remove("is-attention");
+      }
+
+      if (!canZoomOut && currentButtonHover === "zoomOutBtn") {
+        currentButtonHover = null;
+        buttonDwellStartTime = null;
+      }
     }
 
     // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
@@ -1325,10 +1371,10 @@ P1 - PAINTING:
         ↓ [ZOOM IN button]
 
 P2 - MATERIAL:
-   • Full pigment information display
-   • Chemical formula and properties
-   • Why the pigment has that color
-   • Historical context
+  • Material name and artwork image
+  • Historical and cultural context
+  • Origin, production, and historical use
+  • Minimal chemistry to keep the focus on meaning
 
         ↓ [ZOOM IN button]
 
@@ -1336,7 +1382,7 @@ P3 - MOLECULE:
    • Interactive 3D molecular structure
    • Click + drag to rotate manually
    • Scroll to zoom in/out
-   • Shows: atoms, bonds, molecular weight
+  • Shows: material name, formula, atoms, bonds, molecular weight, and chemical details
    • No magnifier in this view
 
         ↓ [ZOOM OUT button]
