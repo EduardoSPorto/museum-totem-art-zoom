@@ -117,7 +117,7 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
 Ao se posicionar diante do totem e ter suas mãos reconhecidas, um cursor indicativo acompanhará o movimento das suas mãos na tela.
 
 - **Navegação (Apontar):** Mova a mão aberta diante da câmera. O cursor na tela acompanhará seu movimento proporcionalmente em uma "zona segura" estabelecida no centro da tela.
-- **Explorar (Gesto de Pinça Curta):** Ao juntar as pontas dos dedos polegar e indicador brevemente (Pinch) sobre uma área da pintura, um pigmento será selecionado.
-- **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
-- **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
-- **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida.
+- **Explorar (Gesto de Pinça Intencional):** Ao manter os dedos polegar e indicador próximos por alguns instantes e de forma deliberada sobre uma área da pintura, um pigmento será selecionado. O sistema agora evita detecções acidentais causadas por pequenas variações de posição.
+- **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça de forma intencional, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
+- **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça de forma intencional, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
+- **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida. As mudanças de nível exigem uma nova interação deliberada, evitando transições acidentais.

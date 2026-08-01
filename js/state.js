@@ -8,6 +8,10 @@ let appState = APP_STATES.SELECTION;
 let selectedPigment = null;
 
 function setAppState(newState) {
+  if (appState !== newState && typeof consumePinchGesture === "function") {
+    consumePinchGesture();
+  }
+
   appState = newState;
   document.body.className = `app-state-${newState}`;
 
