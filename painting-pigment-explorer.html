@@ -29,7 +29,7 @@
 
       <div class="detail-header" id="detailHeader">
         <h1 id="detailTitle">Pigment Name</h1>
-        <p>Here you can get to know the material</p>
+        <p id="detailSubtitle">Here you can get to know the material</p>
       </div>
 
       <div class="canvas-wrapper">
@@ -1102,6 +1102,7 @@
     const materialContent = document.getElementById("materialContent");
     const detailHeader = document.getElementById("detailHeader");
     const detailTitle = document.getElementById("detailTitle");
+    const detailSubtitle = document.getElementById("detailSubtitle");
     const cursorInfo = document.getElementById("cursorInfo");
     const zoomInBtn = document.getElementById("zoomInBtn");
     const zoomOutBtn = document.getElementById("zoomOutBtn");
@@ -1209,11 +1210,15 @@
       selectedPigment = pigment;
       applyPigmentAccent(pigment);
 
+      const isArtistSignature = pigment.id === "artist_signature";
       detailTitle.textContent = pigment.name;
+      detailSubtitle.textContent = isArtistSignature
+        ? "Here you can get to know the artist"
+        : "Here you can get to know the material";
 
       const html = `
         <div class="material-image-section">
-          <img src="${pigment.image}" alt="${pigment.name} pigment powder" class="material-image" />
+          <img src="${pigment.image}" alt="${pigment.name}${isArtistSignature ? "" : " pigment powder"}" class="material-image" />
         </div>
 
         <div class="material-color-indicator" style="background: ${pigment.color};"></div>
@@ -1228,14 +1233,16 @@
           <div class="material-text">${pigment.originProduction}</div>
         </div>
 
-        <div class="material-section">
-          <div class="material-section-title">Common Name</div>
-          <div class="material-text">${pigment.commonName}</div>
-        </div>
+        ${isArtistSignature ? "" : `
+          <div class="material-section">
+            <div class="material-section-title">Common Name</div>
+            <div class="material-text">${pigment.commonName}</div>
+          </div>
 
-        <div class="material-note">
-          Zoom in to explore the molecular structure of ${pigment.name}
-        </div>
+          <div class="material-note">
+            Zoom in to explore the molecular structure of ${pigment.name}
+          </div>
+        `}
       `;
 
       materialContent.innerHTML = html;
@@ -1313,7 +1320,9 @@
         setAppState(APP_STATES.DETAIL);
         displayPigment(selectedPigment);
         updateZoomControls();
-      } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.id]) {
+      } else if (appState === APP_STATES.DETAIL &&
+                 selectedPigment.id !== "artist_signature" &&
+                 PIGMENT_MOL_FILES[selectedPigment.id]) {
         stopMoleculeGrab();
         setAppState(APP_STATES.MOLECULE);
         displayMolecule(selectedPigment);
@@ -1325,7 +1334,10 @@
       const canZoomOut = appState === APP_STATES.DETAIL || appState === APP_STATES.MOLECULE;
       const canZoomIn =
         (appState === APP_STATES.SELECTION && !!selectedPigment) ||
-        (appState === APP_STATES.DETAIL && !!selectedPigment && !!PIGMENT_MOL_FILES[selectedPigment.id]);
+        (appState === APP_STATES.DETAIL &&
+          !!selectedPigment &&
+          selectedPigment.id !== "artist_signature" &&
+          !!PIGMENT_MOL_FILES[selectedPigment.id]);
       const shouldInviteZoomIn = appState === APP_STATES.SELECTION && !!selectedPigment;
 
       zoomOutBtn.classList.toggle("is-hidden", !canZoomOut);
