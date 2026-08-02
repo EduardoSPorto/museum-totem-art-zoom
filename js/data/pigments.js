@@ -108,24 +108,26 @@ const PIGMENTS = {
   signature: {
     key: "signature",
     id: "artist_signature",
-    name: "Artist Signature",
+    name: "Assinatura da Artista",
     commonName: "Benette Casaretto Motta",
     formula: "Signature",
       color: "#FF00FF",
       image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
-      imageAlt: "Artist signature",
-      description: "The artist signature region from the artwork mask.",
+      imageAlt: "Assinatura da artista Benette",
+      description: "Assinatura de Benedicta Bianchi Casaretto (1925), conhecida como Benette, única artista mulher com obra no acervo do Palácio Piratini.",
       whyRed: "This mask color identifies the artist signature area rather than a pigment material.",
       chemistry: {
         area: "Artist signature",
         maskColor: "#FF00FF"
       },
-      historical: "Signature area for Benette Casaretto Motta.",
+      historical: "Benette participou da primeira turma da Escola de Belas Artes D. Carmen Trápaga Simões (EBA) de Pelotas, onde foi aluna de Aldo Locatelli, Angelo Guido e Leopoldo Gotuzzo.",
       properties: [
-        "Mapped from the magenta mask color",
-        "Informational artwork region"
+        "Assinatura localizada no anverso das pinturas, como 'BENETTE 63'",
+        "Temas artísticos incluem flores, palhaços, bailarinas, paisagens e retratos",
+        "Obras executadas em suportes de chapa de fibra de madeira (Eucatex) ou telas de tecido",
+        "Uso de tinta a óleo com pigmentos como lake red, negro de carbono e amarelo de cádmio, utilizando óleo de linhaça como aglutinante"
       ],
-      occurrence: "Artwork annotation region.",
+      occurrence: "Região de anotação e identificação da autoria da obra.",
       molecule: {
         name: "Artist Signature",
         formula: "Signature",
