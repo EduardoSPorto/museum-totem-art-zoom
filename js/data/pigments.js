@@ -2,7 +2,7 @@ const PIGMENTS = {
   black: {
     key: "black",
     id: "bone_black",
-    name: "Bone Black (Carbon Black)",
+    name: "Bone Black",
     commonName: "Bone Black",
     formula: "C + Ca5(OH)(PO4)3",
       color: "#000000",
@@ -42,7 +42,7 @@ const PIGMENTS = {
       color: "#0000FF",
       image: "assets/materials/placeholder_blue_pigment_0000ff.jpg",
       imageAlt: "Blue pigment",
-      description: "A blue pigment represented by azurite in the molecule dataset.",
+      description: "Educational representation using azurite as an example of a historical blue pigment.",
       whyRed: "Copper ions absorb parts of the visible spectrum and leave blue light dominant in the reflected color.",
       chemistry: {
         elements: "Copper (Cu) + Carbon (C) + Oxygen (O) + Hydrogen (H)",
@@ -141,7 +141,7 @@ const PIGMENTS = {
     key: "white",
     id: "white_pigment",
     name: "White Pigment",
-    commonName: "Lead Carbonate",
+    commonName: "Basic Lead Carbonate",
     formula: "PbCO3",
       color: "#FFFFFF",
       image: "assets/materials/placeholder_white_pigment_ffffff.jpg",
@@ -161,7 +161,7 @@ const PIGMENTS = {
       ],
       occurrence: "Historically manufactured as a lead carbonate pigment.",
       molecule: {
-        name: "Lead Carbonate",
+        name: "Lead White",
         formula: "PbCO3",
           molecularWeight: 267.21,
           atoms: [
