@@ -193,9 +193,7 @@ textarea {
 
 .app-state-molecule .molecule-section {
   display: flex;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 34%),
-    linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+  background: #ffffff;
 }
 
 .app-state-molecule .container {
@@ -246,7 +244,7 @@ textarea {
 .molecule-viewport {
   flex: 1;
   min-height: min(66vh, 780px);
-  background: linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(244,239,230,0.96) 100%);
+  background: #ffffff;
   border: 1px solid rgba(66, 54, 41, 0.10);
   border-radius: 18px;
   overflow: hidden;
@@ -308,6 +306,7 @@ textarea {
   height: 16px;
   border-radius: 50%;
   flex-shrink: 0;
+  border: 1px solid rgba(66, 54, 41, 0.22);
 }
 
 .legend-atom-text {
@@ -539,6 +538,45 @@ textarea {
 
 .app-state-selection .header {
   display: block;
+}
+
+.pinch-instruction {
+  position: fixed;
+  top: 50%;
+  left: 24px;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: none;
+  align-items: center;
+  gap: 18px;
+  max-width: 380px;
+  padding: 16px 22px 16px 16px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(66, 54, 41, 0.12);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
+}
+
+.app-state-selection .pinch-instruction {
+  display: flex;
+}
+
+.pinch-instruction video {
+  display: block;
+  width: 150px;
+  height: 150px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.pinch-instruction p {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 @keyframes slideDown {
@@ -1024,5 +1062,17 @@ textarea {
 
   #zoomInBtn {
     padding-right: 14px;
+  }
+
+  .pinch-instruction {
+    top: auto;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .pinch-instruction video {
+    width: 112px;
+    height: 112px;
   }
 }

@@ -20,6 +20,13 @@
         <p>Click on any color to explore their material</p>
       </div>
 
+      <aside class="pinch-instruction" aria-label="Pinch gesture instruction">
+        <video autoplay muted loop playsinline aria-hidden="true">
+          <source src="assets/interface/interface_hand_pinch.mp4" type="video/mp4" />
+        </video>
+        <p>Pinch to select a color</p>
+      </aside>
+
       <div class="detail-header" id="detailHeader">
         <h1 id="detailTitle">Pigment Name</h1>
         <p>Here you can get to know the material</p>
@@ -228,7 +235,7 @@
 
       moleculeViewport.replaceChildren();
       const viewer = $3Dmol.createViewer(moleculeViewport, {
-        backgroundColor: "#F5F0E7"
+        backgroundColor: "#FFFFFF"
       });
       moleculeViewer = viewer;
       moleculeIsRendering = true;
@@ -1211,9 +1218,6 @@
         </div>
 
         <div class="material-color-indicator" style="background: ${pigment.color};"></div>
-        
-        <div class="material-label">Material Name</div>
-        <h2 class="material-name">${pigment.name}</h2>
         
         <div class="material-section">
           <div class="material-section-title">Historical & Cultural Context</div>
