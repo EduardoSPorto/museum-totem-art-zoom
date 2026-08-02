@@ -195,7 +195,7 @@
       }
 
       // Get MOL file data
-      const molPath = PIGMENT_MOL_FILES[pigment.key];
+      const molPath = PIGMENT_MOL_FILES[pigment.id];
 
       if (!molPath) {
         console.warn("No MOL file for", pigment.name);
@@ -256,7 +256,7 @@
       const legendInfo = document.getElementById("legendInfo");
       const moleculeTitle = document.getElementById("moleculeTitle");
 
-      legendFormula.textContent = mol.formula;
+      legendFormula.textContent = pigment.formula;
       legendAtoms.innerHTML = "";
 
       mol.atoms.forEach((atom) => {
@@ -280,12 +280,8 @@
 
       legendInfo.innerHTML = `
         <strong>${pigment.name}</strong><br/>
-        Model: ${mol.name}<br/>
-        Formula: ${mol.formula}<br/>
-        ${mol.structure}<br/>
-        ${Object.entries(pigment.chemistry).map(([key, value]) => `
-          <span><strong>${key.replace(/_/g, ' ')}:</strong> ${value}</span><br/>
-        `).join("")}
+        Model: ${mol.modelName}<br/>
+        Formula: ${pigment.formula}
       `;
 
       moleculeTitle.textContent = pigment.name;
@@ -1108,12 +1104,12 @@
     const legendInfo = document.getElementById("legendInfo");
 
     const PIGMENT_HIGHLIGHT_FILES = {
-      black: "assets/highlights/highlight_carbon_black_000000.png",
-      blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
-      red: "assets/highlights/highlight_lake_red_titian_ff0000.png",
-      signature: "assets/highlights/highlight_artist_ff00ff.png",
-      white: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
-      yellow: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
+      bone_black: "assets/highlights/highlight_carbon_black_000000.png",
+      blue_pigment: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
+      lake_red: "assets/highlights/highlight_lake_red_titian_ff0000.png",
+      artist_signature: "assets/highlights/highlight_artist_ff00ff.png",
+      white_pigment: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
+      cadmium_yellow: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
     };
 
     let moleculeViewer = null;
@@ -1168,7 +1164,7 @@
     function pulseSelectionHighlight(pigment) {
       if (!highlightOverlayLayer || !pigment) return;
 
-      const highlightPath = PIGMENT_HIGHLIGHT_FILES[pigment.key];
+      const highlightPath = PIGMENT_HIGHLIGHT_FILES[pigment.id];
       if (!highlightPath) return;
 
       highlightOverlayLayer.replaceChildren();
@@ -1204,7 +1200,7 @@
 
       const html = `
         <div class="material-image-section">
-          <img src="${pigment.image}" alt="${pigment.imageAlt}" class="material-image" />
+          <img src="${pigment.image}" alt="${pigment.name} pigment powder" class="material-image" />
         </div>
 
         <div class="material-color-indicator" style="background: ${pigment.color};"></div>
@@ -1214,12 +1210,12 @@
         
         <div class="material-section">
           <div class="material-section-title">Historical & Cultural Context</div>
-          <div class="material-text">${pigment.historical}</div>
+          <div class="material-text">${pigment.historicalContext}</div>
         </div>
 
         <div class="material-section">
           <div class="material-section-title">Origin / Production</div>
-          <div class="material-text">${pigment.occurrence}</div>
+          <div class="material-text">${pigment.originProduction}</div>
         </div>
 
         <div class="material-section">
@@ -1306,7 +1302,7 @@
         setAppState(APP_STATES.DETAIL);
         displayPigment(selectedPigment);
         updateZoomControls();
-      } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.key]) {
+      } else if (appState === APP_STATES.DETAIL && PIGMENT_MOL_FILES[selectedPigment.id]) {
         stopMoleculeGrab();
         setAppState(APP_STATES.MOLECULE);
         displayMolecule(selectedPigment);
@@ -1318,7 +1314,7 @@
       const canZoomOut = appState === APP_STATES.DETAIL || appState === APP_STATES.MOLECULE;
       const canZoomIn =
         (appState === APP_STATES.SELECTION && !!selectedPigment) ||
-        (appState === APP_STATES.DETAIL && !!selectedPigment && !!PIGMENT_MOL_FILES[selectedPigment.key]);
+        (appState === APP_STATES.DETAIL && !!selectedPigment && !!PIGMENT_MOL_FILES[selectedPigment.id]);
       const shouldInviteZoomIn = appState === APP_STATES.SELECTION && !!selectedPigment;
 
       zoomOutBtn.classList.toggle("is-hidden", !canZoomOut);
