@@ -176,23 +176,19 @@
     }
 
     // ===== 3D MOLECULE VISUALIZATION (using 3Dmol) =====
-    // 3Dmol.js handles all 3D rendering, no manual setup needed
-    // moleculeViewer is initialized in displayMolecule() when needed
+    function waitForNextPaint() {
+      return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+
+    function disposeMoleculeViewer() {
+      moleculeRenderVersion += 1;
+      moleculeViewer = null;
+      moleculeViewport.replaceChildren();
+    }
 
     async function displayMolecule(pigment) {
+      const renderVersion = ++moleculeRenderVersion;
       applyPigmentAccent(pigment);
-
-      // Initialize 3Dmol viewer if needed
-      if (!moleculeViewer) {
-        const viewportElement = document.getElementById("moleculeViewport");
-        if (!viewportElement) {
-          console.error("✗ Molecule viewport not found");
-          return;
-        }
-        moleculeViewer = $3Dmol.createViewer(viewportElement, {
-          backgroundColor: '#F5F0E7'
-        });
-      }
 
       // Get MOL file data
       const molPath = PIGMENT_MOL_FILES[pigment.id];
@@ -218,35 +214,44 @@
         }
       }
 
-      // Load molecule structure
-      moleculeViewer.removeAllModels();
-      moleculeViewer.addModel(molData, "sdf");
+      // Ignore requests that completed after the user selected another pigment.
+      if (renderVersion !== moleculeRenderVersion ||
+          appState !== APP_STATES.MOLECULE ||
+          selectedPigment?.id !== pigment.id) {
+        return;
+      }
 
-      // Style atoms by element
-      moleculeViewer.setStyle({}, {
-        atoms: {
-          colorscheme: "Jmol"  // Standard element coloring
-        },
-        bonds: {
-          colorscheme: "Jmol"
-        }
+      // The 3Dmol canvas cannot be safely reused after this fullscreen view is
+      // hidden. Wait for the layout to settle, then create a fresh viewer.
+      await waitForNextPaint();
+      if (renderVersion !== moleculeRenderVersion || appState !== APP_STATES.MOLECULE) return;
+
+      moleculeViewport.replaceChildren();
+      const viewer = $3Dmol.createViewer(moleculeViewport, {
+        backgroundColor: "#F5F0E7"
       });
+      moleculeViewer = viewer;
+      moleculeIsRendering = true;
 
-      // Add cartoon style for better visibility
-      moleculeViewer.setStyle({}, {
-        stick: {
-          colorscheme: "Jmol",
-          radius: 0.15
-        },
-        sphere: {
-          colorscheme: "Jmol",
-          scale: 0.25
+      try {
+        viewer.addModel(molData, "sdf");
+        viewer.setStyle({}, {
+          stick: { colorscheme: "Jmol", radius: 0.15 },
+          sphere: { colorscheme: "Jmol", scale: 0.25 }
+        });
+        viewer.zoomTo();
+        viewer.render();
+      } catch (error) {
+        if (renderVersion === moleculeRenderVersion) {
+          console.error(`✗ Failed to render molecule: ${pigment.name}`, error);
+          disposeMoleculeViewer();
         }
-      });
+        return;
+      } finally {
+        moleculeIsRendering = false;
+      }
 
-      // Zoom to fit
-      moleculeViewer.zoomTo();
-      moleculeViewer.render();
+      if (renderVersion !== moleculeRenderVersion) return;
       stopMoleculeGrab();
 
       // Update legend
@@ -388,7 +393,7 @@
 
     // Handle window resize
     window.addEventListener("resize", () => {
-      if (moleculeViewer && appState === APP_STATES.MOLECULE) {
+      if (moleculeViewer && !moleculeIsRendering && appState === APP_STATES.MOLECULE) {
         moleculeViewer.resize();
         moleculeViewer.render();
       }
@@ -1113,6 +1118,8 @@
     };
 
     let moleculeViewer = null;
+    let moleculeRenderVersion = 0;
+    let moleculeIsRendering = false;
     const moleculeFileCache = {};
 
     // ===== CLICK DETECTION =====
@@ -1288,6 +1295,7 @@
         updateZoomControls();
       } else if (appState === APP_STATES.MOLECULE) {
         stopMoleculeGrab();
+        disposeMoleculeViewer();
         setAppState(APP_STATES.DETAIL);
         updateZoomControls();
       }
