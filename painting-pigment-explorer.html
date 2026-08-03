@@ -316,6 +316,7 @@
 
         moleculeHandControl.active = true;
         moleculeHandControl.startPosition = { x: handPose.rawX, y: handPose.rawY };
+        moleculeHandControl.startHandScale = handPose.handScale;
         moleculeHandControl.startView = moleculeViewer.getView().slice();
         handCursor.classList.add("grabbing");
       }
@@ -331,8 +332,23 @@
 
       if (Math.abs(deltaX) < 0.01 && Math.abs(deltaY) < 0.01) return;
 
-      const horizontalDegrees = clamp(deltaX * MOLECULE_ROTATION_SENSITIVITY, -120, 120);
-      const verticalDegrees = clamp(-deltaY * MOLECULE_ROTATION_SENSITIVITY, -120, 120);
+      // Express the drag in palm-widths instead of camera pixels. A hand farther
+      // from the camera occupies fewer pixels, so this preserves the same rotation
+      // for the same physical hand movement at different distances.
+      const handScale = Math.max(
+        (moleculeHandControl.startHandScale + handPose.handScale) / 2,
+        MIN_MOLECULE_HAND_SCALE
+      );
+      const horizontalDegrees = clamp(
+        (deltaX / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
+        -120,
+        120
+      );
+      const verticalDegrees = clamp(
+        (-deltaY / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
+        -120,
+        120
+      );
 
       try {
         // Rebuild the view from the pinch-start pose so the hand acts like a grasp, not a drag.
@@ -348,6 +364,7 @@
     function stopMoleculeGrab() {
       moleculeHandControl.active = false;
       moleculeHandControl.startPosition = null;
+      moleculeHandControl.startHandScale = null;
       moleculeHandControl.startView = null;
       if (typeof handCursor !== "undefined") {
         handCursor.classList.remove("grabbing");
@@ -470,10 +487,14 @@
     const PINCH_CONFIRMATION_MS = 100;
     const PINCH_THRESHOLD = 0.32;
     const PINCH_RELEASE_THRESHOLD = 0.42;
-    const MOLECULE_ROTATION_SENSITIVITY = 180;
+    // Rotation is calibrated in degrees per palm-width, so it remains responsive
+    // when a user's hand appears small because they are farther from the camera.
+    const MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH = 36;
+    const MIN_MOLECULE_HAND_SCALE = 0.025;
     const moleculeHandControl = {
       active: false,
       startPosition: null,
+      startHandScale: null,
       startView: null
     };
     
@@ -992,6 +1013,7 @@
       updateMoleculeHandManipulation(currentlyPinching, {
         rawX: smoothedRawHandPosition.x,
         rawY: smoothedRawHandPosition.y,
+        handScale: pinchMetrics?.handScale ?? MIN_MOLECULE_HAND_SCALE,
         screenX: smoothedHandPosition.x,
         screenY: smoothedHandPosition.y
       });
