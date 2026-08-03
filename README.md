@@ -41,9 +41,9 @@ Este projeto foi construído exclusivamente com tecnologias web de alta performa
 
 ---
 
-## Mapeamento de Pigmentos (Lógica de Máscaras Ocultas)
+## Mapeamento de Itens da Obra (Lógica de Máscaras Ocultas)
 
-Um dos maiores desafios técnicos era como mapear regiões irregulares de uma pintura, de forma performática e pixel perfect, para associar um elemento químico àquela área.
+Um dos maiores desafios técnicos era como mapear regiões irregulares de uma pintura, de forma performática e pixel perfect, para associar um item da obra àquela área. Um item pode ser um material com estrutura química ou uma região contextual, como a assinatura da artista.
 
 Para isso, adotamos uma técnica de **Máscaras Ocultas Baseadas em RGB (Hidden Masks)**:
 
@@ -51,7 +51,7 @@ Para isso, adotamos uma técnica de **Máscaras Ocultas Baseadas em RGB (Hidden 
 2. Na máscara, cada região interativa (ex: manto do anjo, céu, assinatura) é preenchida com uma **cor RGB sólida e única**.
 3. Quando o usuário executa o gesto de pinça, as coordenadas (X, Y) mapeadas pela câmera são normalizadas e projetadas no plano do canvas da máscara.
 4. O sistema, através do método `getImageData` da API de Canvas, extrai exatamente o valor RGB daquele pixel específico.
-5. Esse valor Hexadecimal atua como uma chave de banco de dados, que consulta nosso repositório de moléculas (`colorMap.js` -> `pigments.js`) para resgatar os dados do pigmento (como o Cinábrio / Sulfeto de Mercúrio).
+5. Esse valor Hexadecimal atua como uma chave de banco de dados, que consulta nosso repositório de itens (`colorMap.js` -> `items.js`) para resgatar os dados da região selecionada.
 
 ---
 
@@ -72,9 +72,9 @@ museum-totem-art-zoom/
 │   ├── core/
 │   │   └── maskReader.js      # Motor que lê a cor do pixel clicado no canvas da máscara
 │   ├── data/
-│   │   ├── colorMap.js        # Dicionário mapeando Código Hexadecimal RGB -> ID do Pigmento
-│   │   ├── molecules.js       # Registro de arquivos .mol
-│   │   └── pigments.js        # Banco de dados de informações textuais de cada material
+│   │   ├── colorMap.js        # Dicionário mapeando Código Hexadecimal RGB -> ID do item
+│   │   ├── chemicalStructures.js # Registro de arquivos .mol dos itens materiais
+│   │   └── items.js           # Banco de dados de informações de cada item da obra
 │   └── state.js               # Gerenciador de estado global da aplicação
 ├── painting-pigment-explorer.html # Arquivo HTML principal (Entrypoint) do sistema
 └── README.md                  # Documentação do projeto
@@ -117,7 +117,7 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
 Ao se posicionar diante do totem e ter suas mãos reconhecidas, um cursor indicativo acompanhará o movimento das suas mãos na tela.
 
 - **Navegação (Apontar):** Mova a mão aberta diante da câmera. O cursor na tela acompanhará seu movimento proporcionalmente em uma "zona segura" estabelecida no centro da tela.
-- **Explorar (Gesto de Pinça Curta):** Ao juntar as pontas dos dedos polegar e indicador brevemente (Pinch) sobre uma área da pintura, um pigmento será selecionado.
-- **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
-- **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
-- **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida.
+- **Explorar (Gesto de Pinça Intencional):** Ao manter os dedos polegar e indicador próximos por alguns instantes e de forma deliberada sobre uma área da pintura, um pigmento será selecionado. O sistema agora evita detecções acidentais causadas por pequenas variações de posição.
+- **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça de forma intencional, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
+- **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça de forma intencional, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
+- **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida. As mudanças de nível exigem uma nova interação deliberada, evitando transições acidentais.
