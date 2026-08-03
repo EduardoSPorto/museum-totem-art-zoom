@@ -881,7 +881,6 @@
           return false;
         }
 
-        magnifier.classList.add("pinching");
         return true;
       }
 
@@ -893,7 +892,6 @@
       isPinching = true;
       pinchGestureTargetsArtwork = false;
       pinchStartTime = Date.now();
-      magnifier.classList.add("pinching");
       return true;
     }
 
@@ -1033,6 +1031,7 @@
 
         if (getArtworkItemAtPosition(handPosition.x, handPosition.y)) {
           pinchGestureTargetsArtwork = true;
+          magnifier.classList.add("pinching");
           // If smoothing would cross an unmapped gap, snap to the valid hand
           // position instead of leaving the indicator in that gap.
           const nextPosition = getArtworkItemAtPosition(candidatePosition.x, candidatePosition.y)
@@ -1040,6 +1039,8 @@
             : handPosition;
           smoothedMagnifierPosition = nextPosition;
           magnifierPosition = { ...nextPosition };
+        } else {
+          magnifier.classList.remove("pinching");
         }
       }
 
