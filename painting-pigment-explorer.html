@@ -482,6 +482,7 @@
     const magnifierFill = document.getElementById("magnifierFill");
     let magnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let isPinching = false;
+    let pinchGestureTargetsArtwork = false;
     let pinchStartTime = null;
     let pinchGestureConsumed = false;
     const PINCH_CONFIRMATION_MS = 100;
@@ -841,6 +842,7 @@
 
     function resetPinchTracking() {
       isPinching = false;
+      pinchGestureTargetsArtwork = false;
       pinchStartTime = null;
       magnifier.classList.remove("pinching");
     }
@@ -889,13 +891,14 @@
       }
 
       isPinching = true;
+      pinchGestureTargetsArtwork = false;
       pinchStartTime = Date.now();
       magnifier.classList.add("pinching");
       return true;
     }
 
     function handlePinchRelease() {
-      if (appState === APP_STATES.SELECTION) {
+      if (appState === APP_STATES.SELECTION && pinchGestureTargetsArtwork) {
         confirmMagnifierSelection();
       }
 
@@ -1029,6 +1032,7 @@
         };
 
         if (getArtworkItemAtPosition(handPosition.x, handPosition.y)) {
+          pinchGestureTargetsArtwork = true;
           // If smoothing would cross an unmapped gap, snap to the valid hand
           // position instead of leaving the indicator in that gap.
           const nextPosition = getArtworkItemAtPosition(candidatePosition.x, candidatePosition.y)
