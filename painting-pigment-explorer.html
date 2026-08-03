@@ -905,13 +905,9 @@
     }
 
     function confirmMagnifierSelection() {
-      // Sample color at magnifier position
-      const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
-      if (colorData) {
-        const item = identifyArtworkItem(colorData);
-        if (item) {
-          selectArtworkItem(item);
-        }
+      const item = getArtworkItemAtPosition(magnifierPosition.x, magnifierPosition.y);
+      if (item) {
+        selectArtworkItem(item);
       }
     }
 
@@ -997,13 +993,7 @@
       // Detect pinch using a scale-normalized 3D metric so distance and orientation do not distort the gesture.
       const pinchMetrics = getPinchMetrics(handLandmarks);
       const pinchDistance = pinchMetrics?.pinchRatio ?? 0;
-      const wasPinching = isPinching;
       const currentlyPinching = updatePinchState(pinchMetrics);
-
-      if (currentlyPinching && !wasPinching) {
-        smoothedMagnifierPosition.x = smoothedHandPosition.x;
-        smoothedMagnifierPosition.y = smoothedHandPosition.y;
-      }
 
       // Update status indicator
       updateStatusIndicator(true, handConfidence);
@@ -1025,12 +1015,28 @@
         magnifier.classList.remove("active");
       }
 
-      // If pinching, move magnifier with hand (always draggable)
+      // Only move the selection indicator onto a selectable artwork color.
+      // This preserves the last valid selection position when the hand moves
+      // outside the painting or over an unmapped part of it.
       if (currentlyPinching) {
-        smoothedMagnifierPosition.x = smoothedMagnifierPosition.x * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.x * (1 - MAGNIFIER_SMOOTHING_FACTOR);
-        smoothedMagnifierPosition.y = smoothedMagnifierPosition.y * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.y * (1 - MAGNIFIER_SMOOTHING_FACTOR);
-        magnifierPosition.x = smoothedMagnifierPosition.x;
-        magnifierPosition.y = smoothedMagnifierPosition.y;
+        const handPosition = {
+          x: smoothedHandPosition.x,
+          y: smoothedHandPosition.y
+        };
+        const candidatePosition = {
+          x: smoothedMagnifierPosition.x * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.x * (1 - MAGNIFIER_SMOOTHING_FACTOR),
+          y: smoothedMagnifierPosition.y * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.y * (1 - MAGNIFIER_SMOOTHING_FACTOR)
+        };
+
+        if (getArtworkItemAtPosition(handPosition.x, handPosition.y)) {
+          // If smoothing would cross an unmapped gap, snap to the valid hand
+          // position instead of leaving the indicator in that gap.
+          const nextPosition = getArtworkItemAtPosition(candidatePosition.x, candidatePosition.y)
+            ? candidatePosition
+            : handPosition;
+          smoothedMagnifierPosition = nextPosition;
+          magnifierPosition = { ...nextPosition };
+        }
       }
 
       // Update magnifier visual position
@@ -1040,7 +1046,7 @@
       // Sample color at magnifier position and update fill
       if (appState === APP_STATES.SELECTION) {
         const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
-        if (colorData) {
+        if (colorData && getArtworkItemAtPosition(magnifierPosition.x, magnifierPosition.y)) {
           magnifierFill.style.backgroundColor = colorData.hex;
         }
       }
@@ -1077,6 +1083,13 @@
       const canvasY = (screenY - paintingRect.top) * scaleY;
 
       return MaskReader.sampleMaskColor(Math.round(canvasX), Math.round(canvasY));
+    }
+
+    function getArtworkItemAtPosition(screenX, screenY) {
+      const colorData = sampleColorAtPosition(screenX, screenY);
+      if (!colorData || colorData.a === 0) return null;
+
+      return identifyArtworkItem(colorData);
     }
 
     function updateHandCursor(x, y) {
