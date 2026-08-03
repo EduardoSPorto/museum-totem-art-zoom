@@ -50,7 +50,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2z" />
         </svg>
-        <p>Click on the painting to reveal a pigment</p>
+        <p>Click on the painting to reveal an artwork item</p>
       </div>
 
       <div class="material-content" id="materialContent" style="display: none;">
@@ -131,8 +131,8 @@
   <!-- 3Dmol.js for molecular visualization -->
   <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
 
-  <script src="js/data/pigments.js"></script>
-  <script src="js/data/molecules.js"></script>
+  <script src="js/data/items.js"></script>
+  <script src="js/data/chemicalStructures.js"></script>
   <script src="js/data/colorMap.js"></script>
   <script src="js/core/maskReader.js"></script>
   <script src="js/state.js"></script>
@@ -166,20 +166,20 @@
       console.log(`✓ Safe detection zone applied: ${Math.round(safeWidth)}×${Math.round(safeHeight)}px`);
     }
 
-    function applyPigmentAccent(pigment) {
-      if (!pigment || !pigment.color) return;
+    function applySelectionAccent(item) {
+      if (!item || !item.color) return;
 
-      const pigmentRgb = hexToRgb(pigment.color);
+      const itemRgb = hexToRgb(item.color);
       const textRgb = hexToRgb("#2F2A24");
       const accentInkRgb = {
-        r: Math.round((pigmentRgb.r * 0.42) + (textRgb.r * 0.58)),
-        g: Math.round((pigmentRgb.g * 0.42) + (textRgb.g * 0.58)),
-        b: Math.round((pigmentRgb.b * 0.42) + (textRgb.b * 0.58))
+        r: Math.round((itemRgb.r * 0.42) + (textRgb.r * 0.58)),
+        g: Math.round((itemRgb.g * 0.42) + (textRgb.g * 0.58)),
+        b: Math.round((itemRgb.b * 0.42) + (textRgb.b * 0.58))
       };
 
-      document.documentElement.style.setProperty("--pigment-accent", pigment.color);
-      document.documentElement.style.setProperty("--pigment-accent-rgb", `${pigmentRgb.r}, ${pigmentRgb.g}, ${pigmentRgb.b}`);
-      document.documentElement.style.setProperty("--pigment-accent-ink-rgb", `${accentInkRgb.r}, ${accentInkRgb.g}, ${accentInkRgb.b}`);
+      document.documentElement.style.setProperty("--selection-accent", item.color);
+      document.documentElement.style.setProperty("--selection-accent-rgb", `${itemRgb.r}, ${itemRgb.g}, ${itemRgb.b}`);
+      document.documentElement.style.setProperty("--selection-accent-ink-rgb", `${accentInkRgb.r}, ${accentInkRgb.g}, ${accentInkRgb.b}`);
     }
 
     // ===== 3D MOLECULE VISUALIZATION (using 3Dmol) =====
@@ -193,15 +193,15 @@
       moleculeViewport.replaceChildren();
     }
 
-    async function displayMolecule(pigment) {
+    async function displayMolecule(item) {
       const renderVersion = ++moleculeRenderVersion;
-      applyPigmentAccent(pigment);
+      applySelectionAccent(item);
 
       // Get MOL file data
-      const molPath = PIGMENT_MOL_FILES[pigment.id];
+      const molPath = ITEM_CHEMICAL_STRUCTURE_FILES[item.id];
 
       if (!molPath) {
-        console.warn("No MOL file for", pigment.name);
+        console.warn("No chemical structure file for", item.name);
         return;
       }
 
@@ -221,10 +221,10 @@
         }
       }
 
-      // Ignore requests that completed after the user selected another pigment.
+      // Ignore requests that completed after the user selected another artwork item.
       if (renderVersion !== moleculeRenderVersion ||
           appState !== APP_STATES.MOLECULE ||
-          selectedPigment?.id !== pigment.id) {
+          selectedArtworkItem?.id !== item.id) {
         return;
       }
 
@@ -250,7 +250,7 @@
         viewer.render();
       } catch (error) {
         if (renderVersion === moleculeRenderVersion) {
-          console.error(`✗ Failed to render molecule: ${pigment.name}`, error);
+          console.error(`✗ Failed to render molecule: ${item.name}`, error);
           disposeMoleculeViewer();
         }
         return;
@@ -262,16 +262,16 @@
       stopMoleculeGrab();
 
       // Update legend
-      const mol = pigment.molecule;
+      const structure = item.chemicalStructure;
       const legendFormula = document.getElementById("legendFormula");
       const legendAtoms = document.getElementById("legendAtoms");
       const legendInfo = document.getElementById("legendInfo");
       const moleculeTitle = document.getElementById("moleculeTitle");
 
-      legendFormula.textContent = pigment.formula;
+      legendFormula.textContent = item.formula;
       legendAtoms.innerHTML = "";
 
-      mol.atoms.forEach((atom) => {
+      structure.atoms.forEach((atom) => {
         const atomDiv = document.createElement("div");
         atomDiv.className = "legend-atom";
         
@@ -291,13 +291,13 @@
       });
 
       legendInfo.innerHTML = `
-        Model: ${mol.modelName}<br/>
-        Formula: ${pigment.formula}
+        Model: ${structure.modelName}<br/>
+        Formula: ${item.formula}
       `;
 
-      moleculeTitle.textContent = pigment.name;
+      moleculeTitle.textContent = item.name;
       
-      console.log(`✓ Loaded molecule: ${pigment.name}`);
+      console.log(`✓ Loaded molecule: ${item.name}`);
     }
 
     function updateMoleculeHandManipulation(isCurrentlyPinching, handPose) {
@@ -887,9 +887,9 @@
       // Sample color at magnifier position
       const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
       if (colorData) {
-        const pigment = identifyPigment(colorData);
-        if (pigment) {
-          selectPigment(pigment);
+        const item = identifyArtworkItem(colorData);
+        if (item) {
+          selectArtworkItem(item);
         }
       }
     }
@@ -1115,12 +1115,12 @@
     const legendAtoms = document.getElementById("legendAtoms");
     const legendInfo = document.getElementById("legendInfo");
 
-    const PIGMENT_HIGHLIGHT_FILES = {
+    const ITEM_HIGHLIGHT_FILES = {
       bone_black: "assets/highlights/highlight_carbon_black_000000.png",
-      blue_pigment: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
+      blue_color: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
       lake_red: "assets/highlights/highlight_lake_red_titian_ff0000.png",
       artist_signature: "assets/highlights/highlight_artist_ff00ff.png",
-      white_pigment: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
+      white_color: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
       cadmium_yellow: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
     };
 
@@ -1131,25 +1131,25 @@
 
     // ===== CLICK DETECTION =====
 
-    function identifyPigment(colorData) {
-      const mappedPigmentKey = PIGMENT_COLOR_MAP[colorData.hex];
-      if (mappedPigmentKey && PIGMENTS[mappedPigmentKey]) {
-        return PIGMENTS[mappedPigmentKey];
+    function identifyArtworkItem(colorData) {
+      const mappedItemKey = ARTWORK_ITEM_COLOR_MAP[colorData.hex];
+      if (mappedItemKey && ARTWORK_ITEMS[mappedItemKey]) {
+        return ARTWORK_ITEMS[mappedItemKey];
       }
 
-      const nearestPigmentKey = findNearestPigmentKey(colorData);
-      if (nearestPigmentKey && PIGMENTS[nearestPigmentKey]) {
-        return PIGMENTS[nearestPigmentKey];
+      const nearestItemKey = findNearestArtworkItemKey(colorData);
+      if (nearestItemKey && ARTWORK_ITEMS[nearestItemKey]) {
+        return ARTWORK_ITEMS[nearestItemKey];
       }
 
       return null;
     }
 
-    function findNearestPigmentKey(colorData) {
+    function findNearestArtworkItemKey(colorData) {
       let bestMatch = null;
       let bestDistance = Infinity;
 
-      Object.entries(PIGMENT_COLOR_MAP).forEach(([hex, pigmentKey]) => {
+      Object.entries(ARTWORK_ITEM_COLOR_MAP).forEach(([hex, itemKey]) => {
         const color = hexToRgb(hex);
         const distance = Math.hypot(
           colorData.r - color.r,
@@ -1159,7 +1159,7 @@
 
         if (distance < bestDistance) {
           bestDistance = distance;
-          bestMatch = pigmentKey;
+          bestMatch = itemKey;
         }
       });
 
@@ -1175,10 +1175,10 @@
       };
     }
 
-    function pulseSelectionHighlight(pigment) {
-      if (!highlightOverlayLayer || !pigment) return;
+    function pulseSelectionHighlight(item) {
+      if (!highlightOverlayLayer || !item) return;
 
-      const highlightPath = PIGMENT_HIGHLIGHT_FILES[pigment.id];
+      const highlightPath = ITEM_HIGHLIGHT_FILES[item.id];
       if (!highlightPath) return;
 
       highlightOverlayLayer.replaceChildren();
@@ -1195,54 +1195,57 @@
       highlightOverlayLayer.appendChild(highlightImage);
     }
 
-    function selectPigment(pigment) {
-      selectedPigment = pigment;
-      applyPigmentAccent(pigment);
-      pulseSelectionHighlight(pigment);
+    function selectArtworkItem(item) {
+      selectedArtworkItem = item;
+      applySelectionAccent(item);
+      pulseSelectionHighlight(item);
       updateZoomControls();
 
       if (debugCheckbox.checked) {
-        console.log(`✓ Selected: ${pigment.name} (${pigment.color})`);
+        console.log(`✓ Selected: ${item.name} (${item.color})`);
       }
     }
 
-    function displayPigment(pigment) {
-      selectedPigment = pigment;
-      applyPigmentAccent(pigment);
+    function displayArtworkItem(item) {
+      selectedArtworkItem = item;
+      applySelectionAccent(item);
 
-      const isArtistSignature = pigment.id === "artist_signature";
-      detailTitle.textContent = pigment.name;
-      detailSubtitle.textContent = isArtistSignature
+      const isArtist = item.type === "artist";
+      detailTitle.textContent = item.name;
+      detailSubtitle.textContent = isArtist
         ? "Here you can get to know the artist"
         : "Here you can get to know the material";
 
       const html = `
         <div class="material-image-section">
-          <img src="${pigment.image}" alt="${pigment.name}${isArtistSignature ? "" : " pigment powder"}" class="material-image" />
+          <img src="${item.image}" alt="${item.name}${isArtist ? "" : " pigment powder"}" class="material-image" />
         </div>
 
-        <div class="material-color-indicator" style="background: ${pigment.color};"></div>
+        <div class="material-color-indicator" style="background: ${item.color};"></div>
         
         <div class="material-section">
           <div class="material-section-title">Historical & Cultural Context</div>
-          <div class="material-text">${pigment.historicalContext}</div>
+          <div class="material-text">${item.historicalContext}</div>
         </div>
 
         <div class="material-section">
           <div class="material-section-title">Origin / Production</div>
-          <div class="material-text">${pigment.originProduction}</div>
+          <div class="material-text">${item.originProduction}</div>
         </div>
 
-        ${isArtistSignature ? "" : `
+        <div class="material-section">
+          <div class="material-section-title">Color Context</div>
+          <div class="material-text">${item.whyColor}</div>
+        </div>
+
+        ${item.commonName ? `
           <div class="material-section">
             <div class="material-section-title">Common Name</div>
-            <div class="material-text">${pigment.commonName}</div>
+            <div class="material-text">${item.commonName}</div>
           </div>
 
-          <div class="material-note">
-            Zoom in to explore the molecular structure of ${pigment.name}
-          </div>
-        `}
+          ${item.chemicalStructure ? `<div class="material-note">Zoom in to explore the molecular structure of ${item.name}</div>` : ""}
+        ` : ""}
       `;
 
       materialContent.innerHTML = html;
@@ -1262,9 +1265,9 @@
         console.log(`Clicked at (${coords.x}, ${coords.y}) → Color: ${colorData.hex}`);
       }
 
-      const pigment = identifyPigment(colorData);
-      if (pigment) {
-        selectPigment(pigment);
+      const item = identifyArtworkItem(colorData);
+      if (item) {
+        selectArtworkItem(item);
       }
     });
 
@@ -1294,7 +1297,7 @@
       if (appState === APP_STATES.DETAIL) {
         stopMoleculeGrab();
         setAppState(APP_STATES.SELECTION);
-        selectedPigment = null;
+        selectedArtworkItem = null;
         
         // Reset magnifier position to center for fresh start
         magnifierPosition = { 
@@ -1312,20 +1315,20 @@
     });
 
     zoomInBtn.addEventListener("click", () => {
-      if (!selectedPigment) return;
+      if (!selectedArtworkItem) return;
 
       consumePinchGesture();
 
       if (appState === APP_STATES.SELECTION) {
         setAppState(APP_STATES.DETAIL);
-        displayPigment(selectedPigment);
+        displayArtworkItem(selectedArtworkItem);
         updateZoomControls();
       } else if (appState === APP_STATES.DETAIL &&
-                 selectedPigment.id !== "artist_signature" &&
-                 PIGMENT_MOL_FILES[selectedPigment.id]) {
+                 selectedArtworkItem.chemicalStructure &&
+                 ITEM_CHEMICAL_STRUCTURE_FILES[selectedArtworkItem.id]) {
         stopMoleculeGrab();
         setAppState(APP_STATES.MOLECULE);
-        displayMolecule(selectedPigment);
+        displayMolecule(selectedArtworkItem);
         updateZoomControls();
       }
     });
@@ -1333,12 +1336,12 @@
     function updateZoomControls() {
       const canZoomOut = appState === APP_STATES.DETAIL || appState === APP_STATES.MOLECULE;
       const canZoomIn =
-        (appState === APP_STATES.SELECTION && !!selectedPigment) ||
+        (appState === APP_STATES.SELECTION && !!selectedArtworkItem) ||
         (appState === APP_STATES.DETAIL &&
-          !!selectedPigment &&
-          selectedPigment.id !== "artist_signature" &&
-          !!PIGMENT_MOL_FILES[selectedPigment.id]);
-      const shouldInviteZoomIn = appState === APP_STATES.SELECTION && !!selectedPigment;
+          !!selectedArtworkItem &&
+          !!selectedArtworkItem.chemicalStructure &&
+          !!ITEM_CHEMICAL_STRUCTURE_FILES[selectedArtworkItem.id]);
+      const shouldInviteZoomIn = appState === APP_STATES.SELECTION && !!selectedArtworkItem;
 
       zoomOutBtn.classList.toggle("is-hidden", !canZoomOut);
       zoomInBtn.classList.toggle("is-hidden", !canZoomIn);
