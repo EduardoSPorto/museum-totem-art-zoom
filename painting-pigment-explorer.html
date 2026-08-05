@@ -131,7 +131,52 @@
   <!-- 3Dmol.js for molecular visualization -->
   <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
 
-  <script src="js/data/items.js"></script>
+  <!-- Configuration for the application, including language settings -->
+  <script src="config.js"></script>
+  <script>
+    // 1. Dynamically load the items based on language
+    const lang = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en';
+    if (lang === 'pt') {
+      document.write('<script src="js/data/itemsPT.js"><\/script>');
+    } else {
+      document.write('<script src="js/data/items.js"><\/script>');
+    }
+  </script>
+  <script>
+    // 2. Translate static HTML elements if Portuguese is selected
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt') {
+        const translations = {
+          "Click on any color to explore their material": "Clique em qualquer cor para explorar seu material",
+          "Pinch to select a color": "Faça o gesto de pinça para selecionar uma cor",
+          "Click on mapped color areas to discover materials": "Clique nas áreas coloridas para descobrir materiais",
+          "Click on the painting to reveal an artwork item": "Clique na pintura para revelar um item da obra",
+          "Molecule Structure": "Estrutura Molecular",
+          "Molecular structure and chemical information": "Estrutura molecular e informações químicas",
+          "Chemical Information": "Informação Química",
+          "Zoom Out": "Afastar",
+          "Zoom In": "Aproximar",
+          "Pigment Name": "Nome do Pigmento",
+          "Here you can get to know the material": "Aqui você pode conhecer o material"
+        };
+        
+        const walkDom = (node) => {
+          if (node.nodeType === 3) { // Text node
+            const text = node.nodeValue.trim();
+            if (translations[text]) {
+              node.nodeValue = node.nodeValue.replace(text, translations[text]);
+            }
+          } else if (node.nodeType === 1 && node.nodeName !== 'SCRIPT' && node.nodeName !== 'STYLE') {
+            for (let i = 0; i < node.childNodes.length; i++) {
+              walkDom(node.childNodes[i]);
+            }
+          }
+        };
+        
+        walkDom(document.body);
+      }
+    });
+  </script>
   <script src="js/data/chemicalStructures.js"></script>
   <script src="js/data/colorMap.js"></script>
   <script src="js/core/maskReader.js"></script>
