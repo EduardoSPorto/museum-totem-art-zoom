@@ -52,11 +52,9 @@ const ARTWORK_ITEMS = {
     type: "artist",
     color: "#FF00FF",
     image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
-    name: "Assinatura da Artista",
-    commonName: "Benette Casaretto Motta",
+    name: "Benette Casaretto Motta",
     historicalContext: "Benette participou da primeira turma da Escola de Belas Artes D. Carmen Trápaga Simões (EBA) de Pelotas, onde foi aluna de Aldo Locatelli, Angelo Guido e Leopoldo Gotuzzo.",
-    originProduction: "Região de anotação e identificação da autoria da obra.",
-    whyColor: "A cor de destaque identifica a região da assinatura sem representar um material químico.",
+    originProduction: "Pelotas, Rio Grande do Sul, Brasil",
   },
   white: {
     id: "white_color",
