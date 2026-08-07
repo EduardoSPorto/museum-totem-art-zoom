@@ -9,6 +9,8 @@ let selectedArtworkItem = null;
 
 function playSpeechForState(newState) {
   if (!window.speechSynthesis) return;
+  if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.enableTTS === false) return;
+  
   window.speechSynthesis.cancel();
 
   const lang = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en';

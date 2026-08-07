@@ -335,9 +335,10 @@
         legendAtoms.appendChild(atomDiv);
       });
 
+      const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
       legendInfo.innerHTML = `
-        Model: ${structure.modelName}<br/>
-        Formula: ${item.formula}
+        ${isPT ? "Modelo:" : "Model:"} ${structure.modelName}<br/>
+        ${isPT ? "Fórmula:" : "Formula:"} ${item.formula}
       `;
 
       moleculeTitle.textContent = item.name;
@@ -1296,10 +1297,12 @@
       applySelectionAccent(item);
 
       const isArtist = item.type === "artist";
+      const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
+      
       detailTitle.textContent = item.name;
       detailSubtitle.textContent = isArtist
-        ? "Here you can get to know the artist"
-        : "Here you can get to know the material";
+        ? (isPT ? "Aqui você pode conhecer o artista" : "Here you can get to know the artist")
+        : (isPT ? "Aqui você pode conhecer o material" : "Here you can get to know the material");
 
       const html = `
         <div class="material-image-section">
@@ -1309,27 +1312,27 @@
         <div class="material-color-indicator" style="background: ${item.color};"></div>
         
         <div class="material-section">
-          <div class="material-section-title">Historical & Cultural Context</div>
+          <div class="material-section-title">${isPT ? "Contexto Histórico & Cultural" : "Historical & Cultural Context"}</div>
           <div class="material-text">${item.historicalContext}</div>
         </div>
 
         <div class="material-section">
-          <div class="material-section-title">Origin / Production</div>
+          <div class="material-section-title">${isPT ? "Origem / Produção" : "Origin / Production"}</div>
           <div class="material-text">${item.originProduction}</div>
         </div>
 
         <div class="material-section">
-          <div class="material-section-title">Color Context</div>
+          <div class="material-section-title">${isPT ? "Contexto da Cor" : "Color Context"}</div>
           <div class="material-text">${item.whyColor}</div>
         </div>
 
         ${item.commonName ? `
           <div class="material-section">
-            <div class="material-section-title">Common Name</div>
+            <div class="material-section-title">${isPT ? "Nome Comum" : "Common Name"}</div>
             <div class="material-text">${item.commonName}</div>
           </div>
 
-          ${item.chemicalStructure ? `<div class="material-note">Zoom in to explore the molecular structure of ${item.name}</div>` : ""}
+          ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
         ` : ""}
       `;
 
