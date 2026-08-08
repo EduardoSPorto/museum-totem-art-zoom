@@ -687,7 +687,6 @@
       // Draw video frame (mirrored)
       cameraPreviewCtx.save();
       cameraPreviewCtx.scale(-1, 1);
-      cameraPreviewCtx.filter = "grayscale(100%)";
       cameraPreviewCtx.drawImage(
         videoElement,
         -cameraPreviewCanvas.width,
@@ -695,7 +694,6 @@
         cameraPreviewCanvas.width,
         cameraPreviewCanvas.height
       );
-      cameraPreviewCtx.filter = "none";
       cameraPreviewCtx.restore();
       drawInteractionRegion();
 
@@ -872,17 +870,9 @@
       const height = region.heightRatio * cameraPreviewCanvas.height;
 
       cameraPreviewCtx.save();
-
       cameraPreviewCtx.strokeStyle = "#FFFFFF";
       cameraPreviewCtx.lineWidth = 2;
-
-      cameraPreviewCtx.shadowColor = "rgba(0, 0, 0, 0.6)";
-      cameraPreviewCtx.shadowBlur = 4;
-
-      cameraPreviewCtx.globalCompositeOperation = "difference";
-
       cameraPreviewCtx.strokeRect(left, top, width, height);
-
       cameraPreviewCtx.restore();
     }
 
@@ -1091,8 +1081,9 @@
       }
 
       // Update magnifier visual position
-      magnifier.style.left = magnifierPosition.x + "px";
-      magnifier.style.top = magnifierPosition.y + "px";
+      magnifier.style.transform = `translate3d(calc(${magnifierPosition.x}px - 50%), calc(${magnifierPosition.y}px - 50%), 0)`;
+      magnifier.style.left = "0px";
+      magnifier.style.top = "0px";
 
       // Sample color at magnifier position and update fill
       if (appState === APP_STATES.SELECTION) {
@@ -1145,8 +1136,9 @@
 
     function updateHandCursor(x, y) {
       handCursor.classList.add("active");
-      handCursor.style.left = x + "px";
-      handCursor.style.top = y + "px";
+      handCursor.style.transform = `translate3d(calc(${x}px - 50%), calc(${y}px - 50%), 0)`;
+      handCursor.style.left = "0px";
+      handCursor.style.top = "0px";
 
       // Check if white circle is hovering over buttons
       const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();

@@ -6,11 +6,13 @@ const MaskReader = (() => {
   let paintingImage = null;
   let maskImage = null;
 
+  let cachedImageData = null;
+
   function init(paintingCanvasElement, maskCanvasElement) {
     paintingCanvas = paintingCanvasElement;
     maskCanvas = maskCanvasElement;
     paintingCtx = paintingCanvas.getContext("2d");
-    maskCtx = maskCanvas.getContext("2d");
+    maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
   }
 
   function loadImages() {
@@ -46,6 +48,12 @@ const MaskReader = (() => {
     if (!maskImage || !maskCanvas || !maskCtx) return;
     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
     maskCtx.drawImage(maskImage, 0, 0, maskCanvas.width, maskCanvas.height);
+    try {
+      cachedImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+    } catch (e) {
+      console.warn("Failed to cache mask image data", e);
+      cachedImageData = null;
+    }
   }
 
   function resizeCanvases(paintingCanvasElement, maskCanvasElement) {
@@ -98,6 +106,18 @@ const MaskReader = (() => {
 
   function sampleMaskColor(x, y) {
     if (!maskImage || !maskCtx) return null;
+
+    if (cachedImageData) {
+      if (x < 0 || x >= cachedImageData.width || y < 0 || y >= cachedImageData.height) {
+        return null;
+      }
+      const index = (y * cachedImageData.width + x) * 4;
+      const r = cachedImageData.data[index];
+      const g = cachedImageData.data[index + 1];
+      const b = cachedImageData.data[index + 2];
+      const a = cachedImageData.data[index + 3];
+      return { r, g, b, a, hex: rgbToHex(r, g, b) };
+    }
 
     const imageData = maskCtx.getImageData(x, y, 1, 1);
     const [r, g, b, a] = imageData.data;
