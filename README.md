@@ -121,3 +121,334 @@ Ao se posicionar diante do totem e ter suas mãos reconhecidas, um cursor indica
 - **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça de forma intencional, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
 - **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça de forma intencional, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
 - **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida. As mudanças de nível exigem uma nova interação deliberada, evitando transições acidentais.
+
+## Commit History
+--
+
+    Small  performance tests
+    
+    - Small changes for better performance
+
+--
+
+    Fixed artist information
+    
+    - Removed unnecessary information
+    - Translated the text to English
+
+--
+
+    Option to disable tts and uptaded translation
+    
+    - Added an option to disable text-to-speech
+    - Fixed some text that was not translpated, it's generated in the javacript section
+
+--
+
+    Dynamic text to speech
+    
+    - It does not literally read what is on screen, but follows a canned structure to present it.
+    - The default language is changed back to Portuguese.
+
+--
+
+    Merge pull request #5 from EduardoSPorto/Working-on-interface-small-problems
+    
+    Multi-language support
+
+--
+
+    Multi-language support
+    
+    - Added an alternative to change the language in the new settings file.
+
+--
+
+    Merge pull request #4 from EduardoSPorto/Working-on-interface-small-problems
+    
+    Working on interface small problems
+
+--
+
+    Limit the select effect to only when selecting
+
+--
+
+    Disable highliting when clicking outside the paint
+
+--
+
+    Disabled the ability to drag the color selection outside the selection zone
+
+--
+
+    Distance correction for drag-to-rotate
+    
+    - The user had difficulty rotating the 3D model. Now, a distance from the camera is used to adjust how m
+uch movement is applied when dragging.
+
+--
+
+    Merge pull request #3 from EduardoSPorto/Refactoring-internal-naming-scheme
+    
+    Refactoring internal naming scheme
+
+--
+
+    Internal naming fixes
+
+--
+
+    Cleaning some naming inconsistencies created by the artist insertion
+
+--
+
+    Removed redundant component name listings on level 3
+
+--
+
+    Cleaning unused files
+    
+    - Fixed the visibility of the material color identification on level 3.
+    - Began simplifying and removing redundant text.
+
+--
+
+    Fixing a problem when returning to the level 3 after checking different materials
+
+--
+
+    Simplified information displayed removing unused  content
+
+--
+
+    Small changes on the pigment data
+
+--
+
+    Updated artist information
+
+--
+
+    Interface and Interaction
+    
+    - The interface is now more responsive to the user’s hand movements.
+    - The highlighting is now more stylish.
+    - The information for red, yellow, and black is now accurate (or commented when potentially wrong).
+    - A video for the preparation of some interface tutorial videos was prepared. This is a temporary versio
+n.
+
+--
+
+    Merge pull request #2 from EduardoSPorto/Appearance-Features-and-Fixes
+    
+    Appearance features and fixes
+
+--
+
+    Added Data Structure to README
+    
+    - Makes things easier while browsing
+
+--
+
+    New README
+    
+    - Explains the current version
+    - Guides the user on how to run the code
+    - Pre-requisites
+    - Guides how to use
+
+--
+
+    Sizing up the text and new accent colors
+
+--
+
+    Level 3 now follow the same syle as level 2
+    
+    - That sadly makes the 3D model small. This has to be fixed in the next round of changes.
+
+--
+
+    Changed to a more subtle selection indicator
+
+--
+
+    Changed the color of the 3D rendering
+
+--
+
+    Now the Zoom in-out buttons don't show on the extremity levels
+
+--
+
+    Intitial implementation of the Big zoom in and out bars on the side
+
+--
+
+    3D model hand manipulation fixed
+    
+    - A whole independent implementation of the model manipulation.
+    - The hand-controlled version was maintained.
+
+--
+
+    Changed some deprecated text
+
+--
+
+    Initial UI changes
+    
+    - An initial look, with a lot of changes guiding the path the new appearance will have.
+
+--
+
+    Camera interface simplification
+    
+    - Reduced the amount of information the camera displays.
+
+--
+
+    Color selection highlight
+    
+    - When selecting a color, highlight the corresponding regions.
+
+--
+
+    Isolated the chemical information to Level 3
+    
+    - The information about the chemical component was failing to display correctly in Level 3.
+    - Removed the chemical information from Level 2.
+
+--
+
+    Added color highlight images
+
+--
+
+    Merge pull request #1 from EduardoSPorto/Generalization-to-support-the-artist
+    
+    Project Restructuring and Miscellaneous Fixes
+
+--
+
+    Hand Tracking Improvements
+    
+    - 1. The user should be able to interact with the molecule in Level 3 using the same pinch gesture alrea
+dy used throughout the application.
+    - 1. Pinching should “grab” the molecule; while the pinch is maintained, moving the hand should rotate t
+he molecule.
+    - 2. Previously, the entire camera image was mapped directly to the application. This caused interaction
+ problems because the application’s buttons are positioned at the edges of the screen, forcing the user to m
+ove their hand to the extreme borders of the camera image.
+    - 2. Now, if the camera resolution is 1024 × 1024, only a centered 512 × 512 region should be mapped to 
+the application interface.
+
+--
+
+    Fixed interface bugs and behavior
+    
+    FIXED:
+    - The paint is slightly flattened vertically.
+    - Level 1 and 2: A line strobe appears at the bottom, almost like something is loading.
+    - After going into Level 2, the “View molecule” keeps showing up if you immediately go back to Level 1.
+    - The “View molecule” button shows up even when you’re already on Level 3.
+    - There shouldn’t be a “Molecule” button at all. It should only have “Zoom in” and “Zoom out” buttons. “
+Zoom out” should always be on the left, and “Zoom in” should always be on the right of the screen. On Level 
+2, “Zoom in” should lead to Level 3; that shouldn’t be handled by a third button called “View molecule.”
+    - The bar showing the “Debug mode” button and the “Hand tracking” button shouldn’t exist.
+    - I don’t need the “Debug” button right now (make it a shortcut instead).
+    - “Hand tracking” should be the standard, only falling back to the mouse version when you fail to connec
+t a camera; it's not something you select.
+
+--
+
+    Real paint color selection
+    
+    - The real paint color is not being detected
+    - MOL files not are represented
+    -  Pictures are showed correclty
+
+--
+
+    Initial implementation of real data
+    
+    - Paint now use the real image
+    - Real mask, but working proprelty
+    Regression
+    - 3D molecules
+    - etc
+
+--
+
+    Added placeholder mol files
+    
+    - They don't represent real content
+
+--
+
+    Initial commit
+    
+    Added some files necessary for the progression of the code. They started from the need for generalizatio
+n.
+
+--
+
+    Code Demonolithization
+    
+    - The massive HTML is gradually being decoupled.
+    - HTML and state management have been streamlined.
+    - Some tests have been implemented; however, the camera test is still pending.
+
+--
+
+    Initial Reafactoring
+    
+    Separated files from
+
+--
+
+    Images removed
+    
+    - They are not necessary at this stage.
+
+--
+
+    Cleaning some testing code and annotation
+
+--
+
+    Added a mouse focused version
+    
+    I choose to have the two files, allowing for testing.
+
+--
+
+    Added the paint and color mask
+    
+    - An initial cropped image of the paint, along with the corresponding color mask.
+
+--
+
+    Molecule added
+
+--
+
+    Initial zoom in to material system
+    
+    - Users can now zoom in on a point on the screen; the paint material information is then displayed.
+    
+    - Hand detection works well for an initial implementation; behavior changes are welcome in future update
+s.
+
+--
+
+    Initial implementation
+    
+    - First public implementation focusing on making the hand tracking work with the previously implemented 
+interface.
+
+--
+
+    Initial commit
