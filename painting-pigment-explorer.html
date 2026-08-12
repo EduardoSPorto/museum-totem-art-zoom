@@ -104,11 +104,12 @@
   </div>
 
   <!-- CAMERA PREVIEW PANEL (Fixed, Non-Closeable) -->
-  <div class="camera-preview-panel" id="cameraPreviewPanel">
-    <canvas id="cameraPreviewCanvas" width="300" height="280"></canvas>
+  <div class="camera-preview-panel active" id="cameraPreviewPanel">
+    <img id="cameraOffIllustration" src="assets/interface/interface_cam_lllustration.png" alt="Camera Off" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    <canvas id="cameraPreviewCanvas" width="300" height="280" style="display: none;"></canvas>
     <div class="camera-preview-status">
       <div class="status-indicator">
-        <span class="status-dot" id="statusDot">●</span>
+        <span class="status-dot searching" id="statusDot">✕</span>
       </div>
     </div>
   </div>
@@ -650,6 +651,13 @@
         
         console.warn("Using mouse control fallback.");
         handTrackingEnabled = false;
+
+        const offIllustration = document.getElementById("cameraOffIllustration");
+        const canvas = document.getElementById("cameraPreviewCanvas");
+        if (offIllustration) offIllustration.style.display = "block";
+        if (canvas) canvas.style.display = "none";
+
+        updateStatusIndicator(false);
       }
     }
 
@@ -676,6 +684,13 @@
       } catch (error) {
         console.error("✗ Failed to start hand detection:", error);
         handTrackingEnabled = false;
+
+        const offIllustration = document.getElementById("cameraOffIllustration");
+        const canvas = document.getElementById("cameraPreviewCanvas");
+        if (offIllustration) offIllustration.style.display = "block";
+        if (canvas) canvas.style.display = "none";
+
+        updateStatusIndicator(false);
       }
     }
 
@@ -988,7 +1003,17 @@
         }
     }
 
+    let firstFrameReceived = false;
+
     function onHandResults(results) {
+      if (!firstFrameReceived) {
+        firstFrameReceived = true;
+        const offIllustration = document.getElementById("cameraOffIllustration");
+        const canvas = document.getElementById("cameraPreviewCanvas");
+        if (offIllustration) offIllustration.style.display = "none";
+        if (canvas) canvas.style.display = "block";
+      }
+
       // Always draw the camera feed
       drawCameraPreview(webcamVideo, results.multiHandLandmarks?.[0] || null);
 
