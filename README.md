@@ -122,6 +122,24 @@ Ao se posicionar diante do totem e ter suas mãos reconhecidas, um cursor indica
 - **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça de forma intencional, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
 - **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida. As mudanças de nível exigem uma nova interação deliberada, evitando transições acidentais.
 
+## Exemplo MOL
+
+Alizarin (Representative Lake Pigment)                        <-- 1. HEADER: Nome da molécula
+PubChem CID 6293 — explicit hydrogen atoms for 3D display     <-- 1. HEADER: Metadados / Fonte dos dados
+                                                              <-- 1. HEADER: Linha de comentários (em branco)
+ 26 28  0  0  0  0  0  0  0 0999 V2000                       <-- 2. COUNTS LINE: 26 Átomos | 28 Ligações | Padrão V2000
+    2.4966    2.1721    0.0012 O   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 1  [ X, Y, Z, Elemento 'O' ]
+   -0.0578    2.4815   -0.0018 O   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 2  [ X, Y, Z, Elemento 'O' ]
+   -0.8533   -2.8032    0.0002 O   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 3  [ X, Y, Z, Elemento 'O' ]
+    ...
+    4.5594    1.4015    0.0017 H   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 26 [ X, Y, Z, Elemento 'H' ]
+  1 11  1  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 1 e Átomo 11 (Tipo 1 = Simples)
+  2  9  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 2 e Átomo 9  (Tipo 2 = Dupla)
+  3 10  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 3 e Átomo 10 (Tipo 2 = Dupla)
+    ...
+ 18 24  1  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 18 e Átomo 24 (Tipo 1 = Simples)
+M  END                                                        <-- 5. END BLOCK: Fim da especificação do arquivo
+
 ## Commit History
 --
 

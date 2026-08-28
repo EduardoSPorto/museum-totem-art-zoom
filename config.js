@@ -4,5 +4,10 @@ const APP_CONFIG = {
     language: 'en',
     
     // Enable or disable text-to-speech functionality
-    enableTTS: false
+    enableTTS: true
 };
+
+
+
+
+
