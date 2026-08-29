@@ -7,6 +7,10 @@ const APP_STATES = {
 let appState = APP_STATES.SELECTION;
 let selectedArtworkItem = null;
 
+function hasSpeechContent(value) {
+  return typeof value === "string" && value.trim() !== "" && value !== "[not informed]";
+}
+
 function playSpeechForState(newState) {
   if (!window.speechSynthesis) return;
   if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.enableTTS === false) return;
@@ -22,9 +26,33 @@ function playSpeechForState(newState) {
       : "This is a painting by the artist Benette Casaretto Motta. The painting shows an angel with open arms facing the viewer. You can pinch toward the camera below, which allows you to select a color and explore more about the material.";
   } else if (newState === APP_STATES.DETAIL) {
     if (typeof selectedArtworkItem !== 'undefined' && selectedArtworkItem) {
-      textToSpeak = lang === 'pt'
-        ? `Vamos aprender mais sobre o material! O ${selectedArtworkItem.name} também é chamado pelo nome comum ${selectedArtworkItem.commonName}. ${selectedArtworkItem.historicalContext}; sua origem é descrita como ${selectedArtworkItem.originProduction}, e a cor visível é assim porque ${selectedArtworkItem.whyColor}. Você pode aproximar para explorar a estrutura molecular.`
-        : `Let’s learn more about the material! The ${selectedArtworkItem.name} is also called by the common name ${selectedArtworkItem.commonName}. ${selectedArtworkItem.historicalContext}; its origin is described as ${selectedArtworkItem.originProduction}, and the visible color looks like this because ${selectedArtworkItem.whyColor}. You can zoom in to explore the molecular structure.`;
+      const isArtist = selectedArtworkItem.type === 'artist';
+
+      if (isArtist) {
+        textToSpeak = lang === 'pt'
+          ? [`Vamos conhecer mais sobre a artista ${selectedArtworkItem.name}.`, selectedArtworkItem.historicalContext, selectedArtworkItem.originProduction]
+          : [`Let’s learn more about ${selectedArtworkItem.name}.`, selectedArtworkItem.historicalContext, selectedArtworkItem.originProduction];
+      } else if (lang === 'pt') {
+        textToSpeak = [
+          "Vamos aprender mais sobre o material.",
+          hasSpeechContent(selectedArtworkItem.commonName) ? `${selectedArtworkItem.name} também é chamado pelo nome comum ${selectedArtworkItem.commonName}.` : "",
+          selectedArtworkItem.historicalContext,
+          hasSpeechContent(selectedArtworkItem.originProduction) ? `Sua origem é descrita como ${selectedArtworkItem.originProduction}.` : "",
+          hasSpeechContent(selectedArtworkItem.whyColor) ? `A cor visível é assim porque ${selectedArtworkItem.whyColor}.` : "",
+          selectedArtworkItem.chemicalStructure ? "Você pode aproximar para explorar a estrutura molecular." : ""
+        ];
+      } else {
+        textToSpeak = [
+          "Let’s learn more about the material.",
+          hasSpeechContent(selectedArtworkItem.commonName) ? `${selectedArtworkItem.name} is also known as ${selectedArtworkItem.commonName}.` : "",
+          selectedArtworkItem.historicalContext,
+          hasSpeechContent(selectedArtworkItem.originProduction) ? `Its origin is described as ${selectedArtworkItem.originProduction}.` : "",
+          hasSpeechContent(selectedArtworkItem.whyColor) ? `The visible color looks like this because ${selectedArtworkItem.whyColor}.` : "",
+          selectedArtworkItem.chemicalStructure ? "You can zoom in to explore the molecular structure." : ""
+        ];
+      }
+
+      textToSpeak = textToSpeak.filter(hasSpeechContent).join(" ");
     }
   } else if (newState === APP_STATES.MOLECULE) {
     textToSpeak = lang === 'pt'
