@@ -136,7 +136,15 @@
   <script src="config.js"></script>
   <script>
     // 1. Dynamically load the items based on language
-    const lang = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en';
+    const languageFromUrl = new URLSearchParams(window.location.search).get('lang');
+    const lang = languageFromUrl === 'pt' || languageFromUrl === 'en'
+      ? languageFromUrl
+      : ((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en');
+
+    if (typeof APP_CONFIG !== 'undefined') {
+      APP_CONFIG.language = lang;
+    }
+
     if (lang === 'pt') {
       document.write('<script src="js/data/itemsPT.js"><\/script>');
     } else {
@@ -1521,7 +1529,23 @@
     });
 
     window.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() !== "d" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const key = e.key.toLowerCase();
+      if (e.shiftKey && key === "m") {
+        e.preventDefault();
+        const textToSpeechEnabled = toggleTextToSpeech();
+        console.log(`Text-to-speech ${textToSpeechEnabled ? "enabled" : "muted"}`);
+        return;
+      }
+
+      if (e.shiftKey && key === "l") {
+        e.preventDefault();
+        cycleLanguage();
+        return;
+      }
+
+      if (key !== "d" || e.shiftKey) return;
 
       debugCheckbox.checked = !debugCheckbox.checked;
       debugCheckbox.dispatchEvent(new Event("change"));

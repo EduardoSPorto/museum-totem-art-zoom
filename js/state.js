@@ -11,6 +11,26 @@ function hasSpeechContent(value) {
   return typeof value === "string" && value.trim() !== "" && value !== "[not informed]";
 }
 
+function toggleTextToSpeech() {
+  if (typeof APP_CONFIG === "undefined") return false;
+
+  APP_CONFIG.enableTTS = !APP_CONFIG.enableTTS;
+  if (!APP_CONFIG.enableTTS && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
+  return APP_CONFIG.enableTTS;
+}
+
+function cycleLanguage() {
+  const currentLanguage = typeof APP_CONFIG !== "undefined" && APP_CONFIG.language === "pt" ? "pt" : "en";
+  const nextLanguage = currentLanguage === "en" ? "pt" : "en";
+  const nextUrl = new URL(window.location.href);
+
+  nextUrl.searchParams.set("lang", nextLanguage);
+  window.location.assign(nextUrl.toString());
+}
+
 function playSpeechForState(newState) {
   if (!window.speechSynthesis) return;
   if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.enableTTS === false) return;
