@@ -11,6 +11,34 @@ function hasSpeechContent(value) {
   return typeof value === "string" && value.trim() !== "" && value !== "[not informed]";
 }
 
+const ELEMENT_SPEECH_NAMES = {
+  en: {
+    H: "hydrogen", C: "carbon", N: "nitrogen", O: "oxygen", S: "sulfur",
+    Pb: "lead", Hg: "mercury", Cd: "cadmium", Cu: "copper", Se: "selenium",
+    Zn: "zinc", Ba: "barium", Ca: "calcium", P: "phosphorus", Ti: "titanium"
+  },
+  pt: {
+    H: "hidrogênio", C: "carbono", N: "nitrogênio", O: "oxigênio", S: "enxofre",
+    Pb: "chumbo", Hg: "mercúrio", Cd: "cádmio", Cu: "cobre", Se: "selênio",
+    Zn: "zinco", Ba: "bário", Ca: "cálcio", P: "fósforo", Ti: "titânio"
+  }
+};
+
+function joinSpeechList(items, lang) {
+  if (items.length < 2) return items[0] || "";
+
+  const conjunction = lang === "pt" ? " e " : " and ";
+  if (items.length === 2) return items.join(conjunction);
+  return `${items.slice(0, -1).join(", ")},${conjunction}${items[items.length - 1]}`;
+}
+
+function getSpeechElementNames(atoms, lang) {
+  if (!Array.isArray(atoms)) return [];
+
+  const names = ELEMENT_SPEECH_NAMES[lang] || ELEMENT_SPEECH_NAMES.en;
+  return [...new Set(atoms.map(({ element }) => names[element] || element).filter(Boolean))];
+}
+
 function toggleTextToSpeech() {
   if (typeof APP_CONFIG === "undefined") return false;
 
@@ -75,9 +103,39 @@ function playSpeechForState(newState) {
       textToSpeak = textToSpeak.filter(hasSpeechContent).join(" ");
     }
   } else if (newState === APP_STATES.MOLECULE) {
-    textToSpeak = lang === 'pt'
-      ? "Vamos aprender sobre a estrutura molecular e informações químicas. Você pode arrastar o modelo que vê com o seu movimento de pinça."
-      : "Let’s learn about the molecular structure and chemical information. You can drag the model you see with your pinch motion.";
+    if (selectedArtworkItem?.chemicalStructure) {
+      const structure = selectedArtworkItem.chemicalStructure;
+      const elementNames = getSpeechElementNames(structure.atoms, lang);
+      const modelName = hasSpeechContent(structure.modelName) ? structure.modelName : "";
+      const formulaDescription = hasSpeechContent(selectedArtworkItem.formula) && elementNames.length
+        ? (lang === "pt"
+          ? `A fórmula química descreve uma composição de ${joinSpeechList(elementNames, lang)}.`
+          : `The chemical formula describes a compound of ${joinSpeechList(elementNames, lang)}.`)
+        : "";
+      const atomDescription = elementNames.length
+        ? (lang === "pt"
+          ? `A legenda identifica ${joinSpeechList(elementNames, lang)}.`
+          : `The legend identifies ${joinSpeechList(elementNames, lang)}.`)
+        : "";
+
+      textToSpeak = lang === "pt"
+        ? [
+            `Vamos explorar a estrutura molecular de ${selectedArtworkItem.name}.`,
+            modelName ? `Este modelo molecular representa ${modelName}.` : "",
+            formulaDescription,
+            atomDescription,
+            "Você pode girar o modelo com o movimento de pinça."
+          ]
+        : [
+            `Let’s explore the molecular structure of ${selectedArtworkItem.name}.`,
+            modelName ? `This molecular model represents ${modelName}.` : "",
+            formulaDescription,
+            atomDescription,
+            "You can rotate the model with your pinch motion."
+          ];
+
+      textToSpeak = textToSpeak.filter(hasSpeechContent).join(" ");
+    }
   }
 
   if (textToSpeak) {
