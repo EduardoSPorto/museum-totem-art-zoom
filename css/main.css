@@ -257,6 +257,10 @@ textarea {
 .molecule-legend {
   display: block;
   width: 100%;
+  /* Keep lengthy chemical descriptions usable without expanding the view. */
+  max-height: min(42vh, 24rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px 24px 20px;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(66, 54, 41, 0.10);
@@ -493,9 +497,14 @@ textarea {
   max-width: 1040px;
   margin: 0 auto;
   width: 100%;
-  height: auto;
+  height: 100vh;
+  min-height: 0;
   flex-direction: column;
   display: flex;
+}
+
+body.app-state-detail {
+  overflow: hidden;
 }
 
 .app-state-detail > div:first-child {
@@ -514,7 +523,8 @@ textarea {
   border: none;
   box-shadow: none;
   padding: 0;
-  min-height: auto;
+  min-height: 0;
+  flex: 1;
   animation: fadeIn 0.5s ease-out;
   width: 100%;
 }
@@ -749,6 +759,14 @@ textarea {
   animation: fadeIn 0.5s ease-out;
 }
 
+.app-state-detail .material-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 12px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -808,6 +826,23 @@ textarea {
   line-height: 1.7;
   color: var(--text-primary);
   opacity: 0.95;
+}
+
+.app-state-detail .material-content,
+.molecule-legend {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--selection-accent-ink-rgb), 0.5) transparent;
+}
+
+.app-state-detail .material-content::-webkit-scrollbar,
+.molecule-legend::-webkit-scrollbar {
+  width: 8px;
+}
+
+.app-state-detail .material-content::-webkit-scrollbar-thumb,
+.molecule-legend::-webkit-scrollbar-thumb {
+  background: rgba(var(--selection-accent-ink-rgb), 0.5);
+  border-radius: 999px;
 }
 
 .material-property {

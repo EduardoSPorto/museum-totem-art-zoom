@@ -107,7 +107,7 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
    - **Extensão VS Code:** Utilize a extensão *Live Server*.
 
 3. **Acesse no Navegador:**
-   Abra o seu navegador de preferência e navegue até `http://localhost:8080/painting-pigment-explorer.html`.
+   Abra o seu navegador de preferência e navegue até `chrome`.
    *(Nota: O navegador solicitará permissão para uso da webcam. Conceda o acesso).*
 
 ---
