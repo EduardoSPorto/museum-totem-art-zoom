@@ -558,6 +558,8 @@
     let currentButtonHover = null;
     let buttonDwellStartTime = null;
     const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
+    const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 5000;
+    let nonMouseLevelChangeAvailableAt = 0;
     
     const handCursor = document.getElementById("handCursor");
     const handInfoOverlay = document.getElementById("handInfoOverlay");
@@ -1481,10 +1483,29 @@
     }
 
     // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
+
+    function isNonMouseLevelChangeOnCooldown() {
+      return Date.now() < nonMouseLevelChangeAvailableAt;
+    }
+
+    function activateButtonWithHand(button) {
+      if (!button || button.disabled || isNonMouseLevelChangeOnCooldown()) return false;
+
+      // Hand dwell and pinch interactions share the native buttons with mouse
+      // controls. Start the cooldown here so physical mouse clicks remain instant.
+      nonMouseLevelChangeAvailableAt = Date.now() + NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS;
+      button.click();
+      return true;
+    }
     
     function checkButtonActivation() {
       if (!handTrackingEnabled) return;
       if (moleculeHandControl.active) return;
+
+      if (isNonMouseLevelChangeOnCooldown()) {
+        buttonDwellStartTime = null;
+        return;
+      }
 
       // Only process if white circle is hovering a button
       if (!currentButtonHover) {
@@ -1504,7 +1525,7 @@
 
       // Activate button after dwell timeout
       if (elapsedMs >= BUTTON_DWELL_MS) {
-        button.click();
+        activateButtonWithHand(button);
         buttonDwellStartTime = null;
       }
     }
@@ -1513,9 +1534,9 @@
       // Pinch while over button = immediate activation
       if (isPinchConfirmed()) {
         const button = document.getElementById(buttonId);
-        if (button && !button.disabled) {
+        if (button && !button.disabled && !isNonMouseLevelChangeOnCooldown()) {
           consumePinchGesture();
-          button.click();
+          activateButtonWithHand(button);
         }
       }
     }
