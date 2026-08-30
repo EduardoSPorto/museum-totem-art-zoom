@@ -705,12 +705,15 @@
     }
 
     function drawCameraPreview(videoElement, landmarks) {
-      // Clear canvas
-      cameraPreviewCtx.fillStyle = "#000";
+      // Treat the camera as an ambient material, rather than a competing screen.
+      // The tracking marks drawn below remain crisp because the filter is reset
+      // before they are rendered.
+      cameraPreviewCtx.fillStyle = "#1f1a16";
       cameraPreviewCtx.fillRect(0, 0, cameraPreviewCanvas.width, cameraPreviewCanvas.height);
 
-      // Draw video frame (mirrored)
+      // Draw a mirrored, quietly tinted video frame.
       cameraPreviewCtx.save();
+      cameraPreviewCtx.filter = "grayscale(1) sepia(0.32) contrast(1.12) brightness(0.82)";
       cameraPreviewCtx.scale(-1, 1);
       cameraPreviewCtx.drawImage(
         videoElement,
@@ -723,15 +726,18 @@
       drawInteractionRegion();
 
       if (landmarks && landmarks.length > 0) {
-        // Draw hand skeleton
-        drawHandSkeleton(landmarks);
-        // Draw palm center
-        drawPalmCenter(landmarks);
+        // The complete landmark mesh is useful for calibration, but is visual
+        // noise in the visitor-facing experience. Show only the pinch gesture.
+        if (debugCheckbox.checked) {
+          drawDebugHandSkeleton(landmarks);
+        } else {
+          drawPinchGuide(landmarks);
+        }
       }
     }
 
-    function drawHandSkeleton(landmarks) {
-      // Hand bone connections (20 connections from MediaPipe)
+    function drawDebugHandSkeleton(landmarks) {
+      // Full MediaPipe mesh: deliberately reserved for debug mode.
       const connections = [
         // Thumb
         [0, 1], [1, 2], [2, 3], [3, 4],
@@ -802,6 +808,77 @@
           cameraPreviewCtx.stroke();
         }
       });
+    }
+
+    function drawPinchGuide(landmarks) {
+      const thumbPath = [[1, 2], [2, 3], [3, 4]];
+      const indexPath = [[5, 6], [6, 7], [7, 8]];
+      const toCanvasPoint = (landmark) => ({
+        x: (1 - landmark.x) * cameraPreviewCanvas.width,
+        y: landmark.y * cameraPreviewCanvas.height
+      });
+      const drawPath = (connections, startColor, endColor) => {
+        connections.forEach(([start, end], step) => {
+          const first = toCanvasPoint(landmarks[start]);
+          const second = toCanvasPoint(landmarks[end]);
+          const gradient = cameraPreviewCtx.createLinearGradient(first.x, first.y, second.x, second.y);
+          gradient.addColorStop(0, startColor);
+          gradient.addColorStop(1, endColor);
+
+          cameraPreviewCtx.save();
+          cameraPreviewCtx.strokeStyle = gradient;
+          cameraPreviewCtx.lineWidth = 2.5 - step * 0.25;
+          cameraPreviewCtx.lineCap = "round";
+          cameraPreviewCtx.shadowColor = "rgba(239, 190, 117, 0.5)";
+          cameraPreviewCtx.shadowBlur = 8;
+          cameraPreviewCtx.beginPath();
+          cameraPreviewCtx.moveTo(first.x, first.y);
+          cameraPreviewCtx.lineTo(second.x, second.y);
+          cameraPreviewCtx.stroke();
+          cameraPreviewCtx.restore();
+        });
+      };
+
+      drawPath(thumbPath, "rgba(145, 64, 53, 0.76)", "rgba(248, 211, 142, 0.96)");
+      drawPath(indexPath, "rgba(145, 64, 53, 0.76)", "rgba(248, 211, 142, 0.96)");
+
+      const thumbTip = toCanvasPoint(landmarks[4]);
+      const indexTip = toCanvasPoint(landmarks[8]);
+      const metrics = getPinchMetrics(landmarks);
+      const pinchActive = metrics && metrics.pinchRatio < PINCH_THRESHOLD;
+      const midpoint = {
+        x: (thumbTip.x + indexTip.x) / 2,
+        y: (thumbTip.y + indexTip.y) / 2
+      };
+
+      // A fine bridge makes the action legible without outlining the hand.
+      cameraPreviewCtx.save();
+      cameraPreviewCtx.strokeStyle = pinchActive ? "rgba(255, 235, 190, 0.98)" : "rgba(248, 211, 142, 0.58)";
+      cameraPreviewCtx.lineWidth = pinchActive ? 2 : 1;
+      cameraPreviewCtx.setLineDash([3, 4]);
+      cameraPreviewCtx.beginPath();
+      cameraPreviewCtx.moveTo(thumbTip.x, thumbTip.y);
+      cameraPreviewCtx.lineTo(indexTip.x, indexTip.y);
+      cameraPreviewCtx.stroke();
+      cameraPreviewCtx.setLineDash([]);
+
+      [thumbTip, indexTip].forEach((tip) => {
+        cameraPreviewCtx.fillStyle = "#f8d38e";
+        cameraPreviewCtx.shadowColor = "rgba(255, 218, 154, 0.82)";
+        cameraPreviewCtx.shadowBlur = 10;
+        cameraPreviewCtx.beginPath();
+        cameraPreviewCtx.arc(tip.x, tip.y, 3.5, 0, Math.PI * 2);
+        cameraPreviewCtx.fill();
+      });
+
+      if (pinchActive) {
+        cameraPreviewCtx.strokeStyle = "rgba(255, 240, 204, 0.92)";
+        cameraPreviewCtx.lineWidth = 1.5;
+        cameraPreviewCtx.beginPath();
+        cameraPreviewCtx.arc(midpoint.x, midpoint.y, 11, 0, Math.PI * 2);
+        cameraPreviewCtx.stroke();
+      }
+      cameraPreviewCtx.restore();
     }
 
     function getLandmarkDistance(a, b) {
@@ -895,8 +972,9 @@
       const height = region.heightRatio * cameraPreviewCanvas.height;
 
       cameraPreviewCtx.save();
-      cameraPreviewCtx.strokeStyle = "#FFFFFF";
-      cameraPreviewCtx.lineWidth = 2;
+      cameraPreviewCtx.strokeStyle = "rgba(248, 211, 142, 0.42)";
+      cameraPreviewCtx.lineWidth = 1;
+      cameraPreviewCtx.setLineDash([5, 6]);
       cameraPreviewCtx.strokeRect(left, top, width, height);
       cameraPreviewCtx.restore();
     }
@@ -976,29 +1054,6 @@
     function isPinchConfirmed() {
       if (!isPinching || !pinchStartTime) return false;
       return Date.now() - pinchStartTime > PINCH_CONFIRMATION_MS;
-    }
-
-    function drawPalmCenter(landmarks) {
-      const palmCenter = getPalmCenter(landmarks);
-      if (!palmCenter) return;
-
-      const rawPalmX = palmCenter.x;
-      const rawPalmY = palmCenter.y;
-      const palmX = (1 - rawPalmX) * cameraPreviewCanvas.width;
-      const palmY = rawPalmY * cameraPreviewCanvas.height;
-
-      // Draw bright center dot
-      cameraPreviewCtx.fillStyle = "rgba(255, 200, 0, 1)";
-      cameraPreviewCtx.beginPath();
-      cameraPreviewCtx.arc(palmX, palmY, 6, 0, Math.PI * 2);
-      cameraPreviewCtx.fill();
-
-      // Draw glow around center
-      cameraPreviewCtx.strokeStyle = "rgba(255, 200, 0, 0.4)";
-      cameraPreviewCtx.lineWidth = 2;
-      cameraPreviewCtx.beginPath();
-      cameraPreviewCtx.arc(palmX, palmY, 12, 0, Math.PI * 2);
-      cameraPreviewCtx.stroke();
     }
 
     function updateStatusIndicator(isDetected) {
