@@ -57,6 +57,7 @@ textarea {
   z-index: 999;
   display: none;
   transform: translate(-50%, -50%);
+  will-change: transform;
   box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.28);
   transition: opacity 0.1s ease;
   background: rgba(255, 255, 255, 0.08);
