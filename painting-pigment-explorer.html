@@ -296,10 +296,12 @@
 
       try {
         viewer.addModel(molData, "sdf");
+        // Enhanced ball-and-stick rendering with improved visual quality
         viewer.setStyle({}, {
-          stick: { colorscheme: "Jmol", radius: 0.15 },
-          sphere: { colorscheme: "Jmol", scale: 0.25 }
+          stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
+          sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
         });
+        viewer.setBackgroundColor("0xfafaf8");
         viewer.zoomTo();
         viewer.render();
       } catch (error) {

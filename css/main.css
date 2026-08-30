@@ -194,7 +194,10 @@ textarea {
 
 .app-state-molecule .molecule-section {
   display: flex;
-  background: #ffffff;
+  background: linear-gradient(180deg,
+    #faf8f6 0%,
+    #f7f3ea 50%,
+    #f4efe6 100%);
 }
 
 .app-state-molecule .container {
@@ -212,8 +215,12 @@ textarea {
   text-align: center;
   margin-bottom: 28px;
   animation: slideDown 0.8s ease-out;
-  padding: 0 0 18px;
-  border-bottom: 1px solid rgba(var(--selection-accent-ink-rgb), 0.28);
+  padding: 14px 20px 18px;
+  border-bottom: 1px solid rgba(var(--selection-accent-ink-rgb), 0.22);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(140, 63, 53, 0.04);
 }
 
 .app-state-molecule .detail-header h1,
@@ -245,14 +252,29 @@ textarea {
 .molecule-viewport {
   flex: 1;
   min-height: min(66vh, 780px);
-  background: #ffffff;
-  border: 1px solid rgba(66, 54, 41, 0.10);
-  border-radius: 18px;
+  background: linear-gradient(135deg, 
+    rgba(250, 248, 244, 0.95) 0%, 
+    rgba(247, 243, 234, 0.98) 50%, 
+    rgba(244, 239, 230, 0.95) 100%);
+  border: 1px solid rgba(66, 54, 41, 0.12);
+  border-radius: 20px;
   overflow: hidden;
   position: relative;
   width: 100%;
   height: 100%;
-  box-shadow: var(--shadow-card);
+  box-shadow: 
+    0 8px 32px rgba(44, 34, 24, 0.08),
+    0 2px 12px rgba(140, 63, 53, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.molecule-viewport:hover {
+  box-shadow: 
+    0 12px 40px rgba(44, 34, 24, 0.12),
+    0 4px 16px rgba(140, 63, 53, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .molecule-legend {
@@ -263,12 +285,16 @@ textarea {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px 24px 20px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(66, 54, 41, 0.10);
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(248, 246, 240, 0.90) 100%);
+  border: 1px solid rgba(66, 54, 41, 0.12);
   border-radius: 18px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   z-index: 2;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 
+    0 8px 24px rgba(44, 34, 24, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   text-align: center;
 }
 
@@ -311,7 +337,14 @@ textarea {
   height: 16px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 1px solid rgba(66, 54, 41, 0.22);
+  border: 1.5px solid rgba(66, 54, 41, 0.22);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+}
+
+.legend-atom:hover .legend-atom-color {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .legend-atom-text {
@@ -320,12 +353,13 @@ textarea {
 
 .legend-info {
   font-size: var(--type-secondary);
-  line-height: 1.7;
+  line-height: 1.8;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
+  padding-top: 8px;
 }
 
 .legend-chemistry-line {
