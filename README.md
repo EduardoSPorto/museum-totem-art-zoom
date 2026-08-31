@@ -1,6 +1,8 @@
 # Museu Totem Art Zoom: Exploração de Pigmentos
 **Desenvolvimento de totens interativos integrando Química, Artes Visuais e Visão Computacional**
 
+# Precisa-se de mais infomração
+
 ## Visão Geral
 O projeto **Museum Totem Art Zoom** é uma aplicação interativa *touchless* (sem toque) idealizada para totens em ambientes museológicos e educacionais. O seu principal objetivo é criar uma ponte imersiva entre a apreciação artística e a ciência molecular, revelando os segredos químicos por trás das cores que compõem uma obra de arte.
 
