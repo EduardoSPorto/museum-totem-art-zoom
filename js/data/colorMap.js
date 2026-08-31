@@ -1,8 +1,8 @@
 const ARTWORK_ITEM_COLOR_MAP = {
   "#000000": "black",
   "#0000FF": "blue",
-  "#FF0000": "red",
+  "#FF0000": "cinnabar",
   "#FF00FF": "signature",
-  "#FFFFFF": "white",
-  "#FFFF00": "yellow"
+  "#FFFFFF": "zinc_oxide",
+  "#FFFF00": "cadmium_yellow"
 };
