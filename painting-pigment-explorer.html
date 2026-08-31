@@ -141,8 +141,13 @@
       ? languageFromUrl
       : ((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en');
 
+    // Handle TTS parameter from URL
+    const ttsFromUrl = new URLSearchParams(window.location.search).get('tts');
+    const enableTTS = ttsFromUrl !== null ? (ttsFromUrl === '1' || ttsFromUrl === 'true') : true;
+
     if (typeof APP_CONFIG !== 'undefined') {
       APP_CONFIG.language = lang;
+      APP_CONFIG.enableTTS = enableTTS;
     }
 
     if (lang === 'pt') {

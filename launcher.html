@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painting Pigment Explorer - Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .emoji {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .config-section {
+            margin-bottom: 30px;
+        }
+
+        .config-section label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .radio-group,
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .radio-option,
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .radio-option input[type="radio"],
+        .checkbox-option input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .radio-option label,
+        .checkbox-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 0;
+        }
+
+        .url-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .url-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .url-display {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: #667eea;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .url-text {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .copy-btn.copied {
+            background: #28a745;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            .radio-group,
+            .checkbox-group {
+                flex-direction: column;
+            }
+
+            .radio-option,
+            .checkbox-option {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="emoji">🎨</span>
+            <h1>Painting Pigment Explorer</h1>
+            <p>Museum Edition - Interactive Pigment Discovery</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>ℹ️ Welcome!</strong> Configure your settings below and launch the application. 
+                The interface is designed for touchless, hand-gesture interaction.
+            </div>
+
+            <div class="config-section">
+                <label for="language">🌐 Language</label>
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="lang-en" name="language" value="en" checked>
+                        <label for="lang-en">English</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="lang-pt" name="language" value="pt">
+                        <label for="lang-pt">Português</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <label for="tts">🔊 Text-to-Speech</label>
+                <div class="checkbox-group">
+                    <div class="checkbox-option">
+                        <input type="checkbox" id="tts-enabled" name="tts" checked>
+                        <label for="tts-enabled">Enable voice narration</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="url-section">
+                <div class="url-label">📍 Application URL:</div>
+                <div class="url-display">
+                    <span class="url-text" id="urlDisplay"></span>
+                    <button class="copy-btn" id="copyBtn" title="Copy to clipboard">Copy</button>
+                </div>
+                <p style="font-size: 12px; color: #666; margin-bottom: 0;">
+                    💡 Open this URL in your browser or use the buttons below
+                </p>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-primary" id="launchBtn">
+                    <span>🚀</span>
+                    <span>Launch Application</span>
+                    <div class="loader" id="loader"></div>
+                </button>
+                <a href="#" class="btn btn-secondary" id="copyLinkBtn">
+                    <span>📋</span>
+                    <span>Copy Link</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🏛️ Museu Totem Art Zoom - Interactive Chemistry & Art Exhibition</p>
+            <p style="margin-top: 8px;">Developed with 💜 for museums and education</p>
+        </div>
+    </div>
+
+    <script src="launcher-script.js"></script>
+</body>
+</html>
