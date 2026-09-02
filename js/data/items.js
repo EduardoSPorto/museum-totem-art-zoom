@@ -132,8 +132,6 @@ const ARTWORK_ITEMS = {
                 { element: "S" }
             ]
         },
-
-        degradation: "Cadmium yellow can degrade through exposure to light, humidity, and atmospheric pollution. Documented effects include chalking, fading, flaking, and peeling. Degradation can also produce whitish compounds including cadmium carbonate, cadmium sulfate, and cadmium oxalate."
     },
 
     yellow_ochre: {

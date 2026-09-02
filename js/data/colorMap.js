@@ -3,6 +3,6 @@ const ARTWORK_ITEM_COLOR_MAP = {
   "#0000FF": "blue",
   "#FF0000": "cinnabar",
   "#FF00FF": "signature",
-  "#FFFFFF": "zinc_oxide",
+  "#FFFFFF": "titanium_dioxide",
   "#FFFF00": "cadmium_yellow"
 };
