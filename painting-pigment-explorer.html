@@ -192,6 +192,7 @@
     });
   </script>
   <script src="js/data/chemicalStructures.js"></script>
+  <script src="js/data/crystalStructures.js"></script>
   <script src="js/data/colorMap.js"></script>
   <script src="js/core/maskReader.js"></script>
   <script src="js/state.js"></script>
@@ -300,12 +301,50 @@
       moleculeIsRendering = true;
 
       try {
-        viewer.addModel(molData, "sdf");
-        // Enhanced ball-and-stick rendering with improved visual quality
-        viewer.setStyle({}, {
-          stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
-          sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
-        });
+        const crystalData = (typeof CRYSTAL_STRUCTURES !== "undefined") ? CRYSTAL_STRUCTURES[item.id] : null;
+
+        if (crystalData) {
+          // Render crystal supercell (e.g. 2x2x2 wurtzite CdS)
+          viewer.addModel(crystalData.xyz, "xyz");
+
+          // Style: smaller spheres (Cd radius 0.65, S radius 1.15)
+          viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.65, color: "#79a9ff", alpha: 0.95 } });
+          viewer.setStyle({ elem: "S" },  { sphere: { radius: 1.15, color: "#ffd54a", alpha: 0.90 } });
+
+          // Show Cd-S tetrahedral coordination lines
+          if (Array.isArray(crystalData.coordLines)) {
+            for (const line of crystalData.coordLines) {
+              viewer.addLine({
+                start: line.start,
+                end: line.end,
+                color: "#a5b4c8",
+                dashed: false,
+                radius: 0.04
+              });
+            }
+          }
+
+          // Show unit cell box
+          if (Array.isArray(crystalData.edges)) {
+            for (const edge of crystalData.edges) {
+              viewer.addLine({
+                start: edge.start,
+                end: edge.end,
+                color: "#00d4ff",
+                dashed: false,
+                radius: 0.06
+              });
+            }
+          }
+        } else {
+          viewer.addModel(molData, "sdf");
+          // Enhanced ball-and-stick rendering with improved visual quality
+          viewer.setStyle({}, {
+            stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
+            sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
+          });
+        }
+
         viewer.setBackgroundColor("0xfafaf8");
         viewer.zoomTo();
         viewer.render();
