@@ -1485,6 +1485,9 @@
 
       const isArtist = item.type === "artist";
       const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
+      const imagePath = typeof item.image === "string" ? item.image.trim() : "";
+      const imageUrl = imagePath ? new URL(imagePath, document.baseURI).href : "";
+      const imageAlt = `${item.name}${isArtist ? "" : " pigment powder"}`;
       
       detailTitle.textContent = item.name;
       detailSubtitle.textContent = isArtist
@@ -1493,7 +1496,7 @@
 
       const html = `
         <div class="material-image-section">
-          <img src="${item.image}" alt="${item.name}${isArtist ? "" : " pigment powder"}" class="material-image" />
+          <img src="${imageUrl}" alt="${imageAlt}" class="material-image" />
         </div>
 
         <div class="material-color-indicator" style="background: ${item.color};"></div>
@@ -1526,6 +1529,18 @@
       `;
 
       materialContent.innerHTML = html;
+      const materialImage = materialContent.querySelector(".material-image");
+      if (materialImage) {
+        materialImage.addEventListener("error", () => {
+          materialImage.hidden = true;
+          materialImage.parentElement.classList.add("material-image-missing");
+          materialImage.parentElement.insertAdjacentHTML(
+            "beforeend",
+            `<p class="material-image-error">${isPT ? "Imagem não encontrada" : "Image unavailable"}</p>`
+          );
+          console.error(`Failed to load artwork item image: ${imageUrl || "missing path"}`);
+        }, { once: true });
+      }
       materialEmpty.style.display = "none";
       materialContent.style.display = "block";
     }
