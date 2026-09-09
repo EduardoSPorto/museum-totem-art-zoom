@@ -337,7 +337,12 @@
             }
           }
         } else {
-          viewer.addModel(molData, "sdf");
+          const fileExt = molPath.split(".").pop().toLowerCase();
+          const format = fileExt === "cif" ? "cif" : "sdf";
+          viewer.addModel(molData, format);
+          if (format === "cif") {
+            viewer.addUnitCell();
+          }
           // Enhanced ball-and-stick rendering with improved visual quality
           viewer.setStyle({}, {
             stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },

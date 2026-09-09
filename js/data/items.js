@@ -109,8 +109,12 @@ const ARTWORK_ITEMS = {
         originProduction: "[data not found]",
         whyColor: "[data not found]",
         chemicalStructure: {
-            modelName: "[data not found]",
-            atoms: []
+            modelName: "Alizarin (CIF)",
+            atoms: [
+                { element: "C" },
+                { element: "H" },
+                { element: "O" }
+            ]
         }
     },
 
