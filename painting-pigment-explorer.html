@@ -253,6 +253,98 @@
       moleculeViewport.replaceChildren();
     }
 
+    function buildPeriodicCifDisplay(cifData) {
+      const cellValue = (name) => {
+        const match = cifData.match(new RegExp(`^${name}\\s+([0-9.Ee+-]+)`, "m"));
+        return match ? Number.parseFloat(match[1]) : NaN;
+      };
+      const cellA = cellValue("_cell_length_a");
+      const cellB = cellValue("_cell_length_b");
+      const cellC = cellValue("_cell_length_c");
+      const alpha = cellValue("_cell_angle_alpha") * Math.PI / 180;
+      const beta = cellValue("_cell_angle_beta") * Math.PI / 180;
+      const gamma = cellValue("_cell_angle_gamma") * Math.PI / 180;
+      const cellCosGamma = Math.cos(gamma);
+      const cellSinGamma = Math.sin(gamma);
+      const cellVectorA = { x: cellA, y: 0, z: 0 };
+      const cellVectorB = { x: cellB * cellCosGamma, y: cellB * cellSinGamma, z: 0 };
+      const cellVectorC = {
+        x: cellC * Math.cos(beta),
+        y: cellC * (Math.cos(alpha) - Math.cos(beta) * cellCosGamma) / cellSinGamma,
+        z: Math.sqrt(Math.max(0, cellC ** 2 - (cellC * Math.cos(beta)) ** 2 -
+          (cellC * (Math.cos(alpha) - Math.cos(beta) * cellCosGamma) / cellSinGamma) ** 2))
+      };
+      const toCartesian = (fractional, translation = { x: 0, y: 0, z: 0 }) => ({
+        x: (fractional.x + translation.x) * cellVectorA.x + (fractional.y + translation.y) * cellVectorB.x + (fractional.z + translation.z) * cellVectorC.x,
+        y: (fractional.y + translation.y) * cellVectorB.y + (fractional.z + translation.z) * cellVectorC.y,
+        z: (fractional.z + translation.z) * cellVectorC.z
+      });
+      const atoms = [];
+      const atomPattern = /^\s*(Cd|S)\s+\S+\s+\d+\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)/;
+      for (const line of cifData.split(/\r?\n/)) {
+        const match = line.match(atomPattern);
+        if (match) {
+          atoms.push({
+            element: match[1],
+            fractional: { x: Number.parseFloat(match[2]), y: Number.parseFloat(match[3]), z: Number.parseFloat(match[4]) }
+          });
+        }
+      }
+      if (!atoms.length || ![cellA, cellB, cellC, alpha, beta, gamma].every(Number.isFinite)) return null;
+
+      const positions = atoms.map((atom) => ({
+        element: atom.element,
+        point: toCartesian(atom.fractional)
+      }));
+      const imageIndex = new Map();
+      const bonds = [];
+      const colors = { Cd: "#f0c84b", S: "#e78388" };
+      const distanceSquared = (first, second) => {
+        const dx = first.x - second.x;
+        const dy = first.y - second.y;
+        const dz = first.z - second.z;
+        return dx * dx + dy * dy + dz * dz;
+      };
+
+      for (let atomIndex = 0; atomIndex < atoms.length; atomIndex += 1) {
+        const atom = atoms[atomIndex];
+        const neighbors = [];
+        for (let candidateIndex = 0; candidateIndex < atoms.length; candidateIndex += 1) {
+          if (atoms[candidateIndex].element === atom.element) continue;
+          for (let tx = -1; tx <= 1; tx += 1) {
+            for (let ty = -1; ty <= 1; ty += 1) {
+              for (let tz = -1; tz <= 1; tz += 1) {
+                const translation = { x: tx, y: ty, z: tz };
+                const candidatePoint = toCartesian(atoms[candidateIndex].fractional, translation);
+                neighbors.push({ candidateIndex, translation, point: candidatePoint, distance: distanceSquared(positions[atomIndex].point, candidatePoint) });
+              }
+            }
+          }
+        }
+        neighbors.sort((first, second) => first.distance - second.distance);
+        for (const neighbor of neighbors.slice(0, 4)) {
+          const translationKey = `${neighbor.candidateIndex}:${neighbor.translation.x}:${neighbor.translation.y}:${neighbor.translation.z}`;
+          let positionIndex = imageIndex.get(translationKey);
+          if (positionIndex === undefined) {
+            if (neighbor.translation.x === 0 && neighbor.translation.y === 0 && neighbor.translation.z === 0) {
+              positionIndex = neighbor.candidateIndex;
+            } else {
+              positionIndex = positions.length;
+              positions.push({ element: atoms[neighbor.candidateIndex].element, point: neighbor.point });
+            }
+            imageIndex.set(translationKey, positionIndex);
+          }
+          bonds.push({ start: positions[atomIndex].point, end: positions[positionIndex].point, startColor: colors[atom.element], endColor: colors[atoms[neighbor.candidateIndex].element] });
+        }
+      }
+
+      return {
+        xyz: `${positions.length}\nPeriodic CdS coordination display\n${positions.map((atom) => `${atom.element} ${atom.point.x.toFixed(6)} ${atom.point.y.toFixed(6)} ${atom.point.z.toFixed(6)}`).join("\n")}`,
+        positions,
+        bonds
+      };
+    }
+
     async function displayMolecule(item) {
       const renderVersion = ++moleculeRenderVersion;
       applySelectionAccent(item);
@@ -341,15 +433,28 @@
         } else {
           const fileExt = molPath.split(".").pop().toLowerCase();
           const format = fileExt === "cif" ? "cif" : "sdf";
-          viewer.addModel(molData, format);
           if (format === "cif") {
-            viewer.addUnitCell();
+            const periodicDisplay = buildPeriodicCifDisplay(molData);
+            if (!periodicDisplay) throw new Error("Invalid CIF cell or atom data");
+            viewer.addModel(periodicDisplay.xyz, "xyz");
+            viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.72, color: "#f0c84b", alpha: 0.98 } });
+            viewer.setStyle({ elem: "S" }, { sphere: { radius: 0.62, color: "#e78388", alpha: 0.98 } });
+            for (const bond of periodicDisplay.bonds) {
+              const midpoint = {
+                x: (bond.start.x + bond.end.x) / 2,
+                y: (bond.start.y + bond.end.y) / 2,
+                z: (bond.start.z + bond.end.z) / 2
+              };
+              viewer.addCylinder({ start: bond.start, end: midpoint, radius: 0.16, color: bond.startColor, alpha: 0.9 });
+              viewer.addCylinder({ start: midpoint, end: bond.end, radius: 0.16, color: bond.endColor, alpha: 0.9 });
+            }
+          } else {
+            viewer.addModel(molData, format);
+            viewer.setStyle({}, {
+              stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
+              sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
+            });
           }
-          // Enhanced ball-and-stick rendering with improved visual quality
-          viewer.setStyle({}, {
-            stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
-            sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
-          });
         }
 
         viewer.setBackgroundColor("0xfafaf8");
