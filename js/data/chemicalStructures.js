@@ -3,5 +3,5 @@ const ITEM_CHEMICAL_STRUCTURE_FILES = {
   generic_blue: "assets/molecules/placeholder_blue_pigment_0000ff.mol",
   red_lake: "assets/molecules/lake_red_ff0000.mol",
   calcium_carbonate: "assets/molecules/placeholder_white_pigment_ffffff.mol",
-  cadmium_sulfide: "assets/molecules/Cadmium_yellow_ffff00.mol"
+  cadmium_sulfide: "assets/molecules/cadmium_yellow.cif"
 };

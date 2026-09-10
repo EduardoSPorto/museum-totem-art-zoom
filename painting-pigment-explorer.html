@@ -301,7 +301,9 @@
       moleculeIsRendering = true;
 
       try {
-        const crystalData = (typeof CRYSTAL_STRUCTURES !== "undefined") ? CRYSTAL_STRUCTURES[item.id] : null;
+        const crystalData = (typeof CRYSTAL_STRUCTURES !== "undefined" && !molPath.toLowerCase().endsWith(".cif"))
+          ? CRYSTAL_STRUCTURES[item.id]
+          : null;
 
         if (crystalData) {
           // Render crystal supercell (e.g. 2x2x2 wurtzite CdS)
