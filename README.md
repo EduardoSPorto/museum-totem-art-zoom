@@ -130,7 +130,7 @@ O aplicativo ainda deve ser aberto por um servidor HTTP local, usando um dos lau
     ```bash
     ./run.sh
     ```
-    Ele encontra uma porta disponível, inicia o servidor e abre `launcher.html`. Também é possível usar qualquer servidor local:
+    Ele encontra uma porta disponível, inicia o servidor e abre `launcher.html` em `http://localhost`. Esse endereço local é importante: abrir `painting-pigment-explorer.html` diretamente como `file://` pode impedir o navegador de acessar a webcam. Também é possível usar qualquer servidor local:
    - **Python (Recomendado):**
      ```bash
      python3 -m http.server 8080

@@ -754,6 +754,12 @@
 
     async function initializeHandTracking() {
       try {
+        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+          throw new Error(
+            "Camera access requires a secure browser origin. Open the app through run.sh at http://localhost, not as a file."
+          );
+        }
+
         console.log("⏳ Waiting for MediaPipe libraries...");
         const librariesReady = await waitForMediaPipeLibraries();
         
@@ -821,6 +827,14 @@
         console.error("✗ Hand tracking initialization failed:", error);
         console.error("Error details:", error.message);
         console.error("Stack:", error.stack);
+
+        const cameraError = error.name === "NotAllowedError"
+          ? "Camera permission was denied. Allow camera access and reload the page."
+          : error.name === "NotFoundError"
+            ? "No camera was found. Mouse control is enabled."
+            : error.message;
+        statusDot.title = cameraError;
+        console.warn(`Camera status: ${cameraError}`);
         
         console.warn("Using mouse control fallback.");
         handTrackingEnabled = false;
@@ -1222,10 +1236,12 @@
     function updateStatusIndicator(isDetected) {
         if (isDetected) {
             statusDot.textContent = "●";
+          statusDot.title = "Hand detected";
             statusDot.classList.add("detected");
             statusDot.classList.remove("searching");
         } else {
             statusDot.textContent = "✕";
+          statusDot.title = "Camera ready; no hand detected";
             statusDot.classList.add("searching");
             statusDot.classList.remove("detected");
         }
