@@ -83,7 +83,8 @@ museum-totem-art-zoom/
 │   ├── artwork/               # Pintura original (visível) e máscara colorida RGB (oculta)
 │   ├── highlights/            # Camadas de brilho para destacar áreas selecionadas
 │   ├── materials/             # Imagens históricas dos pigmentos usadas no Nível 2
-│   └── molecules/             # Arquivos .mol, .sdf e .cif usados nas estruturas 3D
+│   ├── molecules/             # Arquivos .mol, .sdf e .cif usados nas estruturas 3D
+│   └── vendor/                # Bibliotecas JavaScript e modelos locais para uso offline
 ├── css/
 │   └── main.css               # Estilos globais da interface (Vanilla CSS)
 ├── js/
@@ -112,7 +113,9 @@ museum-totem-art-zoom/
 
 O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilação ou pacotes `npm`. É necessário um servidor web local para que as requisições `fetch` dos arquivos de imagem, molécula e CIF funcionem corretamente e para que o navegador permita o uso da webcam.
 
-As bibliotecas MediaPipe, Three.js e 3Dmol.js são carregadas por CDN no HTML. Portanto, a primeira execução precisa de acesso à internet, ou de uma versão local dessas bibliotecas.
+As bibliotecas MediaPipe, Three.js e 3Dmol.js são distribuídas no diretório `assets/vendor/`. Depois de clonar ou baixar o repositório, a aplicação não precisa de acesso à internet para funcionar. O pacote local do MediaPipe inclui os arquivos de modelo, WASM e o grafo de mãos usados pelo rastreamento.
+
+O aplicativo ainda deve ser aberto por um servidor HTTP local, usando um dos launchers fornecidos. Isso é necessário para que o navegador permita o acesso à webcam e para que os arquivos de imagens, moléculas e CIF possam ser carregados com `fetch`; não é necessário acesso à internet.
 
 ### Passo a Passo
 

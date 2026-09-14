@@ -124,13 +124,13 @@
   <video id="webcamVideo" style="display: none;"></video>
   <canvas id="handOverlayCanvas" style="position: fixed; top: 0; left: 0; z-index: 1000; pointer-events: none; display: none;"></canvas>
 
-  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
-  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script async src="assets/vendor/mediapipe/camera_utils.js"></script>
+  <script async src="assets/vendor/mediapipe/drawing_utils.js"></script>
+  <script async src="assets/vendor/mediapipe/hands/hands.js"></script>
+  <script src="assets/vendor/three.min.js"></script>
 
   <!-- 3Dmol.js for molecular visualization -->
-  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+  <script src="assets/vendor/3Dmol-min.js"></script>
 
   <!-- Configuration for the application, including language settings -->
   <script src="config.js"></script>
@@ -651,11 +651,11 @@
       }
 
       if (!allLoaded) {
-        console.warn("⚠️  Some libraries failed to load from CDN");
+        console.warn("⚠️  Some local libraries failed to load");
         console.warn("    This usually means:");
-        console.warn("    • Internet connection is down");
-        console.warn("    • CDN is temporarily unavailable");
-        console.warn("    • Browser is blocking external scripts");
+        console.warn("    • A file is missing from assets/vendor");
+        console.warn("    • The local server is not serving the project directory");
+        console.warn("    • The browser blocked a local script");
       }
 
       return allLoaded;
@@ -666,9 +666,9 @@
       setTimeout(() => {
         const ready = checkMediaPipeLibraries();
         if (!ready) {
-          console.warn("⚠️  Some MediaPipe libraries failed to load from CDN.");
+          console.warn("⚠️  Some local MediaPipe libraries failed to load.");
           console.warn("    Hand tracking will not work until libraries are loaded.");
-          console.warn("    Try: Reload page → Check internet → Wait 15 seconds");
+          console.warn("    Try: Reload page → Check assets/vendor → Wait 15 seconds");
         }
       }, 5000);
     });
@@ -758,7 +758,7 @@
         const librariesReady = await waitForMediaPipeLibraries();
         
         if (!librariesReady) {
-          throw new Error("MediaPipe libraries failed to load from CDN. This usually means internet connection is unavailable or very slow. Please reload the page and ensure you have a working internet connection.");
+          throw new Error("Local MediaPipe libraries failed to load. Check that assets/vendor/mediapipe is present and reload the page.");
         }
 
         if (!window.Hands) {
@@ -769,9 +769,7 @@
 
         // Create Hands instance
         handDetector = new window.Hands({
-          locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-          }
+          locateFile: (file) => `assets/vendor/mediapipe/hands/${file}`
         });
 
         handDetector.setOptions({
