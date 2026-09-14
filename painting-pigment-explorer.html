@@ -638,7 +638,7 @@
       const libraries = {
         'Hands': window.Hands,
         'Camera': window.Camera,
-        'drawingUtils': window.drawingUtils
+        'Drawing utilities': window.drawConnectors
       };
 
       console.log("📦 Checking MediaPipe Library Status...");
@@ -674,7 +674,7 @@
     });
     let handTrackingEnabled = false;
     let handDetector = null;
-    let webcamStream = null;
+    let handCamera = null;
     let lastHandPosition = { x: 0, y: 0 };
     let smoothedHandPosition = { x: 0, y: 0 };
     let smoothedRawHandPosition = { x: 0.5, y: 0.5 };
@@ -788,27 +788,10 @@
         handDetector.onResults(onHandResults);
         console.log("✓ MediaPipe Hands initialized");
 
-        // Request camera access
         console.log("📷 Requesting camera access...");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1280 }, 
-            height: { ideal: 720 },
-            facingMode: "user"
-          },
-          audio: false
-        });
+        await startHandDetection();
+        if (!handTrackingEnabled) return;
 
-        console.log("✓ Camera access granted");
-        webcamStream = stream;
-        webcamVideo.srcObject = stream;
-        
-        webcamVideo.onloadedmetadata = () => {
-          console.log("✓ Webcam initialized for hand tracking");
-          startHandDetection();
-        };
-
-        handTrackingEnabled = true;
         console.log("✓ Hand tracking system fully ready");
         
         // Reset magnifier position to center
@@ -848,7 +831,7 @@
       }
     }
 
-    function startHandDetection() {
+    async function startHandDetection() {
       try {
         if (!window.Camera) {
           throw new Error("MediaPipe Camera library not loaded");
@@ -856,7 +839,7 @@
 
         console.log("🎥 Starting hand detection loop...");
         
-        const camera = new window.Camera(webcamVideo, {
+        handCamera = new window.Camera(webcamVideo, {
           onFrame: async () => {
             if (handDetector) {
               await handDetector.send({ image: webcamVideo });
@@ -866,7 +849,9 @@
           height: 720
         });
 
-        camera.start();
+        await handCamera.start();
+        handTrackingEnabled = true;
+        console.log("✓ Camera access granted");
         console.log("✓ Hand detection loop started");
       } catch (error) {
         console.error("✗ Failed to start hand detection:", error);
@@ -878,6 +863,7 @@
         if (canvas) canvas.style.display = "none";
 
         updateStatusIndicator(false);
+        handCamera = null;
       }
     }
 
