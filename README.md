@@ -1,7 +1,11 @@
 # Museu Totem Art Zoom: Exploração de Pigmentos
 **Desenvolvimento de totens interativos integrando Química, Artes Visuais e Visão Computacional**
 
-# Precisa-se de mais infomração
+## Estado atual
+
+O projeto apresenta uma pintura em um totem interativo e permite selecionar regiões da obra com um gesto de pinça. A experiência está organizada em três níveis: a obra, as informações históricas e materiais da região selecionada, e a visualização tridimensional de sua estrutura química.
+
+Além da visualização de moléculas, o projeto já possui uma visualização de estrutura cristalina baseada em arquivos CIF (*Crystallographic Information File*). Essa visualização evidencia a célula unitária, a repetição periódica e a coordenação entre átomos, funcionando como uma representação didática do material, e não como uma fotografia dos átomos.
 
 ## Visão Geral
 O projeto **Museum Totem Art Zoom** é uma aplicação interativa *touchless* (sem toque) idealizada para totens em ambientes museológicos e educacionais. O seu principal objetivo é criar uma ponte imersiva entre a apreciação artística e a ciência molecular, revelando os segredos químicos por trás das cores que compõem uma obra de arte.
@@ -39,7 +43,19 @@ Este projeto foi construído exclusivamente com tecnologias web de alta performa
 - **MediaPipe Hands (Google):** Inteligência artificial para o mapeamento da mão (Machine Learning).
 - **WebGL / Three.js:** Responsáveis por provisionar o contexto gráfico tridimensional pelo navegador, aproveitando a aceleração via GPU.
 - **3Dmol.js:** Biblioteca científica de bioinformática utilizada para analisar, processar e renderizar dinamicamente os arquivos de estrutura atômica (`.MOL` e `.SDF`).
+- **CIF:** Arquivos de cristalografia usados para descrever parâmetros da célula unitária, posições fracionárias e simetria de materiais cristalinos.
 - **Canvas API:** Utilizada amplamente para desenho das sobreposições de interação (cursor, esqueleto da mão e *preview* da câmera) de forma performática.
+
+### Visualização cristalina e arquivos CIF
+
+No nível 3, o visualizador decide como apresentar a estrutura a partir do arquivo associado ao item:
+
+- Arquivos `.MOL` e `.SDF` são carregados e renderizados pelo **3Dmol.js** como modelos moleculares.
+- Arquivos `.CIF` são carregados com `fetch`, lidos para obter os parâmetros da célula (`a`, `b`, `c`, `alpha`, `beta` e `gamma`) e convertidos de coordenadas fracionárias para cartesianas.
+- A partir dessas coordenadas, o código calcula ligações entre átomos de espécies diferentes e desenha a coordenação periódica.
+- Para o sulfeto de cádmio (CdS), o conversor usa os parâmetros e as posições do CIF para criar uma representação periódica e desenhar a coordenação entre Cd e S. O repositório também mantém dados preparados para uma supercélula de wurtzita `2×2×2` em `crystalStructures.js`, além de uma demonstração de célula unitária em `extra/CdS_celula_unitaria_cristal.html`.
+
+O arquivo atualmente associado ao amarelo de cádmio é `assets/molecules/cadmium_yellow.cif`. O registro do item está em `js/data/chemicalStructures.js`, enquanto os dados preparados para a visualização da supercélula ficam em `js/data/crystalStructures.js`. Há outros CIFs e materiais de referência em `extra/`, incluindo exemplos de wurtzita e scripts para expandir a simetria de um CIF.
 
 ---
 
@@ -67,7 +83,7 @@ museum-totem-art-zoom/
 │   ├── artwork/               # Pintura original (visível) e máscara colorida RGB (oculta)
 │   ├── highlights/            # Camadas de brilho para destacar áreas selecionadas
 │   ├── materials/             # Imagens históricas dos pigmentos usadas no Nível 2
-│   └── molecules/             # Arquivos atômicos tridimensionais (.mol) carregados pelo 3Dmol.js
+│   └── molecules/             # Arquivos .mol, .sdf e .cif usados nas estruturas 3D
 ├── css/
 │   └── main.css               # Estilos globais da interface (Vanilla CSS)
 ├── js/
@@ -75,10 +91,18 @@ museum-totem-art-zoom/
 │   │   └── maskReader.js      # Motor que lê a cor do pixel clicado no canvas da máscara
 │   ├── data/
 │   │   ├── colorMap.js        # Dicionário mapeando Código Hexadecimal RGB -> ID do item
-│   │   ├── chemicalStructures.js # Registro de arquivos .mol dos itens materiais
-│   │   └── items.js           # Banco de dados de informações de cada item da obra
+│   │   ├── chemicalStructures.js # Registro dos arquivos .mol, .sdf e .cif
+│   │   ├── crystalStructures.js  # Dados de supercélula e célula unitária para cristais
+│   │   ├── items.js           # Banco de dados em inglês
+│   │   └── itemsPT.js         # Banco de dados em português
 │   └── state.js               # Gerenciador de estado global da aplicação
 ├── painting-pigment-explorer.html # Arquivo HTML principal (Entrypoint) do sistema
+├── launcher.html              # Interface para configurar idioma e narração
+├── launcher-script.js         # Lógica do launcher e geração da URL
+├── run.sh                     # Atalho para iniciar no Linux
+├── run.command                # Atalho para iniciar no macOS
+├── run.bat                    # Atalho para iniciar no Windows
+├── LAUNCHER_GUIDE.md          # Guia de execução para usuários
 └── README.md                  # Documentação do projeto
 ```
 
@@ -86,7 +110,9 @@ museum-totem-art-zoom/
 
 ## ⚙️ Pré-requisitos e Instalação
 
-O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilações pesadas ou pacotes `npm`. O único requisito é um servidor web simples para que as requisições `fetch` dos arquivos locais (como os arquivos `.MOL`) contornem as regras de segurança CORS do navegador.
+O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilação ou pacotes `npm`. É necessário um servidor web local para que as requisições `fetch` dos arquivos de imagem, molécula e CIF funcionem corretamente e para que o navegador permita o uso da webcam.
+
+As bibliotecas MediaPipe, Three.js e 3Dmol.js são carregadas por CDN no HTML. Portanto, a primeira execução precisa de acesso à internet, ou de uma versão local dessas bibliotecas.
 
 ### Passo a Passo
 
@@ -97,7 +123,11 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
    ```
 
 2. **Inicie um servidor Web Local:**
-   Você pode usar qualquer solução de sua preferência. Algumas sugestões comuns:
+    No Linux, o caminho mais simples é executar o launcher:
+    ```bash
+    ./run.sh
+    ```
+    Ele encontra uma porta disponível, inicia o servidor e abre `launcher.html`. Também é possível usar qualquer servidor local:
    - **Python (Recomendado):**
      ```bash
      python3 -m http.server 8080
@@ -109,8 +139,7 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
    - **Extensão VS Code:** Utilize a extensão *Live Server*.
 
 3. **Acesse no Navegador:**
-   Abra o seu navegador de preferência e navegue até `chrome`.
-   *(Nota: O navegador solicitará permissão para uso da webcam. Conceda o acesso).*
+    Abra a URL mostrada pelo launcher. O navegador solicitará permissão para uso da webcam; conceda o acesso para habilitar a interação por gestos.
 
 ---
 
@@ -139,9 +168,6 @@ PubChem CID 6293 — explicit hydrogen atoms for 3D display     <-- 1. HEADER: M
   2  9  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 2 e Átomo 9  (Tipo 2 = Dupla)
   3 10  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 3 e Átomo 10 (Tipo 2 = Dupla)
     ...
- 18 24  1  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 18 e Átomo 24 (Tipo 1 = Simples)
-M  END                                                        <-- 5. END BLOCK: Fim da especificação do arquivo
-
 ## Commit History
 --
 
