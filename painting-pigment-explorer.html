@@ -298,7 +298,7 @@
       }));
       const imageIndex = new Map();
       const bonds = [];
-      const colors = { Cd: "#f0c84b", S: "#e78388" };
+      const colors = { Cd: "#e53935", S: "#ffd700" };
       const distanceSquared = (first, second) => {
         const dx = first.x - second.x;
         const dy = first.y - second.y;
@@ -392,6 +392,17 @@
       moleculeViewer = viewer;
       moleculeIsRendering = true;
 
+      const elementColors = {
+        H: "#ffffff",
+        C: "#4d4d4d",
+        N: "#3050f8",
+        O: "#ff0d0d",
+        S: "#ffd700",
+        Cu: "#c87533",
+        Cd: "#e53935",
+        Pb: "#575961"
+      };
+
       try {
         const crystalData = (typeof CRYSTAL_STRUCTURES !== "undefined" && !molPath.toLowerCase().endsWith(".cif"))
           ? CRYSTAL_STRUCTURES[item.id]
@@ -402,8 +413,8 @@
           viewer.addModel(crystalData.xyz, "xyz");
 
           // Style: smaller spheres (Cd radius 0.65, S radius 1.15)
-          viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.65, color: "#79a9ff", alpha: 0.95 } });
-          viewer.setStyle({ elem: "S" },  { sphere: { radius: 1.15, color: "#ffd54a", alpha: 0.90 } });
+          viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.65, alpha: 0.95 } });
+          viewer.setStyle({ elem: "S" },  { sphere: { radius: 1.15, alpha: 0.90 } });
 
           // Show Cd-S tetrahedral coordination lines
           if (Array.isArray(crystalData.coordLines)) {
@@ -437,8 +448,8 @@
             const periodicDisplay = buildPeriodicCifDisplay(molData);
             if (!periodicDisplay) throw new Error("Invalid CIF cell or atom data");
             viewer.addModel(periodicDisplay.xyz, "xyz");
-            viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.72, color: "#f0c84b", alpha: 0.98 } });
-            viewer.setStyle({ elem: "S" }, { sphere: { radius: 0.62, color: "#e78388", alpha: 0.98 } });
+            viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.72, alpha: 0.98 } });
+            viewer.setStyle({ elem: "S" }, { sphere: { radius: 0.62, alpha: 0.98 } });
             for (const bond of periodicDisplay.bonds) {
               const midpoint = {
                 x: (bond.start.x + bond.end.x) / 2,
@@ -456,6 +467,8 @@
             });
           }
         }
+
+        viewer.setColorByElement({}, elementColors);
 
         viewer.setBackgroundColor("0xfafaf8");
         viewer.zoomTo();
@@ -490,7 +503,7 @@
         // Element colors (Jmol style)
         const elementColors = {
           "H": "#FFFFFF", "C": "#909090", "N": "#3050F8", "O": "#FF0D0D",
-          "S": "#FFFF30", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#FFD98F",
+          "S": "#ffd700", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#e53935",
           "Cu": "#C88033"
         };
         const color = elementColors[atom.element] || "#CCCCCC";
