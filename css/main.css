@@ -57,6 +57,7 @@ textarea {
   z-index: 999;
   display: none;
   transform: translate(-50%, -50%);
+  will-change: transform;
   box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.28);
   transition: opacity 0.1s ease;
   background: rgba(255, 255, 255, 0.08);
@@ -193,7 +194,10 @@ textarea {
 
 .app-state-molecule .molecule-section {
   display: flex;
-  background: #ffffff;
+  background: linear-gradient(180deg,
+    #faf8f6 0%,
+    #f7f3ea 50%,
+    #f4efe6 100%);
 }
 
 .app-state-molecule .container {
@@ -211,8 +215,12 @@ textarea {
   text-align: center;
   margin-bottom: 28px;
   animation: slideDown 0.8s ease-out;
-  padding: 0 0 18px;
-  border-bottom: 1px solid rgba(var(--selection-accent-ink-rgb), 0.28);
+  padding: 14px 20px 18px;
+  border-bottom: 1px solid rgba(var(--selection-accent-ink-rgb), 0.22);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(140, 63, 53, 0.04);
 }
 
 .app-state-molecule .detail-header h1,
@@ -244,26 +252,49 @@ textarea {
 .molecule-viewport {
   flex: 1;
   min-height: min(66vh, 780px);
-  background: #ffffff;
-  border: 1px solid rgba(66, 54, 41, 0.10);
-  border-radius: 18px;
+  background: linear-gradient(135deg, 
+    rgba(250, 248, 244, 0.95) 0%, 
+    rgba(247, 243, 234, 0.98) 50%, 
+    rgba(244, 239, 230, 0.95) 100%);
+  border: 1px solid rgba(66, 54, 41, 0.12);
+  border-radius: 20px;
   overflow: hidden;
   position: relative;
   width: 100%;
   height: 100%;
-  box-shadow: var(--shadow-card);
+  box-shadow: 
+    0 8px 32px rgba(44, 34, 24, 0.08),
+    0 2px 12px rgba(140, 63, 53, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.molecule-viewport:hover {
+  box-shadow: 
+    0 12px 40px rgba(44, 34, 24, 0.12),
+    0 4px 16px rgba(140, 63, 53, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .molecule-legend {
   display: block;
   width: 100%;
+  /* Keep lengthy chemical descriptions usable without expanding the view. */
+  max-height: min(42vh, 24rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px 24px 20px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(66, 54, 41, 0.10);
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(248, 246, 240, 0.90) 100%);
+  border: 1px solid rgba(66, 54, 41, 0.12);
   border-radius: 18px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   z-index: 2;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 
+    0 8px 24px rgba(44, 34, 24, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   text-align: center;
 }
 
@@ -306,7 +337,14 @@ textarea {
   height: 16px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 1px solid rgba(66, 54, 41, 0.22);
+  border: 1.5px solid rgba(66, 54, 41, 0.22);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+}
+
+.legend-atom:hover .legend-atom-color {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .legend-atom-text {
@@ -315,12 +353,13 @@ textarea {
 
 .legend-info {
   font-size: var(--type-secondary);
-  line-height: 1.7;
+  line-height: 1.8;
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
+  padding-top: 8px;
 }
 
 .legend-chemistry-line {
@@ -493,9 +532,14 @@ textarea {
   max-width: 1040px;
   margin: 0 auto;
   width: 100%;
-  height: auto;
+  height: 100vh;
+  min-height: 0;
   flex-direction: column;
   display: flex;
+}
+
+body.app-state-detail {
+  overflow: hidden;
 }
 
 .app-state-detail > div:first-child {
@@ -514,7 +558,8 @@ textarea {
   border: none;
   box-shadow: none;
   padding: 0;
-  min-height: auto;
+  min-height: 0;
+  flex: 1;
   animation: fadeIn 0.5s ease-out;
   width: 100%;
 }
@@ -749,6 +794,14 @@ textarea {
   animation: fadeIn 0.5s ease-out;
 }
 
+.app-state-detail .material-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 12px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -808,6 +861,23 @@ textarea {
   line-height: 1.7;
   color: var(--text-primary);
   opacity: 0.95;
+}
+
+.app-state-detail .material-content,
+.molecule-legend {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--selection-accent-ink-rgb), 0.5) transparent;
+}
+
+.app-state-detail .material-content::-webkit-scrollbar,
+.molecule-legend::-webkit-scrollbar {
+  width: 8px;
+}
+
+.app-state-detail .material-content::-webkit-scrollbar-thumb,
+.molecule-legend::-webkit-scrollbar-thumb {
+  background: rgba(var(--selection-accent-ink-rgb), 0.5);
+  border-radius: 999px;
 }
 
 .material-property {
@@ -1012,6 +1082,114 @@ textarea {
   display: block;
   object-fit: contain;
   padding: 14px;
+}
+
+/* Keep the complete desktop detail and molecule views within shorter laptop-sized viewports. */
+@media (min-width: 769px) and (max-height: 1100px) {
+  :root {
+    --type-display: clamp(2rem, 3vw, 3rem);
+    --type-heading: clamp(1.7rem, 2.2vw, 2.3rem);
+    --type-body: 1rem;
+  }
+
+  .app-state-detail .container {
+    padding: 20px 24px;
+  }
+
+  .app-state-detail .detail-header,
+  .app-state-molecule .detail-header,
+  .app-state-molecule .molecule-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .app-state-detail .material-content {
+    padding-right: 8px;
+  }
+
+  .material-image-section {
+    margin-bottom: 16px;
+  }
+
+  .material-image {
+    max-height: min(30vh, 260px);
+    padding: 8px;
+  }
+
+  .material-color-indicator {
+    height: 52px;
+    margin-bottom: 14px;
+  }
+
+  .material-section {
+    margin-bottom: 16px;
+  }
+
+  .material-section-title {
+    margin-bottom: 6px;
+  }
+
+  .material-text {
+    line-height: 1.5;
+  }
+
+  .molecule-section {
+    padding: 16px 24px;
+  }
+
+  .molecule-viewport {
+    min-height: min(42vh, 460px);
+    height: min(42vh, 460px);
+  }
+
+  .molecule-legend {
+    max-height: min(30vh, 20rem);
+    padding: 12px 18px 14px;
+  }
+
+  .legend-atoms {
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .legend-info {
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .camera-preview-panel {
+    width: 260px;
+  }
+
+  #cameraPreviewCanvas {
+    height: 220px;
+  }
+
+  .pinch-instruction {
+    max-width: 300px;
+    padding: 12px 16px 12px 12px;
+  }
+
+  .pinch-instruction video {
+    width: 112px;
+    height: 112px;
+  }
+
+  .pinch-instruction p {
+    font-size: 1rem;
+  }
+}
+
+.material-image-missing {
+  min-height: 120px;
+  align-items: center;
+}
+
+.material-image-error {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-secondary);
 }
 
 @keyframes selectionHighlightPulse {

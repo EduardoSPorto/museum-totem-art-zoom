@@ -1,93 +1,106 @@
 const ARTWORK_ITEMS = {
-  black: {
-    id: "bone_black",
-    type: "material",
-    color: "#000000",
-    image: "assets/materials/Carbon_black_000000.jpg",
-    name: "Bone Black",
-    commonName: "Bone Black",
-    formula: "C + Ca5(OH)(PO4)3",
-    historicalContext: "Identified in the black base of Benette Casaretto Motta's painting 'Anjo Adonay'. Historically known as Ivory Black.",
-    originProduction: "Produced artificially by carbonizing animal bones in closed vessels.",
-    whyColor: "Carbon-rich bone black absorbs most visible light, producing a deep black tone.",
-    chemicalStructure: {
-      modelName: "Carbon / Hydroxyapatite",
-      atoms: [{ element: "C" }]
+    black: {
+        id: "bone_black",
+        type: "material",
+        color: "#000000",
+        image: "assets/materials/Bone_Black.jpg",
+        name: "Bone Black",
+        commonName: "Bone Black / Ivory Black",
+        formula: "[non_filled]",
+            historicalContext: "Bone Black is a traditional black pigment produced by the carbonization of animal bones. Ivory Black originally referred to a pigment produced by the carbonization of ivory. Over time, the names came to be used similarly in different commercial and artistic contexts.",
+            originProduction: "Bone Black is produced by heating animal bones with limited access to oxygen. Part of the organic matter is transformed into a carbon-rich phase while much of the mineral portion remains in the solid material.",
+            whyColor: "The black appearance of Bone Black is mainly related to its carbonaceous phase. The carbon-rich phase absorbs a large part of the visible light, so little light returns to the eyes.",
+            chemicalStructure: {
+                modelName: "[non_filled]",
+                atoms: []
+            }
+    },
+
+    blue: {
+        id: "generic_blue",
+        type: "material",
+        color: "#0000FF",
+        image: "assets/materials/generic_blue.jpg",
+        name: "Blue Pigment",
+        commonName: "Blue Pigment",
+        formula: "[non_filled]",
+            historicalContext: "[non_filled]",
+            originProduction: "[non_filled]",
+            whyColor: "[non_filled]",
+            chemicalStructure: {
+                modelName: "[non_filled]",
+                atoms: []
+            }
+    },
+
+    red: {
+        id: "red_lake",
+        type: "material",
+        color: "#FF0000",
+        image: "assets/materials/Red_Lake.jpg",
+        name: "Red Lake",
+        commonName: "Red Lake",
+        formula: "[non_filled]",
+            historicalContext: "Red Lakes are a family of pigments produced from dyes associated with an insoluble or sparingly soluble substrate. Historically, the dyes could come from plants or insects. From the 19th century onward, synthetic dyes such as alizarin were also used.",
+            originProduction: "A Red Lake is produced by associating or precipitating a dye onto a solid, generally inorganic substrate. Historical substrates could include hydrated alumina, barium sulfate, chalk, clay, gypsum, or zinc oxide. The analysis of the work identified a material compatible with Red Lake, but did not determine the specific dye present.",
+            whyColor: "[non_filled]",
+            chemicalStructure: {
+                modelName: "alizarin_representative",
+                atoms: [
+                    { element: "C" },
+                    { element: "H" },
+                    { element: "O" }
+                ]
+            }
+    },
+    signature: {
+        id: "benette_casaretto_signature",
+        type: "artist",
+        color: "#FF00FF",
+        image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
+        name: "Benette Casaretto",
+        historicalContext: "Benedicta Bianchi Casaretto, known as Benette Casaretto, was born in Pelotas, Brazil, in 1925. She studied drawing from childhood and was part of the first class of the School of Fine Arts of Pelotas in 1949. In 1982, she received the Mérito Zona Sul distinction for her contribution to regional art. In 2022, during conservation and restoration studies of paintings at the Piratini Palace, a work registered as having unknown authorship was found to bear the signature \"BENETTE 63\". The investigation indicated that Benette was, at that time, the only female artist represented in the Piratini Palace collection. Her history also introduces questions about the visibility and erasure of women artists.",
+        originProduction: "She produced flowers, still lifes, landscapes, portraits, religious figures, dancers, clowns, and representations of women. She used different supports and techniques, including fabric canvases, Eucatex sheets, varied pictorial techniques, and combinations of colors."
+    },
+
+    white: {
+        id: "calcium_carbonate",
+        type: "material",
+        color: "#FFFFFF",
+        image: "assets/materials/Calcium_Carbonate.jpg",
+        name: "Calcium Carbonate",
+        commonName: "White of Lime",
+        formula: "CaCO₃",
+            historicalContext: "Calcium carbonate is an inorganic white pigment material. Historical forms discussed in the reference include calcite, chalk, precipitated chalk, white of lime, shell white, and coral. Chalk was an important historical source.",
+            originProduction: "Calcium carbonate used as a white pigment can come from natural materials rich in CaCO₃, including chalk, calcite, limestone, marble, oyster shells, corals, and bird eggshells.",
+            whyColor: "The white appearance of calcium carbonate as a pigment is associated with strong scattering of visible light by its particles and with their optical properties.",
+            chemicalStructure: {
+                modelName: "calcite",
+                atoms: [
+                    { element: "Ca" },
+                    { element: "C" },
+                    { element: "O" }
+                ]
+            }
+    },
+
+    yellow: {
+        id: "cadmium_sulfide",
+        type: "material",
+        color: "#FFFF00",
+        image: "assets/materials/Cadmium_Yellow.jpg",
+        name: "Cadmium Yellow",
+        commonName: "Cadmium Sulfide",
+        formula: "CdS",
+            historicalContext: "Cadmium yellow is a synthetic cadmium sulfide pigment. Its synthesis dates to the 19th century. Gay-Lussac described its synthesis in 1818, while commercialization occurred in the mid-1840s. It became widely used by artists and is still commercially used.",
+            originProduction: "Cadmium occurs mainly associated with zinc minerals. During the processing of zinc ores, cadmium is separated and recovered as a byproduct and can then be used in the preparation of cadmium sulfide (CdS). The synthesis of cadmium pigments was later modified with zinc, selenium, and barium sulfate to obtain different tones.",
+            whyColor: "Cadmium sulfide is a semiconductor. When light reaches the pigment, part of its energy is absorbed by electrons. This can involve transitions from the valence band to the conduction band. The colors that are not absorbed reach the eyes and produce the perception of yellow.",
+            chemicalStructure: {
+                modelName: "cadmium_sulfide",
+                atoms: [
+                    { element: "Cd" },
+                    { element: "S" }
+                ]
+            }
     }
-  },
-  blue: {
-    id: "blue_color",
-    type: "material",
-    color: "#0000FF",
-    image: "assets/materials/placeholder_blue_pigment_0000ff.jpg",
-    name: "Blue Pigment",
-    commonName: "Azurite",
-    formula: "Cu3(CO3)2(OH)2",
-    historicalContext: "Copper-based blue pigments such as azurite were widely used before modern synthetic blues.",
-    originProduction: "Naturally occurring copper carbonate mineral.",
-    whyColor: "Copper compounds absorb portions of the visible spectrum and are perceived as blue.",
-    chemicalStructure: {
-      modelName: "Azurite",
-      atoms: [{ element: "Cu" }, { element: "C" }, { element: "O" }]
-    }
-  },
-  red: {
-    id: "lake_red",
-    type: "material",
-    color: "#FF0000",
-    image: "assets/materials/lake_red_Titian_ff0000.jpg",
-    name: "Madder Lake (Lake Red)",
-    commonName: "Alizarin",
-    formula: "C14H8O4",
-    historicalContext: "Identified in the flowers and pink background of Benette's paintings. Synthetic alizarin largely replaced the natural dye after 1871.",
-    originProduction: "Extracted from dried, powdered roots or synthesized as alizarin.",
-    whyColor: "Alizarin selectively absorbs light, creating the characteristic red hue of the lake pigment.",
-    chemicalStructure: {
-      modelName: "Alizarin",
-      atoms: [{ element: "C" }, { element: "H" }, { element: "O" }]
-    }
-  },
-  signature: {
-    id: "artist_signature",
-    type: "artist",
-    color: "#FF00FF",
-    image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
-    name: "Assinatura da Artista",
-    commonName: "Benette Casaretto Motta",
-    historicalContext: "Benette participou da primeira turma da Escola de Belas Artes D. Carmen Trápaga Simões (EBA) de Pelotas, onde foi aluna de Aldo Locatelli, Angelo Guido e Leopoldo Gotuzzo.",
-    originProduction: "Região de anotação e identificação da autoria da obra.",
-    whyColor: "The highlight color identifies the signature region without implying a chemical material.",
-  },
-  white: {
-    id: "white_color",
-    type: "material",
-    color: "#FFFFFF",
-    image: "assets/materials/placeholder_white_pigment_ffffff.jpg",
-    name: "White Pigment",
-    commonName: "Basic Lead Carbonate",
-    formula: "PbCO3",
-    historicalContext: "Lead carbonate whites were important historical painting pigments.",
-    originProduction: "Historically manufactured as a lead carbonate pigment.",
-    whyColor: "Lead carbonate scatters visible light strongly, producing an opaque white appearance.",
-    chemicalStructure: {
-      modelName: "Lead White",
-      atoms: [{ element: "Pb" }, { element: "C" }, { element: "O" }]
-    }
-  },
-  yellow: {
-    id: "cadmium_yellow",
-    type: "material",
-    color: "#FFFF00",
-    image: "assets/materials/Cadmiumgelb-_Pigment_ffff00.jpg",
-    name: "Cadmium Yellow",
-    commonName: "Cadmium Sulfide",
-    formula: "CdS",
-    historicalContext: "Identified in the yellow petals of Benette's painting 'Flores'.",
-    originProduction: "Synthetic pigment; occurs rarely in nature as the mineral greenockite.",
-    whyColor: "Cadmium sulfide absorbs blue-violet light and reflects the yellow portion of the spectrum.",
-    chemicalStructure: {
-      modelName: "Cadmium Sulfide",
-      atoms: [{ element: "Cd" }, { element: "S" }]
-    }
-  }
 };

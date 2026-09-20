@@ -104,11 +104,12 @@
   </div>
 
   <!-- CAMERA PREVIEW PANEL (Fixed, Non-Closeable) -->
-  <div class="camera-preview-panel" id="cameraPreviewPanel">
-    <canvas id="cameraPreviewCanvas" width="300" height="280"></canvas>
+  <div class="camera-preview-panel active" id="cameraPreviewPanel">
+    <img id="cameraOffIllustration" src="assets/interface/interface_cam_lllustration.png" alt="Camera Off" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+    <canvas id="cameraPreviewCanvas" width="300" height="280" style="display: none;"></canvas>
     <div class="camera-preview-status">
       <div class="status-indicator">
-        <span class="status-dot" id="statusDot">●</span>
+        <span class="status-dot searching" id="statusDot">✕</span>
       </div>
     </div>
   </div>
@@ -123,19 +124,32 @@
   <video id="webcamVideo" style="display: none;"></video>
   <canvas id="handOverlayCanvas" style="position: fixed; top: 0; left: 0; z-index: 1000; pointer-events: none; display: none;"></canvas>
 
-  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
-  <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script async src="assets/vendor/mediapipe/camera_utils.js"></script>
+  <script async src="assets/vendor/mediapipe/drawing_utils.js"></script>
+  <script async src="assets/vendor/mediapipe/hands/hands.js"></script>
+  <script src="assets/vendor/three.min.js"></script>
 
   <!-- 3Dmol.js for molecular visualization -->
-  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+  <script src="assets/vendor/3Dmol-min.js"></script>
 
   <!-- Configuration for the application, including language settings -->
   <script src="config.js"></script>
   <script>
     // 1. Dynamically load the items based on language
-    const lang = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en';
+    const languageFromUrl = new URLSearchParams(window.location.search).get('lang');
+    const lang = languageFromUrl === 'pt' || languageFromUrl === 'en'
+      ? languageFromUrl
+      : ((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language) ? APP_CONFIG.language : 'en');
+
+    // Handle TTS parameter from URL
+    const ttsFromUrl = new URLSearchParams(window.location.search).get('tts');
+    const enableTTS = ttsFromUrl !== null ? (ttsFromUrl === '1' || ttsFromUrl === 'true') : true;
+
+    if (typeof APP_CONFIG !== 'undefined') {
+      APP_CONFIG.language = lang;
+      APP_CONFIG.enableTTS = enableTTS;
+    }
+
     if (lang === 'pt') {
       document.write('<script src="js/data/itemsPT.js"><\/script>');
     } else {
@@ -178,6 +192,7 @@
     });
   </script>
   <script src="js/data/chemicalStructures.js"></script>
+  <script src="js/data/crystalStructures.js"></script>
   <script src="js/data/colorMap.js"></script>
   <script src="js/core/maskReader.js"></script>
   <script src="js/state.js"></script>
@@ -238,6 +253,98 @@
       moleculeViewport.replaceChildren();
     }
 
+    function buildPeriodicCifDisplay(cifData) {
+      const cellValue = (name) => {
+        const match = cifData.match(new RegExp(`^${name}\\s+([0-9.Ee+-]+)`, "m"));
+        return match ? Number.parseFloat(match[1]) : NaN;
+      };
+      const cellA = cellValue("_cell_length_a");
+      const cellB = cellValue("_cell_length_b");
+      const cellC = cellValue("_cell_length_c");
+      const alpha = cellValue("_cell_angle_alpha") * Math.PI / 180;
+      const beta = cellValue("_cell_angle_beta") * Math.PI / 180;
+      const gamma = cellValue("_cell_angle_gamma") * Math.PI / 180;
+      const cellCosGamma = Math.cos(gamma);
+      const cellSinGamma = Math.sin(gamma);
+      const cellVectorA = { x: cellA, y: 0, z: 0 };
+      const cellVectorB = { x: cellB * cellCosGamma, y: cellB * cellSinGamma, z: 0 };
+      const cellVectorC = {
+        x: cellC * Math.cos(beta),
+        y: cellC * (Math.cos(alpha) - Math.cos(beta) * cellCosGamma) / cellSinGamma,
+        z: Math.sqrt(Math.max(0, cellC ** 2 - (cellC * Math.cos(beta)) ** 2 -
+          (cellC * (Math.cos(alpha) - Math.cos(beta) * cellCosGamma) / cellSinGamma) ** 2))
+      };
+      const toCartesian = (fractional, translation = { x: 0, y: 0, z: 0 }) => ({
+        x: (fractional.x + translation.x) * cellVectorA.x + (fractional.y + translation.y) * cellVectorB.x + (fractional.z + translation.z) * cellVectorC.x,
+        y: (fractional.y + translation.y) * cellVectorB.y + (fractional.z + translation.z) * cellVectorC.y,
+        z: (fractional.z + translation.z) * cellVectorC.z
+      });
+      const atoms = [];
+      const atomPattern = /^\s*(Cd|S)\s+\S+\s+\d+\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)/;
+      for (const line of cifData.split(/\r?\n/)) {
+        const match = line.match(atomPattern);
+        if (match) {
+          atoms.push({
+            element: match[1],
+            fractional: { x: Number.parseFloat(match[2]), y: Number.parseFloat(match[3]), z: Number.parseFloat(match[4]) }
+          });
+        }
+      }
+      if (!atoms.length || ![cellA, cellB, cellC, alpha, beta, gamma].every(Number.isFinite)) return null;
+
+      const positions = atoms.map((atom) => ({
+        element: atom.element,
+        point: toCartesian(atom.fractional)
+      }));
+      const imageIndex = new Map();
+      const bonds = [];
+      const colors = { Cd: "#e53935", S: "#ffd700" };
+      const distanceSquared = (first, second) => {
+        const dx = first.x - second.x;
+        const dy = first.y - second.y;
+        const dz = first.z - second.z;
+        return dx * dx + dy * dy + dz * dz;
+      };
+
+      for (let atomIndex = 0; atomIndex < atoms.length; atomIndex += 1) {
+        const atom = atoms[atomIndex];
+        const neighbors = [];
+        for (let candidateIndex = 0; candidateIndex < atoms.length; candidateIndex += 1) {
+          if (atoms[candidateIndex].element === atom.element) continue;
+          for (let tx = -1; tx <= 1; tx += 1) {
+            for (let ty = -1; ty <= 1; ty += 1) {
+              for (let tz = -1; tz <= 1; tz += 1) {
+                const translation = { x: tx, y: ty, z: tz };
+                const candidatePoint = toCartesian(atoms[candidateIndex].fractional, translation);
+                neighbors.push({ candidateIndex, translation, point: candidatePoint, distance: distanceSquared(positions[atomIndex].point, candidatePoint) });
+              }
+            }
+          }
+        }
+        neighbors.sort((first, second) => first.distance - second.distance);
+        for (const neighbor of neighbors.slice(0, 4)) {
+          const translationKey = `${neighbor.candidateIndex}:${neighbor.translation.x}:${neighbor.translation.y}:${neighbor.translation.z}`;
+          let positionIndex = imageIndex.get(translationKey);
+          if (positionIndex === undefined) {
+            if (neighbor.translation.x === 0 && neighbor.translation.y === 0 && neighbor.translation.z === 0) {
+              positionIndex = neighbor.candidateIndex;
+            } else {
+              positionIndex = positions.length;
+              positions.push({ element: atoms[neighbor.candidateIndex].element, point: neighbor.point });
+            }
+            imageIndex.set(translationKey, positionIndex);
+          }
+          bonds.push({ start: positions[atomIndex].point, end: positions[positionIndex].point, startColor: colors[atom.element], endColor: colors[atoms[neighbor.candidateIndex].element] });
+        }
+      }
+
+      return {
+        xyz: `${positions.length}\nPeriodic CdS coordination display\n${positions.map((atom) => `${atom.element} ${atom.point.x.toFixed(6)} ${atom.point.y.toFixed(6)} ${atom.point.z.toFixed(6)}`).join("\n")}`,
+        positions,
+        bonds
+      };
+    }
+
     async function displayMolecule(item) {
       const renderVersion = ++moleculeRenderVersion;
       applySelectionAccent(item);
@@ -285,12 +392,85 @@
       moleculeViewer = viewer;
       moleculeIsRendering = true;
 
+      const elementColors = {
+        H: "#ffffff",
+        C: "#4d4d4d",
+        N: "#3050f8",
+        O: "#ff0d0d",
+        S: "#ffd700",
+        Cu: "#c87533",
+        Cd: "#e53935",
+        Pb: "#575961"
+      };
+
       try {
-        viewer.addModel(molData, "sdf");
-        viewer.setStyle({}, {
-          stick: { colorscheme: "Jmol", radius: 0.15 },
-          sphere: { colorscheme: "Jmol", scale: 0.25 }
-        });
+        const crystalData = (typeof CRYSTAL_STRUCTURES !== "undefined" && !molPath.toLowerCase().endsWith(".cif"))
+          ? CRYSTAL_STRUCTURES[item.id]
+          : null;
+
+        if (crystalData) {
+          // Render crystal supercell (e.g. 2x2x2 wurtzite CdS)
+          viewer.addModel(crystalData.xyz, "xyz");
+
+          // Style: smaller spheres (Cd radius 0.65, S radius 1.15)
+          viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.65, alpha: 0.95 } });
+          viewer.setStyle({ elem: "S" },  { sphere: { radius: 1.15, alpha: 0.90 } });
+
+          // Show Cd-S tetrahedral coordination lines
+          if (Array.isArray(crystalData.coordLines)) {
+            for (const line of crystalData.coordLines) {
+              viewer.addLine({
+                start: line.start,
+                end: line.end,
+                color: "#a5b4c8",
+                dashed: false,
+                radius: 0.04
+              });
+            }
+          }
+
+          // Show unit cell box
+          if (Array.isArray(crystalData.edges)) {
+            for (const edge of crystalData.edges) {
+              viewer.addLine({
+                start: edge.start,
+                end: edge.end,
+                color: "#00d4ff",
+                dashed: false,
+                radius: 0.06
+              });
+            }
+          }
+        } else {
+          const fileExt = molPath.split(".").pop().toLowerCase();
+          const format = fileExt === "cif" ? "cif" : "sdf";
+          if (format === "cif") {
+            const periodicDisplay = buildPeriodicCifDisplay(molData);
+            if (!periodicDisplay) throw new Error("Invalid CIF cell or atom data");
+            viewer.addModel(periodicDisplay.xyz, "xyz");
+            viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.72, alpha: 0.98 } });
+            viewer.setStyle({ elem: "S" }, { sphere: { radius: 0.62, alpha: 0.98 } });
+            for (const bond of periodicDisplay.bonds) {
+              const midpoint = {
+                x: (bond.start.x + bond.end.x) / 2,
+                y: (bond.start.y + bond.end.y) / 2,
+                z: (bond.start.z + bond.end.z) / 2
+              };
+              viewer.addCylinder({ start: bond.start, end: midpoint, radius: 0.16, color: bond.startColor, alpha: 0.9 });
+              viewer.addCylinder({ start: midpoint, end: bond.end, radius: 0.16, color: bond.endColor, alpha: 0.9 });
+            }
+          } else {
+            viewer.addModel(molData, format);
+            viewer.setStyle({}, {
+              stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
+              sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
+            });
+          }
+        }
+
+        viewer.setColorByElement({}, elementColors);
+
+        viewer.setBackgroundColor("0xfafaf8");
         viewer.zoomTo();
         viewer.render();
       } catch (error) {
@@ -323,7 +503,7 @@
         // Element colors (Jmol style)
         const elementColors = {
           "H": "#FFFFFF", "C": "#909090", "N": "#3050F8", "O": "#FF0D0D",
-          "S": "#FFFF30", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#FFD98F",
+          "S": "#ffd700", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#e53935",
           "Cu": "#C88033"
         };
         const color = elementColors[atom.element] || "#CCCCCC";
@@ -335,9 +515,10 @@
         legendAtoms.appendChild(atomDiv);
       });
 
+      const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
       legendInfo.innerHTML = `
-        Model: ${structure.modelName}<br/>
-        Formula: ${item.formula}
+        ${isPT ? "Modelo:" : "Model:"} ${structure.modelName}<br/>
+        ${isPT ? "Fórmula:" : "Formula:"} ${item.formula}
       `;
 
       moleculeTitle.textContent = item.name;
@@ -470,7 +651,7 @@
       const libraries = {
         'Hands': window.Hands,
         'Camera': window.Camera,
-        'drawingUtils': window.drawingUtils
+        'Drawing utilities': window.drawConnectors
       };
 
       console.log("📦 Checking MediaPipe Library Status...");
@@ -483,11 +664,11 @@
       }
 
       if (!allLoaded) {
-        console.warn("⚠️  Some libraries failed to load from CDN");
+        console.warn("⚠️  Some local libraries failed to load");
         console.warn("    This usually means:");
-        console.warn("    • Internet connection is down");
-        console.warn("    • CDN is temporarily unavailable");
-        console.warn("    • Browser is blocking external scripts");
+        console.warn("    • A file is missing from assets/vendor");
+        console.warn("    • The local server is not serving the project directory");
+        console.warn("    • The browser blocked a local script");
       }
 
       return allLoaded;
@@ -498,21 +679,28 @@
       setTimeout(() => {
         const ready = checkMediaPipeLibraries();
         if (!ready) {
-          console.warn("⚠️  Some MediaPipe libraries failed to load from CDN.");
+          console.warn("⚠️  Some local MediaPipe libraries failed to load.");
           console.warn("    Hand tracking will not work until libraries are loaded.");
-          console.warn("    Try: Reload page → Check internet → Wait 15 seconds");
+          console.warn("    Try: Reload page → Check assets/vendor → Wait 15 seconds");
         }
       }, 5000);
     });
     let handTrackingEnabled = false;
     let handDetector = null;
-    let webcamStream = null;
+    let handCamera = null;
     let lastHandPosition = { x: 0, y: 0 };
     let smoothedHandPosition = { x: 0, y: 0 };
     let smoothedRawHandPosition = { x: 0.5, y: 0.5 };
+    let handCursorTargetPosition = null;
+    let renderedHandCursorPosition = null;
+    let handCursorAnimationFrame = null;
+    let lastHandCursorFrameTime = 0;
     let smoothedMagnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let handConfidence = 0;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
+    // Render between camera-analysis frames so the cursor does not step at the
+    // hand detector's lower frame rate.
+    const HAND_CURSOR_FOLLOW_RATE = 24;
     const MAGNIFIER_SMOOTHING_FACTOR = 0.82;
     const HAND_INTERACTION_REGION = {
       centerX: 0.5,
@@ -548,6 +736,8 @@
     let currentButtonHover = null;
     let buttonDwellStartTime = null;
     const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
+    const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 5000;
+    let nonMouseLevelChangeAvailableAt = 0;
     
     const handCursor = document.getElementById("handCursor");
     const handInfoOverlay = document.getElementById("handInfoOverlay");
@@ -577,11 +767,17 @@
 
     async function initializeHandTracking() {
       try {
+        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+          throw new Error(
+            "Camera access requires a secure browser origin. Open the app through run.sh at http://localhost, not as a file."
+          );
+        }
+
         console.log("⏳ Waiting for MediaPipe libraries...");
         const librariesReady = await waitForMediaPipeLibraries();
         
         if (!librariesReady) {
-          throw new Error("MediaPipe libraries failed to load from CDN. This usually means internet connection is unavailable or very slow. Please reload the page and ensure you have a working internet connection.");
+          throw new Error("Local MediaPipe libraries failed to load. Check that assets/vendor/mediapipe is present and reload the page.");
         }
 
         if (!window.Hands) {
@@ -592,9 +788,7 @@
 
         // Create Hands instance
         handDetector = new window.Hands({
-          locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-          }
+          locateFile: (file) => `assets/vendor/mediapipe/hands/${file}`
         });
 
         handDetector.setOptions({
@@ -607,27 +801,10 @@
         handDetector.onResults(onHandResults);
         console.log("✓ MediaPipe Hands initialized");
 
-        // Request camera access
         console.log("📷 Requesting camera access...");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1280 }, 
-            height: { ideal: 720 },
-            facingMode: "user"
-          },
-          audio: false
-        });
+        await startHandDetection();
+        if (!handTrackingEnabled) return;
 
-        console.log("✓ Camera access granted");
-        webcamStream = stream;
-        webcamVideo.srcObject = stream;
-        
-        webcamVideo.onloadedmetadata = () => {
-          console.log("✓ Webcam initialized for hand tracking");
-          startHandDetection();
-        };
-
-        handTrackingEnabled = true;
         console.log("✓ Hand tracking system fully ready");
         
         // Reset magnifier position to center
@@ -646,13 +823,28 @@
         console.error("✗ Hand tracking initialization failed:", error);
         console.error("Error details:", error.message);
         console.error("Stack:", error.stack);
+
+        const cameraError = error.name === "NotAllowedError"
+          ? "Camera permission was denied. Allow camera access and reload the page."
+          : error.name === "NotFoundError"
+            ? "No camera was found. Mouse control is enabled."
+            : error.message;
+        statusDot.title = cameraError;
+        console.warn(`Camera status: ${cameraError}`);
         
         console.warn("Using mouse control fallback.");
         handTrackingEnabled = false;
+
+        const offIllustration = document.getElementById("cameraOffIllustration");
+        const canvas = document.getElementById("cameraPreviewCanvas");
+        if (offIllustration) offIllustration.style.display = "block";
+        if (canvas) canvas.style.display = "none";
+
+        updateStatusIndicator(false);
       }
     }
 
-    function startHandDetection() {
+    async function startHandDetection() {
       try {
         if (!window.Camera) {
           throw new Error("MediaPipe Camera library not loaded");
@@ -660,7 +852,7 @@
 
         console.log("🎥 Starting hand detection loop...");
         
-        const camera = new window.Camera(webcamVideo, {
+        handCamera = new window.Camera(webcamVideo, {
           onFrame: async () => {
             if (handDetector) {
               await handDetector.send({ image: webcamVideo });
@@ -670,23 +862,35 @@
           height: 720
         });
 
-        camera.start();
+        await handCamera.start();
+        handTrackingEnabled = true;
+        console.log("✓ Camera access granted");
         console.log("✓ Hand detection loop started");
       } catch (error) {
         console.error("✗ Failed to start hand detection:", error);
         handTrackingEnabled = false;
+
+        const offIllustration = document.getElementById("cameraOffIllustration");
+        const canvas = document.getElementById("cameraPreviewCanvas");
+        if (offIllustration) offIllustration.style.display = "block";
+        if (canvas) canvas.style.display = "none";
+
+        updateStatusIndicator(false);
+        handCamera = null;
       }
     }
 
     function drawCameraPreview(videoElement, landmarks) {
-      // Clear canvas
-      cameraPreviewCtx.fillStyle = "#000";
+      // Treat the camera as an ambient material, rather than a competing screen.
+      // The tracking marks drawn below remain crisp because the filter is reset
+      // before they are rendered.
+      cameraPreviewCtx.fillStyle = "#1f1a16";
       cameraPreviewCtx.fillRect(0, 0, cameraPreviewCanvas.width, cameraPreviewCanvas.height);
 
-      // Draw video frame (mirrored)
+      // Draw a mirrored, quietly tinted video frame.
       cameraPreviewCtx.save();
+      cameraPreviewCtx.filter = "grayscale(1) sepia(0.32) contrast(1.12) brightness(0.82)";
       cameraPreviewCtx.scale(-1, 1);
-      cameraPreviewCtx.filter = "grayscale(100%)";
       cameraPreviewCtx.drawImage(
         videoElement,
         -cameraPreviewCanvas.width,
@@ -694,20 +898,22 @@
         cameraPreviewCanvas.width,
         cameraPreviewCanvas.height
       );
-      cameraPreviewCtx.filter = "none";
       cameraPreviewCtx.restore();
       drawInteractionRegion();
 
       if (landmarks && landmarks.length > 0) {
-        // Draw hand skeleton
-        drawHandSkeleton(landmarks);
-        // Draw palm center
-        drawPalmCenter(landmarks);
+        // The complete landmark mesh is useful for calibration, but is visual
+        // noise in the visitor-facing experience. Show only the pinch gesture.
+        if (debugCheckbox.checked) {
+          drawDebugHandSkeleton(landmarks);
+        } else {
+          drawPinchGuide(landmarks);
+        }
       }
     }
 
-    function drawHandSkeleton(landmarks) {
-      // Hand bone connections (20 connections from MediaPipe)
+    function drawDebugHandSkeleton(landmarks) {
+      // Full MediaPipe mesh: deliberately reserved for debug mode.
       const connections = [
         // Thumb
         [0, 1], [1, 2], [2, 3], [3, 4],
@@ -778,6 +984,77 @@
           cameraPreviewCtx.stroke();
         }
       });
+    }
+
+    function drawPinchGuide(landmarks) {
+      const thumbPath = [[1, 2], [2, 3], [3, 4]];
+      const indexPath = [[5, 6], [6, 7], [7, 8]];
+      const toCanvasPoint = (landmark) => ({
+        x: (1 - landmark.x) * cameraPreviewCanvas.width,
+        y: landmark.y * cameraPreviewCanvas.height
+      });
+      const drawPath = (connections, startColor, endColor) => {
+        connections.forEach(([start, end], step) => {
+          const first = toCanvasPoint(landmarks[start]);
+          const second = toCanvasPoint(landmarks[end]);
+          const gradient = cameraPreviewCtx.createLinearGradient(first.x, first.y, second.x, second.y);
+          gradient.addColorStop(0, startColor);
+          gradient.addColorStop(1, endColor);
+
+          cameraPreviewCtx.save();
+          cameraPreviewCtx.strokeStyle = gradient;
+          cameraPreviewCtx.lineWidth = 2.5 - step * 0.25;
+          cameraPreviewCtx.lineCap = "round";
+          cameraPreviewCtx.shadowColor = "rgba(239, 190, 117, 0.5)";
+          cameraPreviewCtx.shadowBlur = 8;
+          cameraPreviewCtx.beginPath();
+          cameraPreviewCtx.moveTo(first.x, first.y);
+          cameraPreviewCtx.lineTo(second.x, second.y);
+          cameraPreviewCtx.stroke();
+          cameraPreviewCtx.restore();
+        });
+      };
+
+      drawPath(thumbPath, "rgba(145, 64, 53, 0.76)", "rgba(248, 211, 142, 0.96)");
+      drawPath(indexPath, "rgba(145, 64, 53, 0.76)", "rgba(248, 211, 142, 0.96)");
+
+      const thumbTip = toCanvasPoint(landmarks[4]);
+      const indexTip = toCanvasPoint(landmarks[8]);
+      const metrics = getPinchMetrics(landmarks);
+      const pinchActive = metrics && metrics.pinchRatio < PINCH_THRESHOLD;
+      const midpoint = {
+        x: (thumbTip.x + indexTip.x) / 2,
+        y: (thumbTip.y + indexTip.y) / 2
+      };
+
+      // A fine bridge makes the action legible without outlining the hand.
+      cameraPreviewCtx.save();
+      cameraPreviewCtx.strokeStyle = pinchActive ? "rgba(255, 235, 190, 0.98)" : "rgba(248, 211, 142, 0.58)";
+      cameraPreviewCtx.lineWidth = pinchActive ? 2 : 1;
+      cameraPreviewCtx.setLineDash([3, 4]);
+      cameraPreviewCtx.beginPath();
+      cameraPreviewCtx.moveTo(thumbTip.x, thumbTip.y);
+      cameraPreviewCtx.lineTo(indexTip.x, indexTip.y);
+      cameraPreviewCtx.stroke();
+      cameraPreviewCtx.setLineDash([]);
+
+      [thumbTip, indexTip].forEach((tip) => {
+        cameraPreviewCtx.fillStyle = "#f8d38e";
+        cameraPreviewCtx.shadowColor = "rgba(255, 218, 154, 0.82)";
+        cameraPreviewCtx.shadowBlur = 10;
+        cameraPreviewCtx.beginPath();
+        cameraPreviewCtx.arc(tip.x, tip.y, 3.5, 0, Math.PI * 2);
+        cameraPreviewCtx.fill();
+      });
+
+      if (pinchActive) {
+        cameraPreviewCtx.strokeStyle = "rgba(255, 240, 204, 0.92)";
+        cameraPreviewCtx.lineWidth = 1.5;
+        cameraPreviewCtx.beginPath();
+        cameraPreviewCtx.arc(midpoint.x, midpoint.y, 11, 0, Math.PI * 2);
+        cameraPreviewCtx.stroke();
+      }
+      cameraPreviewCtx.restore();
     }
 
     function getLandmarkDistance(a, b) {
@@ -871,17 +1148,10 @@
       const height = region.heightRatio * cameraPreviewCanvas.height;
 
       cameraPreviewCtx.save();
-
-      cameraPreviewCtx.strokeStyle = "#FFFFFF";
-      cameraPreviewCtx.lineWidth = 2;
-
-      cameraPreviewCtx.shadowColor = "rgba(0, 0, 0, 0.6)";
-      cameraPreviewCtx.shadowBlur = 4;
-
-      cameraPreviewCtx.globalCompositeOperation = "difference";
-
+      cameraPreviewCtx.strokeStyle = "rgba(248, 211, 142, 0.42)";
+      cameraPreviewCtx.lineWidth = 1;
+      cameraPreviewCtx.setLineDash([5, 6]);
       cameraPreviewCtx.strokeRect(left, top, width, height);
-
       cameraPreviewCtx.restore();
     }
 
@@ -962,47 +1232,42 @@
       return Date.now() - pinchStartTime > PINCH_CONFIRMATION_MS;
     }
 
-    function drawPalmCenter(landmarks) {
-      const palmCenter = getPalmCenter(landmarks);
-      if (!palmCenter) return;
-
-      const rawPalmX = palmCenter.x;
-      const rawPalmY = palmCenter.y;
-      const palmX = (1 - rawPalmX) * cameraPreviewCanvas.width;
-      const palmY = rawPalmY * cameraPreviewCanvas.height;
-
-      // Draw bright center dot
-      cameraPreviewCtx.fillStyle = "rgba(255, 200, 0, 1)";
-      cameraPreviewCtx.beginPath();
-      cameraPreviewCtx.arc(palmX, palmY, 6, 0, Math.PI * 2);
-      cameraPreviewCtx.fill();
-
-      // Draw glow around center
-      cameraPreviewCtx.strokeStyle = "rgba(255, 200, 0, 0.4)";
-      cameraPreviewCtx.lineWidth = 2;
-      cameraPreviewCtx.beginPath();
-      cameraPreviewCtx.arc(palmX, palmY, 12, 0, Math.PI * 2);
-      cameraPreviewCtx.stroke();
-    }
-
     function updateStatusIndicator(isDetected) {
         if (isDetected) {
             statusDot.textContent = "●";
+          statusDot.title = "Hand detected";
             statusDot.classList.add("detected");
             statusDot.classList.remove("searching");
         } else {
             statusDot.textContent = "✕";
+          statusDot.title = "Camera ready; no hand detected";
             statusDot.classList.add("searching");
             statusDot.classList.remove("detected");
         }
     }
 
+    let firstFrameReceived = false;
+
     function onHandResults(results) {
+      if (!firstFrameReceived) {
+        firstFrameReceived = true;
+        const offIllustration = document.getElementById("cameraOffIllustration");
+        const canvas = document.getElementById("cameraPreviewCanvas");
+        if (offIllustration) offIllustration.style.display = "none";
+        if (canvas) canvas.style.display = "block";
+      }
+
       // Always draw the camera feed
       drawCameraPreview(webcamVideo, results.multiHandLandmarks?.[0] || null);
 
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
         handCursor.classList.remove("active");
+        handCursorTargetPosition = null;
+        renderedHandCursorPosition = null;
+        if (handCursorAnimationFrame !== null) {
+          cancelAnimationFrame(handCursorAnimationFrame);
+          handCursorAnimationFrame = null;
+        }
         zoomInBtn.classList.remove("is-hovered");
         zoomOutBtn.classList.remove("is-hovered");
         magnifier.classList.remove("active");
@@ -1090,8 +1355,9 @@
       }
 
       // Update magnifier visual position
-      magnifier.style.left = magnifierPosition.x + "px";
-      magnifier.style.top = magnifierPosition.y + "px";
+      magnifier.style.transform = `translate3d(calc(${magnifierPosition.x}px - 50%), calc(${magnifierPosition.y}px - 50%), 0)`;
+      magnifier.style.left = "0px";
+      magnifier.style.top = "0px";
 
       // Sample color at magnifier position and update fill
       if (appState === APP_STATES.SELECTION) {
@@ -1143,9 +1409,51 @@
     }
 
     function updateHandCursor(x, y) {
+      handCursorTargetPosition = { x, y };
+
+      // Position the first frame immediately; afterwards ease each visual
+      // frame towards the latest hand-tracking result.
+      if (!renderedHandCursorPosition) {
+        renderedHandCursorPosition = { x, y };
+        renderHandCursor(x, y);
+        return;
+      }
+
+      if (handCursorAnimationFrame === null) {
+        lastHandCursorFrameTime = performance.now();
+        handCursorAnimationFrame = requestAnimationFrame(animateHandCursor);
+      }
+    }
+
+    function animateHandCursor(timestamp) {
+      const elapsedSeconds = Math.min((timestamp - lastHandCursorFrameTime) / 1000, 0.1);
+      lastHandCursorFrameTime = timestamp;
+      const progress = 1 - Math.exp(-HAND_CURSOR_FOLLOW_RATE * elapsedSeconds);
+      const target = handCursorTargetPosition;
+
+      if (!target || !renderedHandCursorPosition) {
+        handCursorAnimationFrame = null;
+        return;
+      }
+
+      renderedHandCursorPosition.x += (target.x - renderedHandCursorPosition.x) * progress;
+      renderedHandCursorPosition.y += (target.y - renderedHandCursorPosition.y) * progress;
+      renderHandCursor(renderedHandCursorPosition.x, renderedHandCursorPosition.y);
+
+      const remainingDistance = Math.hypot(
+        target.x - renderedHandCursorPosition.x,
+        target.y - renderedHandCursorPosition.y
+      );
+      handCursorAnimationFrame = remainingDistance > 0.1
+        ? requestAnimationFrame(animateHandCursor)
+        : null;
+    }
+
+    function renderHandCursor(x, y) {
       handCursor.classList.add("active");
-      handCursor.style.left = x + "px";
-      handCursor.style.top = y + "px";
+      handCursor.style.transform = `translate3d(calc(${x}px - 50%), calc(${y}px - 50%), 0)`;
+      handCursor.style.left = "0px";
+      handCursor.style.top = "0px";
 
       // Check if white circle is hovering over buttons
       const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();
@@ -1202,11 +1510,11 @@
 
     const ITEM_HIGHLIGHT_FILES = {
       bone_black: "assets/highlights/highlight_carbon_black_000000.png",
-      blue_color: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
-      lake_red: "assets/highlights/highlight_lake_red_titian_ff0000.png",
-      artist_signature: "assets/highlights/highlight_artist_ff00ff.png",
-      white_color: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
-      cadmium_yellow: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
+      generic_blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
+      red_lake: "assets/highlights/highlight_lake_red_titian_ff0000.png",
+      benette_casaretto_signature: "assets/highlights/highlight_artist_ff00ff.png",
+      calcium_carbonate: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
+      cadmium_sulfide: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
     };
 
     let moleculeViewer = null;
@@ -1296,44 +1604,63 @@
       applySelectionAccent(item);
 
       const isArtist = item.type === "artist";
+      const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
+      const imagePath = typeof item.image === "string" ? item.image.trim() : "";
+      const imageUrl = imagePath ? new URL(imagePath, document.baseURI).href : "";
+      const imageAlt = `${item.name}${isArtist ? "" : " pigment powder"}`;
+      
       detailTitle.textContent = item.name;
       detailSubtitle.textContent = isArtist
-        ? "Here you can get to know the artist"
-        : "Here you can get to know the material";
+        ? (isPT ? "Aqui você pode conhecer o artista" : "Here you can get to know the artist")
+        : (isPT ? "Aqui você pode conhecer o material" : "Here you can get to know the material");
 
       const html = `
         <div class="material-image-section">
-          <img src="${item.image}" alt="${item.name}${isArtist ? "" : " pigment powder"}" class="material-image" />
+          <img src="${imageUrl}" alt="${imageAlt}" class="material-image" />
         </div>
 
         <div class="material-color-indicator" style="background: ${item.color};"></div>
         
         <div class="material-section">
-          <div class="material-section-title">Historical & Cultural Context</div>
+          <div class="material-section-title">${isPT ? "Contexto Histórico & Cultural" : "Historical & Cultural Context"}</div>
           <div class="material-text">${item.historicalContext}</div>
         </div>
 
         <div class="material-section">
-          <div class="material-section-title">Origin / Production</div>
+          <div class="material-section-title">${isArtist ? (isPT ? "Origem" : "Origin") : (isPT ? "Origem / Produção" : "Origin / Production")}</div>
           <div class="material-text">${item.originProduction}</div>
         </div>
 
+        ${!isArtist && item.whyColor ? `
         <div class="material-section">
-          <div class="material-section-title">Color Context</div>
+          <div class="material-section-title">${isPT ? "Contexto da Cor" : "Color Context"}</div>
           <div class="material-text">${item.whyColor}</div>
         </div>
+        ` : ""}
 
         ${item.commonName ? `
           <div class="material-section">
-            <div class="material-section-title">Common Name</div>
+            <div class="material-section-title">${isPT ? "Nome Comum" : "Common Name"}</div>
             <div class="material-text">${item.commonName}</div>
           </div>
 
-          ${item.chemicalStructure ? `<div class="material-note">Zoom in to explore the molecular structure of ${item.name}</div>` : ""}
+          ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
         ` : ""}
       `;
 
       materialContent.innerHTML = html;
+      const materialImage = materialContent.querySelector(".material-image");
+      if (materialImage) {
+        materialImage.addEventListener("error", () => {
+          materialImage.hidden = true;
+          materialImage.parentElement.classList.add("material-image-missing");
+          materialImage.parentElement.insertAdjacentHTML(
+            "beforeend",
+            `<p class="material-image-error">${isPT ? "Imagem não encontrada" : "Image unavailable"}</p>`
+          );
+          console.error(`Failed to load artwork item image: ${imageUrl || "missing path"}`);
+        }, { once: true });
+      }
       materialEmpty.style.display = "none";
       materialContent.style.display = "block";
     }
@@ -1451,10 +1778,29 @@
     }
 
     // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
+
+    function isNonMouseLevelChangeOnCooldown() {
+      return Date.now() < nonMouseLevelChangeAvailableAt;
+    }
+
+    function activateButtonWithHand(button) {
+      if (!button || button.disabled || isNonMouseLevelChangeOnCooldown()) return false;
+
+      // Hand dwell and pinch interactions share the native buttons with mouse
+      // controls. Start the cooldown here so physical mouse clicks remain instant.
+      nonMouseLevelChangeAvailableAt = Date.now() + NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS;
+      button.click();
+      return true;
+    }
     
     function checkButtonActivation() {
       if (!handTrackingEnabled) return;
       if (moleculeHandControl.active) return;
+
+      if (isNonMouseLevelChangeOnCooldown()) {
+        buttonDwellStartTime = null;
+        return;
+      }
 
       // Only process if white circle is hovering a button
       if (!currentButtonHover) {
@@ -1474,7 +1820,7 @@
 
       // Activate button after dwell timeout
       if (elapsedMs >= BUTTON_DWELL_MS) {
-        button.click();
+        activateButtonWithHand(button);
         buttonDwellStartTime = null;
       }
     }
@@ -1483,9 +1829,9 @@
       // Pinch while over button = immediate activation
       if (isPinchConfirmed()) {
         const button = document.getElementById(buttonId);
-        if (button && !button.disabled) {
+        if (button && !button.disabled && !isNonMouseLevelChangeOnCooldown()) {
           consumePinchGesture();
-          button.click();
+          activateButtonWithHand(button);
         }
       }
     }
@@ -1499,7 +1845,23 @@
     });
 
     window.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() !== "d" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const key = e.key.toLowerCase();
+      if (e.shiftKey && key === "m") {
+        e.preventDefault();
+        const textToSpeechEnabled = toggleTextToSpeech();
+        console.log(`Text-to-speech ${textToSpeechEnabled ? "enabled" : "muted"}`);
+        return;
+      }
+
+      if (e.shiftKey && key === "l") {
+        e.preventDefault();
+        cycleLanguage();
+        return;
+      }
+
+      if (key !== "d" || e.shiftKey) return;
 
       debugCheckbox.checked = !debugCheckbox.checked;
       debugCheckbox.dispatchEvent(new Event("change"));

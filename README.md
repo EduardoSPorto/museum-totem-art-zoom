@@ -1,6 +1,12 @@
 # Museu Totem Art Zoom: Exploração de Pigmentos
 **Desenvolvimento de totens interativos integrando Química, Artes Visuais e Visão Computacional**
 
+## Estado atual
+
+O projeto apresenta uma pintura em um totem interativo e permite selecionar regiões da obra com um gesto de pinça. A experiência está organizada em três níveis: a obra, as informações históricas e materiais da região selecionada, e a visualização tridimensional de sua estrutura química.
+
+Além da visualização de moléculas, o projeto já possui uma visualização de estrutura cristalina baseada em arquivos CIF (*Crystallographic Information File*). Essa visualização evidencia a célula unitária, a repetição periódica e a coordenação entre átomos, funcionando como uma representação didática do material, e não como uma fotografia dos átomos.
+
 ## Visão Geral
 O projeto **Museum Totem Art Zoom** é uma aplicação interativa *touchless* (sem toque) idealizada para totens em ambientes museológicos e educacionais. O seu principal objetivo é criar uma ponte imersiva entre a apreciação artística e a ciência molecular, revelando os segredos químicos por trás das cores que compõem uma obra de arte.
 
@@ -37,7 +43,19 @@ Este projeto foi construído exclusivamente com tecnologias web de alta performa
 - **MediaPipe Hands (Google):** Inteligência artificial para o mapeamento da mão (Machine Learning).
 - **WebGL / Three.js:** Responsáveis por provisionar o contexto gráfico tridimensional pelo navegador, aproveitando a aceleração via GPU.
 - **3Dmol.js:** Biblioteca científica de bioinformática utilizada para analisar, processar e renderizar dinamicamente os arquivos de estrutura atômica (`.MOL` e `.SDF`).
+- **CIF:** Arquivos de cristalografia usados para descrever parâmetros da célula unitária, posições fracionárias e simetria de materiais cristalinos.
 - **Canvas API:** Utilizada amplamente para desenho das sobreposições de interação (cursor, esqueleto da mão e *preview* da câmera) de forma performática.
+
+### Visualização cristalina e arquivos CIF
+
+No nível 3, o visualizador decide como apresentar a estrutura a partir do arquivo associado ao item:
+
+- Arquivos `.MOL` e `.SDF` são carregados e renderizados pelo **3Dmol.js** como modelos moleculares.
+- Arquivos `.CIF` são carregados com `fetch`, lidos para obter os parâmetros da célula (`a`, `b`, `c`, `alpha`, `beta` e `gamma`) e convertidos de coordenadas fracionárias para cartesianas.
+- A partir dessas coordenadas, o código calcula ligações entre átomos de espécies diferentes e desenha a coordenação periódica.
+- Para o sulfeto de cádmio (CdS), o conversor usa os parâmetros e as posições do CIF para criar uma representação periódica e desenhar a coordenação entre Cd e S. O repositório também mantém dados preparados para uma supercélula de wurtzita `2×2×2` em `crystalStructures.js`, além de uma demonstração de célula unitária em `extra/CdS_celula_unitaria_cristal.html`.
+
+O arquivo atualmente associado ao amarelo de cádmio é `assets/molecules/cadmium_yellow.cif`. O registro do item está em `js/data/chemicalStructures.js`, enquanto os dados preparados para a visualização da supercélula ficam em `js/data/crystalStructures.js`. Há outros CIFs e materiais de referência em `extra/`, incluindo exemplos de wurtzita e scripts para expandir a simetria de um CIF.
 
 ---
 
@@ -65,7 +83,8 @@ museum-totem-art-zoom/
 │   ├── artwork/               # Pintura original (visível) e máscara colorida RGB (oculta)
 │   ├── highlights/            # Camadas de brilho para destacar áreas selecionadas
 │   ├── materials/             # Imagens históricas dos pigmentos usadas no Nível 2
-│   └── molecules/             # Arquivos atômicos tridimensionais (.mol) carregados pelo 3Dmol.js
+│   ├── molecules/             # Arquivos .mol, .sdf e .cif usados nas estruturas 3D
+│   └── vendor/                # Bibliotecas JavaScript e modelos locais para uso offline
 ├── css/
 │   └── main.css               # Estilos globais da interface (Vanilla CSS)
 ├── js/
@@ -73,10 +92,18 @@ museum-totem-art-zoom/
 │   │   └── maskReader.js      # Motor que lê a cor do pixel clicado no canvas da máscara
 │   ├── data/
 │   │   ├── colorMap.js        # Dicionário mapeando Código Hexadecimal RGB -> ID do item
-│   │   ├── chemicalStructures.js # Registro de arquivos .mol dos itens materiais
-│   │   └── items.js           # Banco de dados de informações de cada item da obra
+│   │   ├── chemicalStructures.js # Registro dos arquivos .mol, .sdf e .cif
+│   │   ├── crystalStructures.js  # Dados de supercélula e célula unitária para cristais
+│   │   ├── items.js           # Banco de dados em inglês
+│   │   └── itemsPT.js         # Banco de dados em português
 │   └── state.js               # Gerenciador de estado global da aplicação
 ├── painting-pigment-explorer.html # Arquivo HTML principal (Entrypoint) do sistema
+├── launcher.html              # Interface para configurar idioma e narração
+├── launcher-script.js         # Lógica do launcher e geração da URL
+├── run.sh                     # Atalho para iniciar no Linux
+├── run.command                # Atalho para iniciar no macOS
+├── run.bat                    # Atalho para iniciar no Windows
+├── LAUNCHER_GUIDE.md          # Guia de execução para usuários
 └── README.md                  # Documentação do projeto
 ```
 
@@ -84,7 +111,11 @@ museum-totem-art-zoom/
 
 ## ⚙️ Pré-requisitos e Instalação
 
-O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilações pesadas ou pacotes `npm`. O único requisito é um servidor web simples para que as requisições `fetch` dos arquivos locais (como os arquivos `.MOL`) contornem as regras de segurança CORS do navegador.
+O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilação ou pacotes `npm`. É necessário um servidor web local para que as requisições `fetch` dos arquivos de imagem, molécula e CIF funcionem corretamente e para que o navegador permita o uso da webcam.
+
+As bibliotecas MediaPipe, Three.js e 3Dmol.js são distribuídas no diretório `assets/vendor/`. Depois de clonar ou baixar o repositório, a aplicação não precisa de acesso à internet para funcionar. O pacote local do MediaPipe inclui os arquivos de modelo, WASM e o grafo de mãos usados pelo rastreamento.
+
+O aplicativo ainda deve ser aberto por um servidor HTTP local, usando um dos launchers fornecidos. Isso é necessário para que o navegador permita o acesso à webcam e para que os arquivos de imagens, moléculas e CIF possam ser carregados com `fetch`; não é necessário acesso à internet.
 
 ### Passo a Passo
 
@@ -95,7 +126,11 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
    ```
 
 2. **Inicie um servidor Web Local:**
-   Você pode usar qualquer solução de sua preferência. Algumas sugestões comuns:
+    No Linux, o caminho mais simples é executar o launcher:
+    ```bash
+    ./run.sh
+    ```
+    Ele encontra uma porta disponível, inicia o servidor e abre `launcher.html` em `http://localhost`. Esse endereço local é importante: abrir `painting-pigment-explorer.html` diretamente como `file://` pode impedir o navegador de acessar a webcam. Também é possível usar qualquer servidor local:
    - **Python (Recomendado):**
      ```bash
      python3 -m http.server 8080
@@ -107,8 +142,7 @@ O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não 
    - **Extensão VS Code:** Utilize a extensão *Live Server*.
 
 3. **Acesse no Navegador:**
-   Abra o seu navegador de preferência e navegue até `http://localhost:8080/painting-pigment-explorer.html`.
-   *(Nota: O navegador solicitará permissão para uso da webcam. Conceda o acesso).*
+    Abra a URL mostrada pelo launcher. O navegador solicitará permissão para uso da webcam; conceda o acesso para habilitar a interação por gestos.
 
 ---
 
@@ -121,3 +155,349 @@ Ao se posicionar diante do totem e ter suas mãos reconhecidas, um cursor indica
 - **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça de forma intencional, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
 - **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça de forma intencional, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
 - **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida. As mudanças de nível exigem uma nova interação deliberada, evitando transições acidentais.
+
+## Exemplo MOL
+
+Alizarin (Representative Lake Pigment)                        <-- 1. HEADER: Nome da molécula
+PubChem CID 6293 — explicit hydrogen atoms for 3D display     <-- 1. HEADER: Metadados / Fonte dos dados
+                                                              <-- 1. HEADER: Linha de comentários (em branco)
+ 26 28  0  0  0  0  0  0  0 0999 V2000                       <-- 2. COUNTS LINE: 26 Átomos | 28 Ligações | Padrão V2000
+    2.4966    2.1721    0.0012 O   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 1  [ X, Y, Z, Elemento 'O' ]
+   -0.0578    2.4815   -0.0018 O   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 2  [ X, Y, Z, Elemento 'O' ]
+   -0.8533   -2.8032    0.0002 O   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 3  [ X, Y, Z, Elemento 'O' ]
+    ...
+    4.5594    1.4015    0.0017 H   0  0  0  0  0  0 ...       <-- 3. ATOM BLOCK: Átomo 26 [ X, Y, Z, Elemento 'H' ]
+  1 11  1  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 1 e Átomo 11 (Tipo 1 = Simples)
+  2  9  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 2 e Átomo 9  (Tipo 2 = Dupla)
+  3 10  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 3 e Átomo 10 (Tipo 2 = Dupla)
+    ...
+## Commit History
+--
+
+    Small  performance tests
+    
+    - Small changes for better performance
+
+--
+
+    Fixed artist information
+    
+    - Removed unnecessary information
+    - Translated the text to English
+
+--
+
+    Option to disable tts and uptaded translation
+    
+    - Added an option to disable text-to-speech
+    - Fixed some text that was not translpated, it's generated in the javacript section
+
+--
+
+    Dynamic text to speech
+    
+    - It does not literally read what is on screen, but follows a canned structure to present it.
+    - The default language is changed back to Portuguese.
+
+--
+
+    Merge pull request #5 from EduardoSPorto/Working-on-interface-small-problems
+    
+    Multi-language support
+
+--
+
+    Multi-language support
+    
+    - Added an alternative to change the language in the new settings file.
+
+--
+
+    Merge pull request #4 from EduardoSPorto/Working-on-interface-small-problems
+    
+    Working on interface small problems
+
+--
+
+    Limit the select effect to only when selecting
+
+--
+
+    Disable highliting when clicking outside the paint
+
+--
+
+    Disabled the ability to drag the color selection outside the selection zone
+
+--
+
+    Distance correction for drag-to-rotate
+    
+    - The user had difficulty rotating the 3D model. Now, a distance from the camera is used to adjust how m
+uch movement is applied when dragging.
+
+--
+
+    Merge pull request #3 from EduardoSPorto/Refactoring-internal-naming-scheme
+    
+    Refactoring internal naming scheme
+
+--
+
+    Internal naming fixes
+
+--
+
+    Cleaning some naming inconsistencies created by the artist insertion
+
+--
+
+    Removed redundant component name listings on level 3
+
+--
+
+    Cleaning unused files
+    
+    - Fixed the visibility of the material color identification on level 3.
+    - Began simplifying and removing redundant text.
+
+--
+
+    Fixing a problem when returning to the level 3 after checking different materials
+
+--
+
+    Simplified information displayed removing unused  content
+
+--
+
+    Small changes on the pigment data
+
+--
+
+    Updated artist information
+
+--
+
+    Interface and Interaction
+    
+    - The interface is now more responsive to the user’s hand movements.
+    - The highlighting is now more stylish.
+    - The information for red, yellow, and black is now accurate (or commented when potentially wrong).
+    - A video for the preparation of some interface tutorial videos was prepared. This is a temporary versio
+n.
+
+--
+
+    Merge pull request #2 from EduardoSPorto/Appearance-Features-and-Fixes
+    
+    Appearance features and fixes
+
+--
+
+    Added Data Structure to README
+    
+    - Makes things easier while browsing
+
+--
+
+    New README
+    
+    - Explains the current version
+    - Guides the user on how to run the code
+    - Pre-requisites
+    - Guides how to use
+
+--
+
+    Sizing up the text and new accent colors
+
+--
+
+    Level 3 now follow the same syle as level 2
+    
+    - That sadly makes the 3D model small. This has to be fixed in the next round of changes.
+
+--
+
+    Changed to a more subtle selection indicator
+
+--
+
+    Changed the color of the 3D rendering
+
+--
+
+    Now the Zoom in-out buttons don't show on the extremity levels
+
+--
+
+    Intitial implementation of the Big zoom in and out bars on the side
+
+--
+
+    3D model hand manipulation fixed
+    
+    - A whole independent implementation of the model manipulation.
+    - The hand-controlled version was maintained.
+
+--
+
+    Changed some deprecated text
+
+--
+
+    Initial UI changes
+    
+    - An initial look, with a lot of changes guiding the path the new appearance will have.
+
+--
+
+    Camera interface simplification
+    
+    - Reduced the amount of information the camera displays.
+
+--
+
+    Color selection highlight
+    
+    - When selecting a color, highlight the corresponding regions.
+
+--
+
+    Isolated the chemical information to Level 3
+    
+    - The information about the chemical component was failing to display correctly in Level 3.
+    - Removed the chemical information from Level 2.
+
+--
+
+    Added color highlight images
+
+--
+
+    Merge pull request #1 from EduardoSPorto/Generalization-to-support-the-artist
+    
+    Project Restructuring and Miscellaneous Fixes
+
+--
+
+    Hand Tracking Improvements
+    
+    - 1. The user should be able to interact with the molecule in Level 3 using the same pinch gesture alrea
+dy used throughout the application.
+    - 1. Pinching should “grab” the molecule; while the pinch is maintained, moving the hand should rotate t
+he molecule.
+    - 2. Previously, the entire camera image was mapped directly to the application. This caused interaction
+ problems because the application’s buttons are positioned at the edges of the screen, forcing the user to m
+ove their hand to the extreme borders of the camera image.
+    - 2. Now, if the camera resolution is 1024 × 1024, only a centered 512 × 512 region should be mapped to 
+the application interface.
+
+--
+
+    Fixed interface bugs and behavior
+    
+    FIXED:
+    - The paint is slightly flattened vertically.
+    - Level 1 and 2: A line strobe appears at the bottom, almost like something is loading.
+    - After going into Level 2, the “View molecule” keeps showing up if you immediately go back to Level 1.
+    - The “View molecule” button shows up even when you’re already on Level 3.
+    - There shouldn’t be a “Molecule” button at all. It should only have “Zoom in” and “Zoom out” buttons. “
+Zoom out” should always be on the left, and “Zoom in” should always be on the right of the screen. On Level 
+2, “Zoom in” should lead to Level 3; that shouldn’t be handled by a third button called “View molecule.”
+    - The bar showing the “Debug mode” button and the “Hand tracking” button shouldn’t exist.
+    - I don’t need the “Debug” button right now (make it a shortcut instead).
+    - “Hand tracking” should be the standard, only falling back to the mouse version when you fail to connec
+t a camera; it's not something you select.
+
+--
+
+    Real paint color selection
+    
+    - The real paint color is not being detected
+    - MOL files not are represented
+    -  Pictures are showed correclty
+
+--
+
+    Initial implementation of real data
+    
+    - Paint now use the real image
+    - Real mask, but working proprelty
+    Regression
+    - 3D molecules
+    - etc
+
+--
+
+    Added placeholder mol files
+    
+    - They don't represent real content
+
+--
+
+    Initial commit
+    
+    Added some files necessary for the progression of the code. They started from the need for generalizatio
+n.
+
+--
+
+    Code Demonolithization
+    
+    - The massive HTML is gradually being decoupled.
+    - HTML and state management have been streamlined.
+    - Some tests have been implemented; however, the camera test is still pending.
+
+--
+
+    Initial Reafactoring
+    
+    Separated files from
+
+--
+
+    Images removed
+    
+    - They are not necessary at this stage.
+
+--
+
+    Cleaning some testing code and annotation
+
+--
+
+    Added a mouse focused version
+    
+    I choose to have the two files, allowing for testing.
+
+--
+
+    Added the paint and color mask
+    
+    - An initial cropped image of the paint, along with the corresponding color mask.
+
+--
+
+    Molecule added
+
+--
+
+    Initial zoom in to material system
+    
+    - Users can now zoom in on a point on the screen; the paint material information is then displayed.
+    
+    - Hand detection works well for an initial implementation; behavior changes are welcome in future update
+s.
+
+--
+
+    Initial implementation
+    
+    - First public implementation focusing on making the hand tracking work with the previously implemented 
+interface.
+
+--
+
+    Initial commit

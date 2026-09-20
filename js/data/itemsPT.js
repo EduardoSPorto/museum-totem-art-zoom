@@ -1,93 +1,106 @@
 const ARTWORK_ITEMS = {
-  black: {
-    id: "bone_black",
-    type: "material",
-    color: "#000000",
-    image: "assets/materials/Carbon_black_000000.jpg",
-    name: "Preto de Osso",
-    commonName: "Preto de Osso",
-    formula: "C + Ca5(OH)(PO4)3",
-      historicalContext: "Identificado na base preta da pintura 'Anjo Adonay', de Benette Casaretto Motta. Historicamente conhecido como Preto de Marfim.",
-      originProduction: "Produzido artificialmente pela carbonização de ossos de animais em recipientes fechados.",
-      whyColor: "O preto de osso, rico em carbono, absorve a maior parte da luz visível, produzindo um tom preto intenso.",
-      chemicalStructure: {
-        modelName: "Carbono / Hidroxiapatita",
-        atoms: [{ element: "C" }]
-      }
-  },
-  blue: {
-    id: "blue_color",
-    type: "material",
-    color: "#0000FF",
-    image: "assets/materials/placeholder_blue_pigment_0000ff.jpg",
-    name: "Pigmento Azul",
-    commonName: "Azurita",
-    formula: "Cu3(CO3)2(OH)2",
-      historicalContext: "Pigmentos azuis à base de cobre, como a azurita, foram amplamente utilizados antes do surgimento dos azuis sintéticos modernos.",
-      originProduction: "Mineral natural composto por carbonato de cobre.",
-      whyColor: "Os compostos de cobre absorvem parte do espectro visível e são percebidos como azuis.",
-      chemicalStructure: {
-        modelName: "Azurita",
-        atoms: [{ element: "Cu" }, { element: "C" }, { element: "O" }]
-      }
-  },
-  red: {
-    id: "lake_red",
-    type: "material",
-    color: "#FF0000",
-    image: "assets/materials/lake_red_Titian_ff0000.jpg",
-    name: "Laca de Garança (Vermelho Laca)",
-    commonName: "Alizarina",
-    formula: "C14H8O4",
-      historicalContext: "Identificada nas flores e no fundo rosado das pinturas de Benette. A alizarina sintética substituiu amplamente o corante natural após 1871.",
-      originProduction: "Extraída de raízes secas e pulverizadas ou sintetizada como alizarina.",
-      whyColor: "A alizarina absorve seletivamente determinados comprimentos de onda da luz, produzindo o característico tom vermelho do pigmento laca.",
-      chemicalStructure: {
-        modelName: "Alizarina",
-        atoms: [{ element: "C" }, { element: "H" }, { element: "O" }]
-      }
-  },
-  signature: {
-    id: "artist_signature",
-    type: "artist",
-    color: "#FF00FF",
-    image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
-    name: "Assinatura da Artista",
-    commonName: "Benette Casaretto Motta",
-    historicalContext: "Benette participou da primeira turma da Escola de Belas Artes D. Carmen Trápaga Simões (EBA) de Pelotas, onde foi aluna de Aldo Locatelli, Angelo Guido e Leopoldo Gotuzzo.",
-    originProduction: "Região de anotação e identificação da autoria da obra.",
-    whyColor: "A cor de destaque identifica a região da assinatura sem representar um material químico.",
-  },
-  white: {
-    id: "white_color",
-    type: "material",
-    color: "#FFFFFF",
-    image: "assets/materials/placeholder_white_pigment_ffffff.jpg",
-    name: "Pigmento Branco",
-    commonName: "Carbonato Básico de Chumbo",
-    formula: "PbCO3",
-      historicalContext: "Os pigmentos brancos à base de carbonato de chumbo foram importantes na história da pintura.",
-      originProduction: "Historicamente produzido como um pigmento de carbonato de chumbo.",
-      whyColor: "O carbonato de chumbo dispersa intensamente a luz visível, produzindo uma aparência branca e opaca.",
-      chemicalStructure: {
-        modelName: "Branco de Chumbo",
-        atoms: [{ element: "Pb" }, { element: "C" }, { element: "O" }]
-      }
-  },
-  yellow: {
-    id: "cadmium_yellow",
-    type: "material",
-    color: "#FFFF00",
-    image: "assets/materials/Cadmiumgelb-_Pigment_ffff00.jpg",
-    name: "Amarelo de Cádmio",
-    commonName: "Sulfeto de Cádmio",
-    formula: "CdS",
-      historicalContext: "Identificado nas pétalas amarelas da pintura 'Flores', de Benette.",
-      originProduction: "Pigmento sintético; ocorre raramente na natureza como o mineral greenockita.",
-      whyColor: "O sulfeto de cádmio absorve a luz azul-violeta e reflete a porção amarela do espectro.",
-      chemicalStructure: {
-        modelName: "Sulfeto de Cádmio",
-        atoms: [{ element: "Cd" }, { element: "S" }]
-      }
-  }
+    black: {
+        id: "bone_black",
+        type: "material",
+        color: "#000000",
+        image: "assets/materials/Bone_Black.jpg",
+        name: "Negro de Osso",
+        commonName: "Negro de Osso / Negro de Marfim",
+        formula: "[non_filled]",
+            historicalContext: "O Negro de Osso é um pigmento preto tradicional produzido pela carbonização de ossos de animais. O Negro de Marfim originalmente se referia a um pigmento produzido pela carbonização do marfim. Com o tempo, os nomes passaram a ser usados de forma semelhante em diferentes contextos comerciais e artísticos.",
+            originProduction: "O Negro de Osso é produzido pelo aquecimento de ossos de animais com acesso limitado ao oxigênio. Parte da matéria orgânica é transformada em uma fase rica em carbono, enquanto grande parte da porção mineral permanece no material sólido.",
+            whyColor: "A aparência preta do Negro de Osso está principalmente relacionada à sua fase carbonácea. A fase rica em carbono absorve grande parte da luz visível, de modo que pouca luz retorna aos olhos.",
+            chemicalStructure: {
+                modelName: "[non_filled]",
+                atoms: []
+            }
+    },
+
+    blue: {
+        id: "generic_blue",
+        type: "material",
+        color: "#0000FF",
+        image: "assets/materials/generic_blue.jpg",
+        name: "Pigmento Azul",
+        commonName: "Pigmento Azul",
+        formula: "[non_filled]",
+            historicalContext: "[non_filled]",
+            originProduction: "[non_filled]",
+            whyColor: "[non_filled]",
+            chemicalStructure: {
+                modelName: "[non_filled]",
+                atoms: []
+            }
+    },
+
+    red: {
+        id: "red_lake",
+        type: "material",
+        color: "#FF0000",
+        image: "assets/materials/Red_Lake.jpg",
+        name: "Laca Vermelha",
+        commonName: "Laca Vermelha",
+        formula: "[non_filled]",
+            historicalContext: "As lacas vermelhas são uma família de pigmentos produzidos a partir de corantes associados a um substrato insolúvel ou pouco solúvel. Historicamente, os corantes podiam vir de plantas ou insetos. A partir do século XIX, corantes sintéticos como a alizarina também passaram a ser usados.",
+            originProduction: "Uma laca vermelha é produzida pela associação ou precipitação de um corante sobre um substrato sólido, geralmente inorgânico. Substratos históricos podiam incluir alumina hidratada, sulfato de bário, giz, argila, gesso ou óxido de zinco. A análise da obra identificou um material compatível com laca vermelha, mas não determinou o corante específico presente.",
+            whyColor: "[non_filled]",
+            chemicalStructure: {
+                modelName: "alizarin_representative",
+                atoms: [
+                    { element: "C" },
+                    { element: "H" },
+                    { element: "O" }
+                ]
+            }
+    },
+    signature: {
+        id: "benette_casaretto_signature",
+        type: "artist",
+        color: "#FF00FF",
+        image: "assets/materials/Benette_Casaretto_Motta_assinatura_da_artista_TEMP_ff00ff.png",
+        name: "Benette Casaretto",
+        historicalContext: "Benedicta Bianchi Casaretto, conhecida como Benette Casaretto, nasceu em Pelotas, Brasil, em 1925. Ela estudou desenho desde a infância e fez parte da primeira turma da Escola de Belas Artes de Pelotas em 1949. Em 1982, recebeu a distinção Mérito Zona Sul por sua contribuição à arte regional. Em 2022, durante estudos de conservação e restauração de pinturas no Palácio Piratini, foi encontrada uma obra registrada como de autoria desconhecida que trazia a assinatura \"BENETTE 63\". A investigação indicou que Benette era, naquele momento, a única artista mulher representada no acervo do Palácio Piratini. Sua história também traz questões sobre a visibilidade e o apagamento de mulheres artistas.",
+        originProduction: "Ela produziu flores, naturezas-mortas, paisagens, retratos, figuras religiosas, bailarinas, palhaços e representações de mulheres. Utilizou diferentes suportes e técnicas, incluindo telas de tecido, folhas de Eucatex, variadas técnicas pictóricas e combinações de cores."
+    },
+
+    white: {
+        id: "calcium_carbonate",
+        type: "material",
+        color: "#FFFFFF",
+        image: "assets/materials/Calcium_Carbonate.jpg",
+        name: "Carbonato de Cálcio",
+        commonName: "Branco de Cal",
+        formula: "CaCO₃",
+            historicalContext: "O carbonato de cálcio é um material pigmentário branco inorgânico. As formas históricas discutidas na referência incluem calcita, giz, giz precipitado, branco de cal, branco de concha e coral. O giz foi uma fonte histórica importante.",
+            originProduction: "O carbonato de cálcio usado como pigmento branco pode vir de materiais naturais ricos em CaCO₃, incluindo giz, calcita, calcário, mármore, conchas de ostra, corais e ovos de aves.",
+            whyColor: "A aparência branca do carbonato de cálcio como pigmento está associada ao forte espalhamento da luz visível por suas partículas e às suas propriedades ópticas.",
+            chemicalStructure: {
+                modelName: "calcite",
+                atoms: [
+                    { element: "Ca" },
+                    { element: "C" },
+                    { element: "O" }
+                ]
+            }
+    },
+
+    yellow: {
+        id: "cadmium_sulfide",
+        type: "material",
+        color: "#FFFF00",
+        image: "assets/materials/Cadmium_Yellow.jpg",
+        name: "Amarelo de Cádmio",
+        commonName: "Sulfeto de Cádmio",
+        formula: "CdS",
+            historicalContext: "O amarelo de cádmio é um pigmento sintético de sulfeto de cádmio. Sua síntese remonta ao século XIX. Gay-Lussac descreveu sua síntese em 1818, enquanto a comercialização ocorreu em meados da década de 1840. Tornou-se amplamente usado por artistas e ainda é comercializado.",
+            originProduction: "O cádmio ocorre principalmente associado a minerais de zinco. Durante o processamento de minérios de zinco, o cádmio é separado e recuperado como subproduto e pode então ser usado na preparação de sulfeto de cádmio (CdS). A síntese dos pigmentos de cádmio foi posteriormente modificada com zinco, selênio e sulfato de bário para obter diferentes tonalidades.",
+            whyColor: "O sulfeto de cádmio é um semicondutor. Quando a luz atinge o pigmento, parte de sua energia é absorvida pelos elétrons. Isso pode envolver transições da banda de valência para a banda de condução. As cores que não são absorvidas chegam aos olhos e produzem a percepção do amarelo.",
+            chemicalStructure: {
+                modelName: "cadmium_sulfide",
+                atoms: [
+                    { element: "Cd" },
+                    { element: "S" }
+                ]
+            }
+    }
 };
