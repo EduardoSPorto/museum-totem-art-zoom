@@ -6,13 +6,18 @@ const ARTWORK_ITEMS = {
         image: "assets/materials/Bone_Black.jpg",
         name: "Negro de Osso",
         commonName: "Negro de Osso / Negro de Marfim",
-        formula: "[non_filled]",
-            historicalContext: "O Negro de Osso é um pigmento preto tradicional produzido pela carbonização de ossos de animais. O Negro de Marfim originalmente se referia a um pigmento produzido pela carbonização do marfim. Com o tempo, os nomes passaram a ser usados de forma semelhante em diferentes contextos comerciais e artísticos.",
-            originProduction: "O Negro de Osso é produzido pelo aquecimento de ossos de animais com acesso limitado ao oxigênio. Parte da matéria orgânica é transformada em uma fase rica em carbono, enquanto grande parte da porção mineral permanece no material sólido.",
-            whyColor: "A aparência preta do Negro de Osso está principalmente relacionada à sua fase carbonácea. A fase rica em carbono absorve grande parte da luz visível, de modo que pouca luz retorna aos olhos.",
+        formula: "C + Ca₁₀(PO₄)₆(OH)₂ + CaCO₃ (Representação Simplificada)",
+            historicalContext: "Pigmento negro de origem animal tradicional. O Ivory Black autêntico era obtido da carbonização de marfim, mas com o tempo os nomes tornaram-se sinônimos comerciais para variedades refinadas do Bone Black.",
+            originProduction: "Pigmento inorgânico/orgânico de origem animal obtido por carbonização (aquecimento com oxigênio limitado). Tem composição bifásica, sendo cerca de 10% a 20% fase carbonácea (domínios desorganizados de carbono com redes hexagonais semelhantes a fragmentos de grafeno) com o resto sendo fase mineral (composta predominantemente por hidroxiapatita (Ca₁₀(PO₄)₆(OH)₂), acrescida de cerca de 6% de carbonato de cálcio (CaCO₃) e traços de fosfato de magnésio).",
+            whyColor: "A cor preta é produzida exclusivamente pela fase carbonácea, que absorve intensamente a luz visível em toda a amplitude do espectro, refletindo pouquíssima luz.",
             chemicalStructure: {
-                modelName: "[non_filled]",
-                atoms: []
+                modelName: "bone_black",
+                atoms: [
+                    { element: "C" },
+                    { element: "Ca" },
+                    { element: "P" },
+                    { element: "O" }
+                ]
             }
     },
 
@@ -38,12 +43,12 @@ const ARTWORK_ITEMS = {
         type: "material",
         color: "#FF0000",
         image: "assets/materials/Red_Lake.jpg",
-        name: "Laca Vermelha",
-        commonName: "Laca Vermelha",
-        formula: "[non_filled]",
-            historicalContext: "As lacas vermelhas são uma família de pigmentos produzidos a partir de corantes associados a um substrato insolúvel ou pouco solúvel. Historicamente, os corantes podiam vir de plantas ou insetos. A partir do século XIX, corantes sintéticos como a alizarina também passaram a ser usados.",
-            originProduction: "Uma laca vermelha é produzida pela associação ou precipitação de um corante sobre um substrato sólido, geralmente inorgânico. Substratos históricos podiam incluir alumina hidratada, sulfato de bário, giz, argila, gesso ou óxido de zinco. A análise da obra identificou um material compatível com laca vermelha, mas não determinou o corante específico presente.",
-            whyColor: "[non_filled]",
+        name: "Red Lake, provável Alizarina",
+        commonName: "Red Lake, provável Alizarina",
+        formula: "C₁₄H₈O₄ (Fórmula Representativa)",
+            historicalContext: "Historicamente, o corante era extraído de insetos e fontes vegetais, como o famoso pau-brasil. A partir da patente da síntese da alizarina em 1868, versões sintéticas do pigmento começaram a surgir no final do século XIX.",
+            originProduction: "Pigmento orgânico do tipo laca (lake pigment), formado pela precipitação ou adsorção de um corante orgânico solúvel sobre um substrato inorgânico sólido e insolúvel. O substrato pode conter alumina hidratada, hidróxido de alumínio, sais de alumínio (Al³⁺), giz, gesso, argila, sulfato de bário ou óxido de zinco. A Alizarina (1,2-di-hidroxiantraquinona) pertence à família das antraquinonas, apresentando anéis aromáticos interligados, grupos carbonila e hidroxilas (-OH) que formam complexos com cátions metálicos como o Al(III).",
+            whyColor: "Os elétrons conjugados dos anéis da antraquinona e seus complexos metálicos absorvem comprimentos de onda específicos da luz visível, refletindo a faixa do vermelho.",
             chemicalStructure: {
                 modelName: "alizarin_representative",
                 atoms: [
@@ -53,6 +58,7 @@ const ARTWORK_ITEMS = {
                 ]
             }
     },
+
     signature: {
         id: "benette_casaretto_signature",
         type: "artist",
@@ -69,11 +75,11 @@ const ARTWORK_ITEMS = {
         color: "#FFFFFF",
         image: "assets/materials/Calcium_Carbonate.jpg",
         name: "Carbonato de Cálcio",
-        commonName: "Branco de Cal",
+        commonName: "Carbonato de Cálcio",
         formula: "CaCO₃",
-            historicalContext: "O carbonato de cálcio é um material pigmentário branco inorgânico. As formas históricas discutidas na referência incluem calcita, giz, giz precipitado, branco de cal, branco de concha e coral. O giz foi uma fonte histórica importante.",
-            originProduction: "O carbonato de cálcio usado como pigmento branco pode vir de materiais naturais ricos em CaCO₃, incluindo giz, calcita, calcário, mármore, conchas de ostra, corais e ovos de aves.",
-            whyColor: "A aparência branca do carbonato de cálcio como pigmento está associada ao forte espalhamento da luz visível por suas partículas e às suas propriedades ópticas.",
+            historicalContext: "É considerado provavelmente o pigmento branco mais antigo do mundo, utilizado desde períodos pré-históricos e na antiguidade a partir de fontes minerais como calcário, giz, mármore e fontes biogênicas, tal como conchas de ostras, corais e cascas de ovos. Devido ao seu limitado poder de cobertura em meios oleosos, foi utilizado principalmente na preparação de fundos para pintura e em afrescos.",
+            originProduction: "Sal inorgânico (pigmento inorgânico branco), sendo adotada na caracterização do pigmento como sua principal forma mineral a calcita (sistema cristalino trigonal / romboédrico). No cristal de calcita, os cátions Ca²⁺ ocupam posições coordenadas por seis oxigênios (octaedros), enquanto os grupos carbonato (CO₃²⁻) formam arranjos planares com a carga negativa deslocalizada entre os três átomos de oxigênio.",
+            whyColor: "Diferente de pigmentos coloridos que absorvem comprimentos de onda específicos, o carbonato de cálcio promove um intenso espalhamento da luz visível. As partículas desviam a luz visível em múltiplas direções sem absorção seletiva, fazendo com que a luz refletida retorne integralmente aos olhos e seja percebida como branca.",
             chemicalStructure: {
                 modelName: "calcite",
                 atoms: [
@@ -87,14 +93,14 @@ const ARTWORK_ITEMS = {
     yellow: {
         id: "cadmium_sulfide",
         type: "material",
-        color: "#FFFF00",
+        color: "#FFF600",
         image: "assets/materials/Cadmium_Yellow.jpg",
         name: "Amarelo de Cádmio",
         commonName: "Sulfeto de Cádmio",
         formula: "CdS",
-            historicalContext: "O amarelo de cádmio é um pigmento sintético de sulfeto de cádmio. Sua síntese remonta ao século XIX. Gay-Lussac descreveu sua síntese em 1818, enquanto a comercialização ocorreu em meados da década de 1840. Tornou-se amplamente usado por artistas e ainda é comercializado.",
-            originProduction: "O cádmio ocorre principalmente associado a minerais de zinco. Durante o processamento de minérios de zinco, o cádmio é separado e recuperado como subproduto e pode então ser usado na preparação de sulfeto de cádmio (CdS). A síntese dos pigmentos de cádmio foi posteriormente modificada com zinco, selênio e sulfato de bário para obter diferentes tonalidades.",
-            whyColor: "O sulfeto de cádmio é um semicondutor. Quando a luz atinge o pigmento, parte de sua energia é absorvida pelos elétrons. Isso pode envolver transições da banda de valência para a banda de condução. As cores que não são absorvidas chegam aos olhos e produzem a percepção do amarelo.",
+            historicalContext: "Surgiu no século XIX como uma alternativa vibrante ao \"Amarelo de Nápoles\" devido à toxicidade deste último. O elemento cádmio foi descoberto em 1817 por Friedrich Stromeyer, e a síntese do CdS foi descrita por Gay-Lussac em 1818, sendo comercializado a partir da década de 1840. Tornou-se famoso ao ser amplamente adotado por artistas impressionistas e pós-impressionistas, como Van Gogh, Matisse, Munch e Ensor.",
+            originProduction: "Pigmento inorgânico (sal/composto inorgânico semicondutor) de caráter misto (contribuição iônica e covalente), com transferência de carga do Cádmio (Cd²⁺) para o Enxofre (S²⁻). Ocorre na natureza principalmente em duas formas polimórficas cristalinas: a greenockita (estrutura hexagonal / wurtzita) e a hawleyita (estrutura cúbica / blenda de zinco).",
+            whyColor: "O CdS é um semicondutor com uma energia de banda proibida de aproximadamente 2,42eV. Quando a luz incide sobre o pigmento, os elétrons absorvem energia e saltam da banda de valência para a banda de condução. Os comprimentos de onda não absorvidos são os da faixa do amarelo ao alaranjado, estes então são refletidos até os nossos olhos.",
             chemicalStructure: {
                 modelName: "cadmium_sulfide",
                 atoms: [
