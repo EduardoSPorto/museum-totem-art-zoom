@@ -78,23 +78,19 @@ function playSpeechForState(newState) {
 
       if (isArtist) {
         textToSpeak = lang === 'pt'
-          ? [`Vamos conhecer mais sobre a artista ${selectedArtworkItem.name}.`, selectedArtworkItem.historicalContext, selectedArtworkItem.originProduction]
-          : [`Let’s learn more about ${selectedArtworkItem.name}.`, selectedArtworkItem.historicalContext, selectedArtworkItem.originProduction];
+          ? [`Vamos conhecer mais sobre a artista ${selectedArtworkItem.name}.`, selectedArtworkItem.historicalContext, selectedArtworkItem.structure]
+          : [`Let’s learn more about ${selectedArtworkItem.name}.`, selectedArtworkItem.historicalContext, selectedArtworkItem.structure];
       } else if (lang === 'pt') {
         textToSpeak = [
           "Vamos aprender mais sobre o material.",
-          hasSpeechContent(selectedArtworkItem.commonName) ? `${selectedArtworkItem.name} também é chamado pelo nome comum ${selectedArtworkItem.commonName}.` : "",
           selectedArtworkItem.historicalContext,
-          hasSpeechContent(selectedArtworkItem.originProduction) ? `Sua origem é descrita como ${selectedArtworkItem.originProduction}.` : "",
           hasSpeechContent(selectedArtworkItem.whyColor) ? `A cor visível é assim porque ${selectedArtworkItem.whyColor}.` : "",
           selectedArtworkItem.chemicalStructure ? "Você pode aproximar para explorar a estrutura molecular." : ""
         ];
       } else {
         textToSpeak = [
           "Let’s learn more about the material.",
-          hasSpeechContent(selectedArtworkItem.commonName) ? `${selectedArtworkItem.name} is also known as ${selectedArtworkItem.commonName}.` : "",
           selectedArtworkItem.historicalContext,
-          hasSpeechContent(selectedArtworkItem.originProduction) ? `Its origin is described as ${selectedArtworkItem.originProduction}.` : "",
           hasSpeechContent(selectedArtworkItem.whyColor) ? `The visible color looks like this because ${selectedArtworkItem.whyColor}.` : "",
           selectedArtworkItem.chemicalStructure ? "You can zoom in to explore the molecular structure." : ""
         ];
@@ -106,7 +102,7 @@ function playSpeechForState(newState) {
     if (selectedArtworkItem?.chemicalStructure) {
       const structure = selectedArtworkItem.chemicalStructure;
       const elementNames = getSpeechElementNames(structure.atoms, lang);
-      const modelName = hasSpeechContent(structure.modelName) ? structure.modelName : "";
+      const itemStructure = hasSpeechContent(selectedArtworkItem.structure) ? selectedArtworkItem.structure : "";
       const formulaDescription = hasSpeechContent(selectedArtworkItem.formula) && elementNames.length
         ? (lang === "pt"
           ? `A fórmula química descreve uma composição de ${joinSpeechList(elementNames, lang)}.`
@@ -121,14 +117,14 @@ function playSpeechForState(newState) {
       textToSpeak = lang === "pt"
         ? [
             `Vamos explorar a estrutura molecular de ${selectedArtworkItem.name}.`,
-            modelName ? `Este modelo molecular representa ${modelName}.` : "",
+            itemStructure ? `A estrutura é descrita como ${itemStructure}.` : "",
             formulaDescription,
             atomDescription,
             "Você pode girar o modelo com o movimento de pinça."
           ]
         : [
             `Let’s explore the molecular structure of ${selectedArtworkItem.name}.`,
-            modelName ? `This molecular model represents ${modelName}.` : "",
+            itemStructure ? `The structure is described as ${itemStructure}.` : "",
             formulaDescription,
             atomDescription,
             "You can rotate the model with your pinch motion."

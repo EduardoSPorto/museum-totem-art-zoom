@@ -517,7 +517,7 @@
 
       const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
       legendInfo.innerHTML = `
-        ${isPT ? "Modelo:" : "Model:"} ${structure.modelName}<br/>
+        ${isPT ? "Estrutura:" : "Structure:"} ${item.structure}<br/>
         ${isPT ? "Fórmula:" : "Formula:"} ${item.formula}
       `;
 
@@ -1626,11 +1626,6 @@
           <div class="material-text">${item.historicalContext}</div>
         </div>
 
-        <div class="material-section">
-          <div class="material-section-title">${isArtist ? (isPT ? "Origem" : "Origin") : (isPT ? "Origem / Produção" : "Origin / Production")}</div>
-          <div class="material-text">${item.originProduction}</div>
-        </div>
-
         ${!isArtist && item.whyColor ? `
         <div class="material-section">
           <div class="material-section-title">${isPT ? "Contexto da Cor" : "Color Context"}</div>
@@ -1638,14 +1633,7 @@
         </div>
         ` : ""}
 
-        ${item.commonName ? `
-          <div class="material-section">
-            <div class="material-section-title">${isPT ? "Nome Comum" : "Common Name"}</div>
-            <div class="material-text">${item.commonName}</div>
-          </div>
-
-          ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
-        ` : ""}
+        ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
       `;
 
       materialContent.innerHTML = html;
