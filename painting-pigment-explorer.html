@@ -632,9 +632,12 @@
       const countsLineIndex = lines.findIndex((line) => line.includes("V2000"));
       if (countsLineIndex === -1) return molData;
 
-      const [atomCountText, bondCountText] = lines[countsLineIndex].trim().split(/\s+/);
-      const atomCount = Number.parseInt(atomCountText, 10);
-      const bondCount = Number.parseInt(bondCountText, 10);
+      const countsLine = lines[countsLineIndex];
+      const countMatch = countsLine.match(/(?:^|\s)(\d{3})(\d{3})\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+V2000/);
+      const countParts = countsLine.trim().split(/\s+/);
+      const compactCounts = countParts[0].match(/^(\d{3})(\d{3})$/);
+      const atomCount = Number.parseInt(countMatch?.[1] || compactCounts?.[1] || countParts[0], 10);
+      const bondCount = Number.parseInt(countMatch?.[2] || compactCounts?.[2] || countParts[1], 10);
       if (!Number.isFinite(atomCount) || !Number.isFinite(bondCount)) return molData;
 
       const normalized = [...lines];
@@ -662,7 +665,13 @@
         const parts = (normalized[lineIndex] || "").trim().split(/\s+/);
         if (parts.length < 3) continue;
 
-        normalized[lineIndex] = `${parts[0].padStart(3)}${parts[1].padStart(3)}${parts[2].padStart(3)}  0  0  0  0`;
+        let bondParts = parts;
+        if (parts[0].length === 6 && /^\d{6}$/.test(parts[0])) {
+          bondParts = [parts[0].slice(0, 3), parts[0].slice(3), ...parts.slice(1)];
+        }
+        if (bondParts.length < 3) continue;
+
+        normalized[lineIndex] = `${bondParts[0].padStart(3)}${bondParts[1].padStart(3)}${bondParts[2].padStart(3)}  0  0  0  0`;
       }
 
       return normalized.join("\n");
