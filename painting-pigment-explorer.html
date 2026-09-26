@@ -361,7 +361,12 @@
             }
             imageIndex.set(translationKey, positionIndex);
           }
-          bonds.push({ start: positions[atomIndex].point, end: positions[positionIndex].point });
+          bonds.push({
+            start: positions[atomIndex].point,
+            end: positions[positionIndex].point,
+            startElement: atom.element,
+            endElement: atoms[neighbor.candidateIndex].element
+          });
         }
       }
 
@@ -488,8 +493,20 @@
                 y: (bond.start.y + bond.end.y) / 2,
                 z: (bond.start.z + bond.end.z) / 2
               };
-              viewer.addCylinder({ start: bond.start, end: midpoint, radius: 0.1, color: "#7f8792", alpha: 0.85 });
-              viewer.addCylinder({ start: midpoint, end: bond.end, radius: 0.1, color: "#7f8792", alpha: 0.85 });
+              viewer.addCylinder({
+                start: bond.start,
+                end: midpoint,
+                radius: 0.18,
+                color: elementColors[bond.startElement] || "#5f6875",
+                alpha: 0.98
+              });
+              viewer.addCylinder({
+                start: midpoint,
+                end: bond.end,
+                radius: 0.18,
+                color: elementColors[bond.endElement] || "#5f6875",
+                alpha: 0.98
+              });
             }
           } else {
             viewer.addModel(molData, format);
