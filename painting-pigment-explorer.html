@@ -279,15 +279,37 @@
         y: (fractional.y + translation.y) * cellVectorB.y + (fractional.z + translation.z) * cellVectorC.y,
         z: (fractional.z + translation.z) * cellVectorC.z
       });
+      const tokenize = (line) => line.match(/'[^']*'|"[^"]*"|\S+/g)?.map((token) => token.replace(/^['"]|['"]$/g, "")) || [];
+      const lines = cifData.replace(/\r\n/g, "\n").split("\n");
+      const atomHeaders = [];
+      let atomRowsStart = -1;
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+        const header = lines[lineIndex].trim();
+        if (!header.startsWith("_atom_site_")) {
+          if (atomHeaders.length && atomRowsStart < 0) atomRowsStart = lineIndex;
+          continue;
+        }
+        atomHeaders.push(header);
+      }
+      const headerIndex = (name) => atomHeaders.findIndex((header) => header === name);
+      const elementIndex = headerIndex("_atom_site_type_symbol");
+      const xIndex = headerIndex("_atom_site_fract_x");
+      const yIndex = headerIndex("_atom_site_fract_y");
+      const zIndex = headerIndex("_atom_site_fract_z");
       const atoms = [];
-      const atomPattern = /^\s*(Cd|S)\s+\S+\s+\d+\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)/;
-      for (const line of cifData.split(/\r?\n/)) {
-        const match = line.match(atomPattern);
-        if (match) {
-          atoms.push({
-            element: match[1],
-            fractional: { x: Number.parseFloat(match[2]), y: Number.parseFloat(match[3]), z: Number.parseFloat(match[4]) }
-          });
+      if (atomRowsStart >= 0 && elementIndex >= 0 && xIndex >= 0 && yIndex >= 0 && zIndex >= 0) {
+        for (let lineIndex = atomRowsStart; lineIndex < lines.length; lineIndex += 1) {
+          const line = lines[lineIndex].trim();
+          if (!line || line.startsWith("_") || line === "loop_" || line.startsWith("data_")) break;
+          const values = tokenize(line);
+          const fractional = {
+            x: Number.parseFloat(values[xIndex]),
+            y: Number.parseFloat(values[yIndex]),
+            z: Number.parseFloat(values[zIndex])
+          };
+          if (values[elementIndex] && Object.values(fractional).every(Number.isFinite)) {
+            atoms.push({ element: values[elementIndex], fractional });
+          }
         }
       }
       if (!atoms.length || ![cellA, cellB, cellC, alpha, beta, gamma].every(Number.isFinite)) return null;
@@ -298,7 +320,7 @@
       }));
       const imageIndex = new Map();
       const bonds = [];
-      const colors = { Cd: "#e53935", S: "#ffd700" };
+      const covalentRadii = { H: 0.31, C: 0.76, N: 0.71, O: 0.66, S: 1.05, Ca: 1.76, Cd: 1.44 };
       const distanceSquared = (first, second) => {
         const dx = first.x - second.x;
         const dy = first.y - second.y;
@@ -310,7 +332,6 @@
         const atom = atoms[atomIndex];
         const neighbors = [];
         for (let candidateIndex = 0; candidateIndex < atoms.length; candidateIndex += 1) {
-          if (atoms[candidateIndex].element === atom.element) continue;
           for (let tx = -1; tx <= 1; tx += 1) {
             for (let ty = -1; ty <= 1; ty += 1) {
               for (let tz = -1; tz <= 1; tz += 1) {
@@ -322,7 +343,13 @@
           }
         }
         neighbors.sort((first, second) => first.distance - second.distance);
-        for (const neighbor of neighbors.slice(0, 4)) {
+        const radius = covalentRadii[atom.element] || 1;
+        const selectedNeighbors = neighbors.filter((neighbor) => {
+          const candidateRadius = covalentRadii[atoms[neighbor.candidateIndex].element] || 1;
+          const maxDistance = radius + candidateRadius + (atom.element === "Ca" || atoms[neighbor.candidateIndex].element === "Ca" ? 0.7 : 0.45);
+          return neighbor.distance <= maxDistance ** 2 && neighbor.distance > 0.25;
+        }).slice(0, 6);
+        for (const neighbor of selectedNeighbors) {
           const translationKey = `${neighbor.candidateIndex}:${neighbor.translation.x}:${neighbor.translation.y}:${neighbor.translation.z}`;
           let positionIndex = imageIndex.get(translationKey);
           if (positionIndex === undefined) {
@@ -334,7 +361,7 @@
             }
             imageIndex.set(translationKey, positionIndex);
           }
-          bonds.push({ start: positions[atomIndex].point, end: positions[positionIndex].point, startColor: colors[atom.element], endColor: colors[atoms[neighbor.candidateIndex].element] });
+          bonds.push({ start: positions[atomIndex].point, end: positions[positionIndex].point });
         }
       }
 
@@ -343,6 +370,11 @@
         positions,
         bonds
       };
+    }
+
+    function detectStructureFormat(molPath, molData) {
+      if (/V2000|V3000/.test(molData)) return "sdf";
+      return molPath.toLowerCase().endsWith(".cif") ? "cif" : "sdf";
     }
 
     async function displayMolecule(item) {
@@ -442,22 +474,20 @@
             }
           }
         } else {
-          const fileExt = molPath.split(".").pop().toLowerCase();
-          const format = fileExt === "cif" ? "cif" : "sdf";
+          const format = detectStructureFormat(molPath, molData);
           if (format === "cif") {
             const periodicDisplay = buildPeriodicCifDisplay(molData);
             if (!periodicDisplay) throw new Error("Invalid CIF cell or atom data");
             viewer.addModel(periodicDisplay.xyz, "xyz");
-            viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.72, alpha: 0.98 } });
-            viewer.setStyle({ elem: "S" }, { sphere: { radius: 0.62, alpha: 0.98 } });
+            viewer.setStyle({}, { sphere: { scale: 0.42, alpha: 0.98 } });
             for (const bond of periodicDisplay.bonds) {
               const midpoint = {
                 x: (bond.start.x + bond.end.x) / 2,
                 y: (bond.start.y + bond.end.y) / 2,
                 z: (bond.start.z + bond.end.z) / 2
               };
-              viewer.addCylinder({ start: bond.start, end: midpoint, radius: 0.16, color: bond.startColor, alpha: 0.9 });
-              viewer.addCylinder({ start: midpoint, end: bond.end, radius: 0.16, color: bond.endColor, alpha: 0.9 });
+              viewer.addCylinder({ start: bond.start, end: midpoint, radius: 0.1, color: "#7f8792", alpha: 0.85 });
+              viewer.addCylinder({ start: midpoint, end: bond.end, radius: 0.1, color: "#7f8792", alpha: 0.85 });
             }
           } else {
             viewer.addModel(molData, format);
