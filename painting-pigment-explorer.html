@@ -491,9 +491,42 @@
             }
           } else {
             viewer.addModel(molData, format);
-            viewer.setStyle({}, {
-              stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
-              sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
+            const atoms = viewer.getModel().selectedAtoms({});
+            viewer.setStyle({}, { sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 } });
+            const bondColors = {
+              H: "#FFFFFF", C: "#4D4D4D", N: "#3050F8", O: "#FF0D0D", S: "#FFD700"
+            };
+            const renderedBonds = new Set();
+            atoms.forEach((atom, atomIndex) => {
+              (atom.bonds || []).forEach((bondIndex) => {
+                const otherAtom = atoms[bondIndex];
+                if (!otherAtom) return;
+                const bondKey = atomIndex < bondIndex
+                  ? `${atomIndex}:${bondIndex}`
+                  : `${bondIndex}:${atomIndex}`;
+                if (renderedBonds.has(bondKey)) return;
+                renderedBonds.add(bondKey);
+
+                const midpoint = {
+                  x: (atom.x + otherAtom.x) / 2,
+                  y: (atom.y + otherAtom.y) / 2,
+                  z: (atom.z + otherAtom.z) / 2
+                };
+                viewer.addCylinder({
+                  start: { x: atom.x, y: atom.y, z: atom.z },
+                  end: midpoint,
+                  radius: 0.1,
+                  color: bondColors[atom.elem] || "#888888",
+                  alpha: 0.95
+                });
+                viewer.addCylinder({
+                  start: midpoint,
+                  end: { x: otherAtom.x, y: otherAtom.y, z: otherAtom.z },
+                  radius: 0.1,
+                  color: bondColors[otherAtom.elem] || "#888888",
+                  alpha: 0.95
+                });
+              });
             });
           }
         }
@@ -666,8 +699,8 @@
         if (parts.length < 3) continue;
 
         let bondParts = parts;
-        if (parts[0].length === 6 && /^\d{6}$/.test(parts[0])) {
-          bondParts = [parts[0].slice(0, 3), parts[0].slice(3), ...parts.slice(1)];
+        if (/^\d{5,6}$/.test(parts[0])) {
+          bondParts = [parts[0].slice(0, -3), parts[0].slice(-3), ...parts.slice(1)];
         }
         if (bondParts.length < 3) continue;
 
