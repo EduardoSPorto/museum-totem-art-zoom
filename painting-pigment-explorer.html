@@ -486,7 +486,7 @@
             const periodicDisplay = buildPeriodicCifDisplay(molData);
             if (!periodicDisplay) throw new Error("Invalid CIF cell or atom data");
             viewer.addModel(periodicDisplay.xyz, "xyz");
-            const periodicSphereScale = item.id === "red_lake" ? 0.28 : 0.42;
+            const periodicSphereScale = ["red_lake", "calcium_carbonate"].includes(item.id) ? 0.28 : 0.42;
             viewer.setStyle({}, { sphere: { scale: periodicSphereScale, alpha: 0.98 } });
             for (const bond of periodicDisplay.bonds) {
               const midpoint = {
