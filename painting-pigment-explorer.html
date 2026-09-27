@@ -847,7 +847,6 @@
     // hand detector's lower frame rate.
     const HAND_CURSOR_FOLLOW_RATE = 24;
     const MAGNIFIER_FOLLOW_RATE = 24;
-    const MAGNIFIER_SMOOTHING_FACTOR = 0.82;
     const HAND_INTERACTION_REGION = {
       centerX: 0.5,
       centerY: 0.5,
@@ -1485,20 +1484,11 @@
           x: smoothedHandPosition.x,
           y: smoothedHandPosition.y
         };
-        const candidatePosition = {
-          x: smoothedMagnifierPosition.x * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.x * (1 - MAGNIFIER_SMOOTHING_FACTOR),
-          y: smoothedMagnifierPosition.y * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.y * (1 - MAGNIFIER_SMOOTHING_FACTOR)
-        };
 
         if (getArtworkItemAtPosition(handPosition.x, handPosition.y)) {
           pinchGestureTargetsArtwork = true;
           magnifier.classList.add("pinching");
-          // If smoothing would cross an unmapped gap, snap to the valid hand
-          // position instead of leaving the indicator in that gap.
-          const nextPosition = getArtworkItemAtPosition(candidatePosition.x, candidatePosition.y)
-            ? candidatePosition
-            : handPosition;
-          magnifierTargetPosition = nextPosition;
+          magnifierTargetPosition = handPosition;
           updateMagnifierPosition();
         } else {
           magnifier.classList.remove("pinching");
