@@ -386,6 +386,15 @@
       const renderVersion = ++moleculeRenderVersion;
       applySelectionAccent(item);
 
+      // Clear the previous scene before any asynchronous file loading starts.
+      moleculeViewer = null;
+      moleculeIsRendering = false;
+      moleculeViewport.replaceChildren();
+      document.getElementById("moleculeTitle").textContent = item.name;
+      document.getElementById("legendFormula").textContent = "";
+      document.getElementById("legendAtoms").replaceChildren();
+      document.getElementById("legendInfo").replaceChildren();
+
       // Get MOL file data
       const molPath = ITEM_CHEMICAL_STRUCTURE_FILES[item.id];
 
