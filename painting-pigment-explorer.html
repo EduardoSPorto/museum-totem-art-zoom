@@ -838,11 +838,15 @@
     let handCursorAnimationFrame = null;
     let lastHandCursorFrameTime = 0;
     let smoothedMagnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let magnifierTargetPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let magnifierAnimationFrame = null;
+    let lastMagnifierFrameTime = 0;
     let handConfidence = 0;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
     // Render between camera-analysis frames so the cursor does not step at the
     // hand detector's lower frame rate.
     const HAND_CURSOR_FOLLOW_RATE = 24;
+    const MAGNIFIER_FOLLOW_RATE = 24;
     const MAGNIFIER_SMOOTHING_FACTOR = 0.82;
     const HAND_INTERACTION_REGION = {
       centerX: 0.5,
@@ -955,6 +959,7 @@
           y: window.innerHeight / 2 
         };
         smoothedMagnifierPosition = { ...magnifierPosition };
+        magnifierTargetPosition = { ...magnifierPosition };
         
         // Show camera preview panel
         const cameraPreviewPanel = document.getElementById("cameraPreviewPanel");
@@ -1410,6 +1415,10 @@
           cancelAnimationFrame(handCursorAnimationFrame);
           handCursorAnimationFrame = null;
         }
+        if (magnifierAnimationFrame !== null) {
+          cancelAnimationFrame(magnifierAnimationFrame);
+          magnifierAnimationFrame = null;
+        }
         zoomInBtn.classList.remove("is-hovered");
         zoomOutBtn.classList.remove("is-hovered");
         magnifier.classList.remove("active");
@@ -1489,23 +1498,10 @@
           const nextPosition = getArtworkItemAtPosition(candidatePosition.x, candidatePosition.y)
             ? candidatePosition
             : handPosition;
-          smoothedMagnifierPosition = nextPosition;
-          magnifierPosition = { ...nextPosition };
+          magnifierTargetPosition = nextPosition;
+          updateMagnifierPosition();
         } else {
           magnifier.classList.remove("pinching");
-        }
-      }
-
-      // Update magnifier visual position
-      magnifier.style.transform = `translate3d(calc(${magnifierPosition.x}px - 50%), calc(${magnifierPosition.y}px - 50%), 0)`;
-      magnifier.style.left = "0px";
-      magnifier.style.top = "0px";
-
-      // Sample color at magnifier position and update fill
-      if (appState === APP_STATES.SELECTION) {
-        const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
-        if (colorData && getArtworkItemAtPosition(magnifierPosition.x, magnifierPosition.y)) {
-          magnifierFill.style.backgroundColor = colorData.hex;
         }
       }
 
@@ -1588,6 +1584,42 @@
       );
       handCursorAnimationFrame = remainingDistance > 0.1
         ? requestAnimationFrame(animateHandCursor)
+        : null;
+    }
+
+    function updateMagnifierPosition() {
+      if (magnifierAnimationFrame === null) {
+        lastMagnifierFrameTime = performance.now();
+        magnifierAnimationFrame = requestAnimationFrame(animateMagnifier);
+      }
+    }
+
+    function animateMagnifier(timestamp) {
+      const elapsedSeconds = Math.min((timestamp - lastMagnifierFrameTime) / 1000, 0.1);
+      lastMagnifierFrameTime = timestamp;
+      const progress = 1 - Math.exp(-MAGNIFIER_FOLLOW_RATE * elapsedSeconds);
+
+      smoothedMagnifierPosition.x += (magnifierTargetPosition.x - smoothedMagnifierPosition.x) * progress;
+      smoothedMagnifierPosition.y += (magnifierTargetPosition.y - smoothedMagnifierPosition.y) * progress;
+      magnifierPosition = { ...smoothedMagnifierPosition };
+
+      magnifier.style.transform = `translate3d(calc(${magnifierPosition.x}px - 50%), calc(${magnifierPosition.y}px - 50%), 0)`;
+      magnifier.style.left = "0px";
+      magnifier.style.top = "0px";
+
+      if (appState === APP_STATES.SELECTION) {
+        const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
+        if (colorData && getArtworkItemAtPosition(magnifierPosition.x, magnifierPosition.y)) {
+          magnifierFill.style.backgroundColor = colorData.hex;
+        }
+      }
+
+      const remainingDistance = Math.hypot(
+        magnifierTargetPosition.x - magnifierPosition.x,
+        magnifierTargetPosition.y - magnifierPosition.y
+      );
+      magnifierAnimationFrame = remainingDistance > 0.1
+        ? requestAnimationFrame(animateMagnifier)
         : null;
     }
 
@@ -1847,6 +1879,7 @@
           y: window.innerHeight / 2 
         };
         smoothedMagnifierPosition = { ...magnifierPosition };
+        magnifierTargetPosition = { ...magnifierPosition };
         updateZoomControls();
       } else if (appState === APP_STATES.MOLECULE) {
         stopMoleculeGrab();
