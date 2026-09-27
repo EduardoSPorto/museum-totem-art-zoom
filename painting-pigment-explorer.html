@@ -655,6 +655,7 @@
       `;
 
       moleculeTitle.textContent = item.name;
+      updateTextScrollTargets();
       
       console.log(`✓ Loaded molecule: ${item.name}`);
     }
@@ -1672,6 +1673,80 @@
     const legendAtoms = document.getElementById("legendAtoms");
     const legendInfo = document.getElementById("legendInfo");
 
+    const AUTO_SCROLL_SPEED = 8;
+    const AUTO_SCROLL_START_DELAY = 2000;
+    const AUTO_SCROLL_END_PAUSE = 5000;
+    const autoScrollStates = new Map();
+
+    function updateSlowTextScroll(element) {
+      const existingState = autoScrollStates.get(element);
+      if (existingState) {
+        cancelAnimationFrame(existingState.animationFrame);
+        autoScrollStates.delete(element);
+      }
+
+      element.classList.remove("is-scrollable");
+      requestAnimationFrame(() => {
+        if (element.scrollHeight <= element.clientHeight + 4) return;
+
+        element.classList.add("is-scrollable");
+
+        const state = {
+          animationFrame: null,
+          direction: 1,
+          lastTimestamp: performance.now(),
+          pauseUntil: performance.now() + AUTO_SCROLL_START_DELAY
+        };
+
+        const pause = () => {
+          state.pauseUntil = performance.now() + 4000;
+        };
+
+        const scroll = (timestamp) => {
+          if (!element.isConnected || element.scrollHeight <= element.clientHeight + 4) {
+            autoScrollStates.delete(element);
+            return;
+          }
+
+          const elapsedSeconds = Math.min((timestamp - state.lastTimestamp) / 1000, 0.1);
+          state.lastTimestamp = timestamp;
+
+          if (timestamp >= state.pauseUntil) {
+            const maxScrollTop = element.scrollHeight - element.clientHeight;
+            element.scrollTop += state.direction * AUTO_SCROLL_SPEED * elapsedSeconds;
+
+            if (element.scrollTop >= maxScrollTop) {
+              element.scrollTop = maxScrollTop;
+              state.direction = -1;
+              state.pauseUntil = timestamp + AUTO_SCROLL_END_PAUSE;
+            } else if (element.scrollTop <= 0) {
+              element.scrollTop = 0;
+              state.direction = 1;
+              state.pauseUntil = timestamp + 1800;
+            }
+          }
+
+          state.animationFrame = requestAnimationFrame(scroll);
+        };
+
+        element.onmouseenter = pause;
+        element.onwheel = pause;
+        autoScrollStates.set(element, state);
+        state.animationFrame = requestAnimationFrame(scroll);
+      });
+    }
+
+    function updateTextScrollTargets() {
+      [materialContent, moleculeLegend].forEach(updateSlowTextScroll);
+    }
+
+    function formatTextParagraphs(value) {
+      return String(value || "")
+        .split(/\n\s*\n/)
+        .map((paragraph) => `<p>${paragraph.trim()}</p>`)
+        .join("");
+    }
+
     const ITEM_HIGHLIGHT_FILES = {
       bone_black: "assets/highlights/highlight_carbon_black_000000.png",
       generic_blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
@@ -1787,13 +1862,13 @@
         
         <div class="material-section">
           <div class="material-section-title">${isPT ? "Contexto Histórico & Cultural" : "Historical & Cultural Context"}</div>
-          <div class="material-text">${item.historicalContext}</div>
+          <div class="material-text">${formatTextParagraphs(item.historicalContext)}</div>
         </div>
 
         ${!isArtist && item.whyColor ? `
         <div class="material-section">
           <div class="material-section-title">${isPT ? "Contexto da Cor" : "Color Context"}</div>
-          <div class="material-text">${item.whyColor}</div>
+          <div class="material-text">${formatTextParagraphs(item.whyColor)}</div>
         </div>
         ` : ""}
 
@@ -1801,6 +1876,7 @@
       `;
 
       materialContent.innerHTML = html;
+      updateTextScrollTargets();
       const materialImage = materialContent.querySelector(".material-image");
       if (materialImage) {
         materialImage.addEventListener("error", () => {

@@ -281,7 +281,7 @@ textarea {
   display: block;
   width: 100%;
   /* Keep lengthy chemical descriptions usable without expanding the view. */
-  max-height: min(42vh, 24rem);
+  max-height: min(50vh, 30rem);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 18px 24px 20px;
@@ -797,7 +797,7 @@ body.app-state-detail {
 .app-state-detail .material-content {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: hidden;
   overscroll-behavior: contain;
   padding-right: 12px;
 }
@@ -863,6 +863,14 @@ body.app-state-detail {
   opacity: 0.95;
 }
 
+.material-text p {
+  margin: 0 0 1em;
+}
+
+.material-text p:last-child {
+  margin-bottom: 0;
+}
+
 .app-state-detail .material-content,
 .molecule-legend {
   scrollbar-width: thin;
@@ -878,6 +886,20 @@ body.app-state-detail {
 .molecule-legend::-webkit-scrollbar-thumb {
   background: rgba(var(--selection-accent-ink-rgb), 0.5);
   border-radius: 999px;
+}
+
+.app-state-detail .material-content:not(.is-scrollable),
+.molecule-legend:not(.is-scrollable) {
+  scrollbar-width: none;
+}
+
+.app-state-detail .material-content:not(.is-scrollable)::-webkit-scrollbar,
+.molecule-legend:not(.is-scrollable)::-webkit-scrollbar {
+  display: none;
+}
+
+.app-state-detail .material-content.is-scrollable {
+  overflow-y: auto;
 }
 
 .material-property {
@@ -1143,7 +1165,7 @@ body.app-state-detail {
   }
 
   .molecule-legend {
-    max-height: min(30vh, 20rem);
+    max-height: min(38vh, 24rem);
     padding: 12px 18px 14px;
   }
 
