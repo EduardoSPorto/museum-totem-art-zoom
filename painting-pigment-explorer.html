@@ -127,13 +127,10 @@
   <script async src="assets/vendor/mediapipe/camera_utils.js"></script>
   <script async src="assets/vendor/mediapipe/drawing_utils.js"></script>
   <script async src="assets/vendor/mediapipe/hands/hands.js"></script>
-  <script src="assets/vendor/three.min.js"></script>
-
-  <!-- 3Dmol.js for molecular visualization -->
-  <script src="assets/vendor/3Dmol-min.js"></script>
-
   <!-- Configuration for the application, including language settings -->
   <script src="config.js"></script>
+  <script src="js/core/telemetry.js"></script>
+  <script src="js/core/vendorLoader.js"></script>
   <script>
     // 1. Dynamically load the items based on language
     const languageFromUrl = new URLSearchParams(window.location.search).get('lang');
@@ -196,6 +193,9 @@
   <script src="js/data/colorMap.js"></script>
   <script src="js/core/maskReader.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/interaction/gestures.js"></script>
+  <script src="js/rendering/moleculeRenderer.js"></script>
+  <script src="js/views/materialView.js"></script>
 
   <script>
     // ===== SAFE DETECTION ZONE =====
@@ -249,11 +249,21 @@
 
     function disposeMoleculeViewer() {
       moleculeRenderVersion += 1;
-      moleculeViewer = null;
+      if (moleculeViewer) {
+        try {
+          if (typeof moleculeViewer.clear === "function") moleculeViewer.clear();
+        } catch (e) {}
+        moleculeViewer = null;
+      }
       moleculeViewport.replaceChildren();
     }
 
+    const periodicCifCache = new Map();
+
     function buildPeriodicCifDisplay(cifData) {
+      if (periodicCifCache.has(cifData)) {
+        return periodicCifCache.get(cifData);
+      }
       const cellValue = (name) => {
         const match = cifData.match(new RegExp(`^${name}\\s+([0-9.Ee+-]+)`, "m"));
         return match ? Number.parseFloat(match[1]) : NaN;
@@ -370,11 +380,13 @@
         }
       }
 
-      return {
+      const result = {
         xyz: `${positions.length}\nPeriodic CdS coordination display\n${positions.map((atom) => `${atom.element} ${atom.point.x.toFixed(6)} ${atom.point.y.toFixed(6)} ${atom.point.z.toFixed(6)}`).join("\n")}`,
         positions,
         bonds
       };
+      periodicCifCache.set(cifData, result);
+      return result;
     }
 
     function detectStructureFormat(molPath, molData) {
@@ -424,6 +436,16 @@
           appState !== APP_STATES.MOLECULE ||
           selectedArtworkItem?.id !== item.id) {
         return;
+      }
+
+      // Ensure 3Dmol & Three.js are loaded before viewer creation
+      if (typeof $3Dmol === "undefined" && window.VendorLoader) {
+        try {
+          await window.VendorLoader.loadMoleculeLibraries();
+        } catch (e) {
+          console.error("✗ Failed to load 3D molecule libraries:", e);
+          return;
+        }
       }
 
       // The 3Dmol canvas cannot be safely reused after this fullscreen view is
@@ -1008,10 +1030,34 @@
 
         console.log("🎥 Starting hand detection loop...");
         
+        let isProcessingFrame = false;
+        let lastInferenceTime = 0;
+        const TARGET_INFERENCE_INTERVAL_MS = 1000 / 24; // Cap at 24 FPS to save kiosk CPU/GPU
+
         handCamera = new window.Camera(webcamVideo, {
           onFrame: async () => {
-            if (handDetector) {
+            if (!handDetector) return;
+            const now = performance.now();
+            
+            // Drop frame if previous inference is still in-flight or rate is exceeded
+            if (isProcessingFrame || (now - lastInferenceTime < TARGET_INFERENCE_INTERVAL_MS)) {
+              if (window.Telemetry && isProcessingFrame) {
+                window.Telemetry.recordDroppedFrame();
+              }
+              return;
+            }
+
+            isProcessingFrame = true;
+            lastInferenceTime = now;
+            const startTime = performance.now();
+
+            try {
               await handDetector.send({ image: webcamVideo });
+            } finally {
+              isProcessingFrame = false;
+              if (window.Telemetry) {
+                window.Telemetry.recordInferenceTime(performance.now() - startTime);
+              }
             }
           },
           width: 1280,
