@@ -141,7 +141,7 @@ function playSpeechForState(newState) {
   }
 }
 
-function setAppState(newState) {
+function setAppState(newState, { announce = true } = {}) {
   if (appState !== newState && typeof consumePinchGesture === "function") {
     consumePinchGesture();
   }
@@ -167,7 +167,9 @@ function setAppState(newState) {
     }, 50);
   }
   
-  playSpeechForState(newState);
+  if (announce) {
+    playSpeechForState(newState);
+  }
 
   console.log(`→ State: ${newState.toUpperCase()}`);
 }

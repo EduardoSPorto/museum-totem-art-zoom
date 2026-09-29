@@ -874,6 +874,9 @@
     let magnifierAnimationFrame = null;
     let lastMagnifierFrameTime = 0;
     let handConfidence = 0;
+    const NO_HAND_STANDBY_TIMEOUT_MS = 10000;
+    let noHandSince = null;
+    let isStandbyMode = false;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
     // Render between camera-analysis frames so the cursor does not step at the
     // hand detector's lower frame rate.
@@ -913,7 +916,7 @@
     let currentButtonHover = null;
     let buttonDwellStartTime = null;
     const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
-    const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 5000;
+    const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 3000;
     let nonMouseLevelChangeAvailableAt = 0;
     
     const handCursor = document.getElementById("handCursor");
@@ -1450,6 +1453,47 @@
 
     let firstFrameReceived = false;
 
+    function returnToSelectionForStandby() {
+      stopMoleculeGrab();
+      disposeMoleculeViewer();
+      selectedArtworkItem = null;
+      highlightOverlayLayer.replaceChildren();
+      materialContent.replaceChildren();
+      materialContent.style.display = "none";
+      materialEmpty.style.display = "block";
+      setAppState(APP_STATES.SELECTION, { announce: false });
+
+      magnifierPosition = {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      };
+      smoothedMagnifierPosition = { ...magnifierPosition };
+      magnifierTargetPosition = { ...magnifierPosition };
+      updateZoomControls();
+    }
+
+    function handleVisitorDetected() {
+      noHandSince = null;
+
+      if (!isStandbyMode) return;
+
+      isStandbyMode = false;
+      returnToSelectionForStandby();
+      playSpeechForState(APP_STATES.SELECTION);
+    }
+
+    function handleNoHandDetected() {
+      if (noHandSince === null) {
+        noHandSince = Date.now();
+        return;
+      }
+
+      if (!isStandbyMode && Date.now() - noHandSince >= NO_HAND_STANDBY_TIMEOUT_MS) {
+        isStandbyMode = true;
+        returnToSelectionForStandby();
+      }
+    }
+
     function onHandResults(results) {
       if (!firstFrameReceived) {
         firstFrameReceived = true;
@@ -1463,6 +1507,7 @@
       drawCameraPreview(webcamVideo, results.multiHandLandmarks?.[0] || null);
 
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        handleNoHandDetected();
         handCursor.classList.remove("active");
         handCursorTargetPosition = null;
         renderedHandCursorPosition = null;
@@ -1484,6 +1529,8 @@
         buttonDwellStartTime = null;
         return;
       }
+
+      handleVisitorDetected();
 
       // Get first hand (primary hand)
       const handLandmarks = results.multiHandLandmarks[0];
@@ -2179,7 +2226,7 @@
     MaskReader.init(paintingCanvas, maskCanvas);
     MaskReader.loadImages();
     resizeCanvases();
-    setAppState(APP_STATES.SELECTION);
+    setAppState(APP_STATES.SELECTION, { announce: false });
     updateZoomControls();
     initializeSafeZone();
     initializeHandTracking();
