@@ -874,9 +874,9 @@
     let magnifierAnimationFrame = null;
     let lastMagnifierFrameTime = 0;
     let handConfidence = 0;
-    const NO_HAND_STANDBY_TIMEOUT_MS = 10000;
+    const NO_HAND_STANDBY_TIMEOUT_MS = 15000;
     let noHandSince = null;
-    let isStandbyMode = false;
+    let isStandbyMode = true;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
     // Render between camera-analysis frames so the cursor does not step at the
     // hand detector's lower frame rate.
@@ -1479,10 +1479,22 @@
 
       isStandbyMode = false;
       returnToSelectionForStandby();
-      playSpeechForState(APP_STATES.SELECTION);
+      
+      // Only trigger Level 1 speech if it's not already speaking
+      const isCurrentlySpeaking = window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+      if (!isCurrentlySpeaking) {
+        playSpeechForState(APP_STATES.SELECTION);
+      }
     }
 
     function handleNoHandDetected() {
+      // Do not enter standby or return to level 1 while audio explanation is still playing
+      const isCurrentlySpeaking = window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+      if (isCurrentlySpeaking) {
+        noHandSince = Date.now();
+        return;
+      }
+
       if (noHandSince === null) {
         noHandSince = Date.now();
         return;
