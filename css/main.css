@@ -110,7 +110,7 @@ textarea {
 .magnifier.pinching {
   width: 130px;
   height: 130px;
-  box-shadow: 0 0 0 8px rgba(var(--selection-accent-rgb), 0.12), inset 0 0 15px rgba(var(--selection-accent-rgb), 0.14);
+  box-shadow: 0 0 0 8px rgba(var(--selection-accent-rgb), 0.12);
 }
 
 .magnifier-fill {

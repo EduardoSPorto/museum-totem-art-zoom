@@ -1866,8 +1866,9 @@
 
       if (appState === APP_STATES.SELECTION) {
         const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
-        if (colorData && getArtworkItemAtPosition(magnifierPosition.x, magnifierPosition.y)) {
-          magnifierFill.style.backgroundColor = colorData.hex;
+        const artworkItem = colorData ? identifyArtworkItem(colorData) : null;
+        if (artworkItem) {
+          magnifierFill.style.backgroundColor = artworkItem.color;
         }
       }
 
@@ -2095,6 +2096,7 @@
 
     function selectArtworkItem(item) {
       selectedArtworkItem = item;
+      magnifierFill.style.backgroundColor = item.color;
       applySelectionAccent(item);
       pulseSelectionHighlight(item);
       updateZoomControls();
