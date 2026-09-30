@@ -779,10 +779,12 @@
       moleculeHandControl.currentVertical += (moleculeHandControl.targetVertical - moleculeHandControl.currentVertical) * progress;
 
       try {
-        moleculeViewer.setView(moleculeHandControl.startView);
-        moleculeViewer.rotate(moleculeHandControl.currentHorizontal, "vy");
-        moleculeViewer.rotate(moleculeHandControl.currentVertical, "vx");
-        moleculeViewer.render();
+        applyMoleculeHandView(
+          moleculeViewer,
+          moleculeHandControl.startView,
+          moleculeHandControl.currentHorizontal,
+          moleculeHandControl.currentVertical
+        );
       } catch (error) {
         console.warn("Hand molecule rotation failed:", error);
       }
@@ -793,6 +795,45 @@
       moleculeHandControl.animationFrame = (diffH > 0.05 || diffV > 0.05)
         ? requestAnimationFrame(animateMoleculeRotation)
         : null;
+    }
+
+    function applyMoleculeHandView(viewer, startView, horizontalDegrees, verticalDegrees) {
+      // Build 3Dmol's rotation from the pinch anchor, then use one public
+      // setView call. Calling setView/rotate separately redraws on each call.
+      const quaternion = [startView[4], startView[5], startView[6], startView[7]];
+      const rotateVector = ([x, y, z], [qx, qy, qz, qw]) => {
+        const tx = 2 * (qy * z - qz * y);
+        const ty = 2 * (qz * x - qx * z);
+        const tz = 2 * (qx * y - qy * x);
+        return [
+          x + qw * tx + qy * tz - qz * ty,
+          y + qw * ty + qz * tx - qx * tz,
+          z + qw * tz + qx * ty - qy * tx
+        ];
+      };
+      const multiplyQuaternions = ([ax, ay, az, aw], [bx, by, bz, bw]) => [
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+        aw * bw - ax * bx - ay * by - az * bz
+      ];
+      const applyRotation = (degrees, axis) => {
+        const worldAxis = rotateVector(axis, quaternion);
+        const halfAngle = degrees * Math.PI / 360;
+        const sine = Math.sin(halfAngle);
+        quaternion.splice(0, 4, ...multiplyQuaternions(quaternion, [
+          worldAxis[0] * sine,
+          worldAxis[1] * sine,
+          worldAxis[2] * sine,
+          Math.cos(halfAngle)
+        ]));
+      };
+
+      applyRotation(horizontalDegrees, [0, 1, 0]);
+      applyRotation(verticalDegrees, [1, 0, 0]);
+      const view = startView.slice();
+      view.splice(4, 4, ...quaternion);
+      viewer.setView(view);
     }
 
     function stopMoleculeGrab() {
@@ -931,6 +972,7 @@
     // Render between camera-analysis frames so the cursor does not step at the
     // hand detector's lower frame rate.
     const HAND_CURSOR_FOLLOW_RATE = 24;
+    const MOLECULE_HAND_CURSOR_FOLLOW_RATE = 48;
     const MAGNIFIER_FOLLOW_RATE = 24;
     const HAND_INTERACTION_REGION = {
       centerX: 0.5,
@@ -956,7 +998,7 @@
     // when a user's hand appears small because they are farther from the camera.
     const MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH = 36;
     const MIN_MOLECULE_HAND_SCALE = 0.025;
-    const MOLECULE_ROTATION_FOLLOW_RATE = 20;
+    const MOLECULE_ROTATION_FOLLOW_RATE = 32;
     const moleculeHandControl = {
       active: false,
       startPosition: null,
@@ -1656,11 +1698,13 @@
       
       lastHandPosition = { x: palmX, y: palmY };
       
-      // Apply exponential smoothing to reduce jitter
-      smoothedHandPosition.x = smoothedHandPosition.x * SMOOTHING_FACTOR + palmX * (1 - SMOOTHING_FACTOR);
-      smoothedHandPosition.y = smoothedHandPosition.y * SMOOTHING_FACTOR + palmY * (1 - SMOOTHING_FACTOR);
-      smoothedRawHandPosition.x = smoothedRawHandPosition.x * SMOOTHING_FACTOR + rawPalmX * (1 - SMOOTHING_FACTOR);
-      smoothedRawHandPosition.y = smoothedRawHandPosition.y * SMOOTHING_FACTOR + rawPalmY * (1 - SMOOTHING_FACTOR);
+      // Use lighter filtering in the molecule view so the cursor and model
+      // follow the hand promptly. Other levels keep the stronger jitter filter.
+      const handSmoothing = appState === APP_STATES.MOLECULE ? 0.15 : SMOOTHING_FACTOR;
+      smoothedHandPosition.x = smoothedHandPosition.x * handSmoothing + palmX * (1 - handSmoothing);
+      smoothedHandPosition.y = smoothedHandPosition.y * handSmoothing + palmY * (1 - handSmoothing);
+      smoothedRawHandPosition.x = smoothedRawHandPosition.x * handSmoothing + rawPalmX * (1 - handSmoothing);
+      smoothedRawHandPosition.y = smoothedRawHandPosition.y * handSmoothing + rawPalmY * (1 - handSmoothing);
       
       handConfidence = results.multiHandedness?.[0]?.score || 0.8;
 
@@ -1672,8 +1716,14 @@
       // Update status indicator
       updateStatusIndicator(true, handConfidence);
 
-      // Update white cursor position (using smoothed position for stability)
-      updateHandCursor(smoothedHandPosition.x, smoothedHandPosition.y);
+      // Keep the molecule cursor and rotation tied to the same filtered pose.
+      const moleculeHandPose = appState === APP_STATES.MOLECULE
+        ? mapHandPointToScreen(smoothedRawHandPosition.x, smoothedRawHandPosition.y)
+        : null;
+      updateHandCursor(
+        moleculeHandPose?.x ?? smoothedHandPosition.x,
+        moleculeHandPose?.y ?? smoothedHandPosition.y
+      );
       updateMoleculeHandManipulation(currentlyPinching, {
         rawX: smoothedRawHandPosition.x,
         rawY: smoothedRawHandPosition.y,
@@ -1770,7 +1820,10 @@
     function animateHandCursor(timestamp) {
       const elapsedSeconds = Math.min((timestamp - lastHandCursorFrameTime) / 1000, 0.1);
       lastHandCursorFrameTime = timestamp;
-      const progress = 1 - Math.exp(-HAND_CURSOR_FOLLOW_RATE * elapsedSeconds);
+      const followRate = appState === APP_STATES.MOLECULE
+        ? MOLECULE_HAND_CURSOR_FOLLOW_RATE
+        : HAND_CURSOR_FOLLOW_RATE;
+      const progress = 1 - Math.exp(-followRate * elapsedSeconds);
       const target = handCursorTargetPosition;
 
       if (!target || !renderedHandCursorPosition) {
