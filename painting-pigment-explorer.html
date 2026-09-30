@@ -691,7 +691,19 @@
       console.log(`✓ Loaded molecule: ${item.name}`);
     }
 
-    const MOLECULE_GRAB_RELEASE_BUFFER_MS = 280; // Buffer/grace period to prevent accidental release during rotation
+    const MOLECULE_GRAB_RELEASE_BUFFER_MS = 500; // Hold a molecule drag through brief pinch/hand tracking dropouts
+
+    function preserveMoleculeGrabDuringTrackingGap() {
+      if (appState !== APP_STATES.MOLECULE || !moleculeHandControl.active) {
+        stopMoleculeGrab();
+        return;
+      }
+
+      if (performance.now() - moleculeHandControl.lastPinchSeenTime > MOLECULE_GRAB_RELEASE_BUFFER_MS) {
+        stopMoleculeGrab();
+        resetPinchTracking();
+      }
+    }
 
     function updateMoleculeHandManipulation(isCurrentlyPinching, handPose) {
       if (appState !== APP_STATES.MOLECULE || !moleculeViewer) {
@@ -1674,7 +1686,7 @@
         zoomInBtn.classList.remove("is-hovered");
         zoomOutBtn.classList.remove("is-hovered");
         magnifier.classList.remove("active");
-        stopMoleculeGrab();
+        preserveMoleculeGrabDuringTrackingGap();
         handConfidence = 0;
         updateStatusIndicator(false, 0);
         currentButtonHover = null;
