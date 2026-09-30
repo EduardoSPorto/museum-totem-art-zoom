@@ -1061,6 +1061,26 @@ body.app-state-detail {
   opacity: 0.9;
 }
 
+.level-change-cooldown .zoom-zone,
+.level-change-cooldown .zoom-zone:hover,
+.level-change-cooldown .zoom-zone:focus-visible,
+.level-change-cooldown .zoom-zone.is-hovered {
+  opacity: 0.28;
+  transform: none;
+  filter: none;
+  color: #625f5a;
+}
+
+.level-change-cooldown .zoom-zone .zoom-zone-arrow,
+.level-change-cooldown .zoom-zone .zoom-zone-label {
+  color: #625f5a;
+  text-shadow: none;
+}
+
+.level-change-cooldown .zoom-zone.is-attention .zoom-zone-content {
+  animation: none;
+}
+
 .detail-header {
   display: none;
   margin-bottom: 28px;

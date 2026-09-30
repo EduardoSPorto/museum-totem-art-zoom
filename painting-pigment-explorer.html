@@ -1902,16 +1902,17 @@
         y >= zoomOutRect.top && y <= zoomOutRect.bottom;
 
       const isOverButton = isOverZoomInBtn || isOverZoomOutBtn;
+      const levelChangeAvailable = !isNonMouseLevelChangeOnCooldown();
 
       // Highlight white circle when hovering button
-      handCursor.classList.toggle("hovering", isOverButton);
-      zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled);
-      zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled);
+      handCursor.classList.toggle("hovering", isOverButton && levelChangeAvailable);
+      zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable);
+      zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable);
 
       // Update button hover state (for dwell timer)
-      if (isOverZoomInBtn && !zoomInBtn.disabled) {
+      if (isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable) {
         currentButtonHover = "zoomInBtn";
-      } else if (isOverZoomOutBtn && !zoomOutBtn.disabled) {
+      } else if (isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable) {
         currentButtonHover = "zoomOutBtn";
       } else {
         currentButtonHover = null;
@@ -2006,6 +2007,17 @@
     function updateTextScrollTargets() {
       [materialContent, moleculeLegend].forEach(updateSlowTextScroll);
     }
+
+    function refreshTextScrollAfterViewportChange() {
+      if (appState !== APP_STATES.DETAIL && appState !== APP_STATES.MOLECULE) return;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(updateTextScrollTargets);
+      });
+    }
+
+    window.addEventListener("resize", refreshTextScrollAfterViewportChange);
+    document.addEventListener("fullscreenchange", refreshTextScrollAfterViewportChange);
 
     function formatTextParagraphs(value) {
       return String(value || "")
@@ -2287,6 +2299,10 @@
       // controls. Start the cooldown here so physical mouse clicks remain instant.
       nonMouseLevelChangeAvailableAt = Date.now() + NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS;
       button.click();
+      document.body.classList.add("level-change-cooldown");
+      window.setTimeout(() => {
+        document.body.classList.remove("level-change-cooldown");
+      }, NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS);
       return true;
     }
     
