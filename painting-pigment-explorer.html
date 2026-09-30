@@ -2370,6 +2370,17 @@
       MaskReader.resizeCanvases(paintingCanvas, maskCanvas);
     }
 
+    function requestFullscreenOnFirstInteraction() {
+      const requestFullscreen = document.documentElement.requestFullscreen;
+      if (document.fullscreenElement || typeof requestFullscreen !== "function") return;
+
+      requestFullscreen.call(document.documentElement).catch((error) => {
+        console.info("Fullscreen was not enabled by the browser:", error);
+      });
+    }
+
+    document.addEventListener("pointerdown", requestFullscreenOnFirstInteraction, { once: true });
+
     // ===== MAIN INTERACTION LOOP =====
     setInterval(() => {
       if (handTrackingEnabled) {
