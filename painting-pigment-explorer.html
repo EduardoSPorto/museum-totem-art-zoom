@@ -2368,8 +2368,6 @@
       MaskReader.resizeCanvases(paintingCanvas, maskCanvas);
     }
 
-    window.addEventListener("resize", resizeCanvases);
-
     // ===== MAIN INTERACTION LOOP =====
     setInterval(() => {
       if (handTrackingEnabled) {
@@ -2389,16 +2387,16 @@
     // ===== INITIALIZATION =====
     MaskReader.init(paintingCanvas, maskCanvas);
     MaskReader.loadImages();
-    resizeCanvases();
     setAppState(APP_STATES.SELECTION, { announce: false });
     updateZoomControls();
     initializeSafeZone();
+    resizeCanvases();
     initializeHandTracking();
 
     // Re-initialize safe zone on window resize
     window.addEventListener("resize", () => {
-      resizeCanvases();
       initializeSafeZone();
+      resizeCanvases();
     });
 
     console.log(`
