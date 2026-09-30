@@ -164,6 +164,9 @@ function setAppState(newState, { announce = true } = {}) {
       if (typeof initializeSafeZone === "function") {
         initializeSafeZone();
       }
+      if (typeof resizeCanvases === "function") {
+        resizeCanvases();
+      }
     }, 50);
   }
   
