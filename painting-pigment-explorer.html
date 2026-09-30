@@ -691,7 +691,8 @@
       console.log(`✓ Loaded molecule: ${item.name}`);
     }
 
-    const MOLECULE_GRAB_RELEASE_BUFFER_MS = 500; // Hold a molecule drag through brief pinch/hand tracking dropouts
+    const MOLECULE_TRACKING_GAP_BUFFER_MS = 500; // Keep dragging through brief hand-detection dropouts
+    const MOLECULE_PINCH_RELEASE_BUFFER_MS = 180; // Confirm a visible unpinch quickly to avoid stale drag anchors
 
     function preserveMoleculeGrabDuringTrackingGap() {
       if (appState !== APP_STATES.MOLECULE || !moleculeHandControl.active) {
@@ -699,7 +700,7 @@
         return;
       }
 
-      if (performance.now() - moleculeHandControl.lastPinchSeenTime > MOLECULE_GRAB_RELEASE_BUFFER_MS) {
+      if (performance.now() - moleculeHandControl.lastPinchSeenTime > MOLECULE_TRACKING_GAP_BUFFER_MS) {
         stopMoleculeGrab();
         resetPinchTracking();
       }
@@ -721,7 +722,7 @@
       if (!isCurrentlyPinching) {
         if (moleculeHandControl.active) {
           // If we recently saw a pinch, hold onto the grab during this buffer window
-          if (now - moleculeHandControl.lastPinchSeenTime <= MOLECULE_GRAB_RELEASE_BUFFER_MS) {
+          if (now - moleculeHandControl.lastPinchSeenTime <= MOLECULE_TRACKING_GAP_BUFFER_MS) {
             // Keep grab active using the last good pose
             return;
           }
@@ -1490,7 +1491,7 @@
         if (
           appState === APP_STATES.MOLECULE &&
           moleculeHandControl.active &&
-          performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_GRAB_RELEASE_BUFFER_MS
+          performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_TRACKING_GAP_BUFFER_MS
         ) {
           pinchFrameBuffered = true;
           return true;
@@ -1520,7 +1521,7 @@
           if (
             appState === APP_STATES.MOLECULE &&
             moleculeHandControl.active &&
-            performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_GRAB_RELEASE_BUFFER_MS
+            performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_PINCH_RELEASE_BUFFER_MS
           ) {
             pinchFrameBuffered = true;
             return true;
