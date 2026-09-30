@@ -691,16 +691,35 @@
       console.log(`✓ Loaded molecule: ${item.name}`);
     }
 
+    const MOLECULE_GRAB_RELEASE_BUFFER_MS = 280; // Buffer/grace period to prevent accidental release during rotation
+
     function updateMoleculeHandManipulation(isCurrentlyPinching, handPose) {
       if (appState !== APP_STATES.MOLECULE || !moleculeViewer) {
         stopMoleculeGrab();
         return;
       }
 
+      const now = performance.now();
+
+      // A missing landmark frame is different from an intentional open-hand
+      // release. Keep the grab through brief tracking dropouts without treating
+      // the stale hand pose as a new movement sample.
+      if (handPose.pinchObserved === false) return;
+
       if (!isCurrentlyPinching) {
+        if (moleculeHandControl.active) {
+          // If we recently saw a pinch, hold onto the grab during this buffer window
+          if (now - moleculeHandControl.lastPinchSeenTime <= MOLECULE_GRAB_RELEASE_BUFFER_MS) {
+            // Keep grab active using the last good pose
+            return;
+          }
+        }
         stopMoleculeGrab();
         return;
       }
+
+      // Pinch is active
+      moleculeHandControl.lastPinchSeenTime = now;
 
       if (!moleculeHandControl.active) {
         if (currentButtonHover) return;
@@ -709,54 +728,83 @@
         moleculeHandControl.startPosition = { x: handPose.rawX, y: handPose.rawY };
         moleculeHandControl.startHandScale = handPose.handScale;
         moleculeHandControl.startView = moleculeViewer.getView().slice();
+        moleculeHandControl.targetHorizontal = 0;
+        moleculeHandControl.targetVertical = 0;
+        moleculeHandControl.currentHorizontal = 0;
+        moleculeHandControl.currentVertical = 0;
         handCursor.classList.add("grabbing");
       }
 
-      rotateMoleculeFromHandPose(handPose);
+      updateMoleculeRotationTargets(handPose);
     }
 
-    function rotateMoleculeFromHandPose(handPose) {
-      if (!moleculeViewer || !moleculeHandControl.startPosition || !moleculeHandControl.startView) return;
+    function updateMoleculeRotationTargets(handPose) {
+      if (!moleculeHandControl.active || !moleculeHandControl.startPosition) return;
 
       const deltaX = handPose.rawX - moleculeHandControl.startPosition.x;
       const deltaY = handPose.rawY - moleculeHandControl.startPosition.y;
 
-      if (Math.abs(deltaX) < 0.01 && Math.abs(deltaY) < 0.01) return;
-
-      // Express the drag in palm-widths instead of camera pixels. A hand farther
-      // from the camera occupies fewer pixels, so this preserves the same rotation
-      // for the same physical hand movement at different distances.
       const handScale = Math.max(
         (moleculeHandControl.startHandScale + handPose.handScale) / 2,
         MIN_MOLECULE_HAND_SCALE
       );
-      const horizontalDegrees = clamp(
+      moleculeHandControl.targetHorizontal = clamp(
         (deltaX / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
         -120,
         120
       );
-      const verticalDegrees = clamp(
+      moleculeHandControl.targetVertical = clamp(
         (-deltaY / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
         -120,
         120
       );
 
+      if (moleculeHandControl.animationFrame === null) {
+        moleculeHandControl.lastFrameTime = performance.now();
+        moleculeHandControl.animationFrame = requestAnimationFrame(animateMoleculeRotation);
+      }
+    }
+
+    function animateMoleculeRotation(timestamp) {
+      if (!moleculeHandControl.active || !moleculeViewer || !moleculeHandControl.startView) {
+        moleculeHandControl.animationFrame = null;
+        return;
+      }
+
+      const elapsedSeconds = Math.min((timestamp - moleculeHandControl.lastFrameTime) / 1000, 0.1);
+      moleculeHandControl.lastFrameTime = timestamp;
+      const progress = 1 - Math.exp(-MOLECULE_ROTATION_FOLLOW_RATE * elapsedSeconds);
+
+      moleculeHandControl.currentHorizontal += (moleculeHandControl.targetHorizontal - moleculeHandControl.currentHorizontal) * progress;
+      moleculeHandControl.currentVertical += (moleculeHandControl.targetVertical - moleculeHandControl.currentVertical) * progress;
+
       try {
-        // Rebuild the view from the pinch-start pose so the hand acts like a grasp, not a drag.
         moleculeViewer.setView(moleculeHandControl.startView);
-        moleculeViewer.rotate(horizontalDegrees, "vy");
-        moleculeViewer.rotate(verticalDegrees, "vx");
+        moleculeViewer.rotate(moleculeHandControl.currentHorizontal, "vy");
+        moleculeViewer.rotate(moleculeHandControl.currentVertical, "vx");
         moleculeViewer.render();
       } catch (error) {
         console.warn("Hand molecule rotation failed:", error);
       }
+
+      const diffH = Math.abs(moleculeHandControl.targetHorizontal - moleculeHandControl.currentHorizontal);
+      const diffV = Math.abs(moleculeHandControl.targetVertical - moleculeHandControl.currentVertical);
+
+      moleculeHandControl.animationFrame = (diffH > 0.05 || diffV > 0.05)
+        ? requestAnimationFrame(animateMoleculeRotation)
+        : null;
     }
 
     function stopMoleculeGrab() {
+      if (moleculeHandControl.animationFrame !== null) {
+        cancelAnimationFrame(moleculeHandControl.animationFrame);
+        moleculeHandControl.animationFrame = null;
+      }
       moleculeHandControl.active = false;
       moleculeHandControl.startPosition = null;
       moleculeHandControl.startHandScale = null;
       moleculeHandControl.startView = null;
+      moleculeHandControl.lastPinchSeenTime = 0;
       if (typeof handCursor !== "undefined") {
         handCursor.classList.remove("grabbing");
       }
@@ -897,6 +945,7 @@
     const magnifierFill = document.getElementById("magnifierFill");
     let magnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let isPinching = false;
+    let pinchFrameBuffered = false;
     let pinchGestureTargetsArtwork = false;
     let pinchStartTime = null;
     let pinchGestureConsumed = false;
@@ -907,11 +956,18 @@
     // when a user's hand appears small because they are farther from the camera.
     const MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH = 36;
     const MIN_MOLECULE_HAND_SCALE = 0.025;
+    const MOLECULE_ROTATION_FOLLOW_RATE = 20;
     const moleculeHandControl = {
       active: false,
       startPosition: null,
       startHandScale: null,
-      startView: null
+      startView: null,
+      targetHorizontal: 0,
+      targetVertical: 0,
+      currentHorizontal: 0,
+      currentVertical: 0,
+      animationFrame: null,
+      lastFrameTime: 0
     };
     
     // Button activation
@@ -1375,7 +1431,16 @@
     }
 
     function updatePinchState(pinchMetrics) {
+      pinchFrameBuffered = false;
       if (!pinchMetrics) {
+        if (
+          appState === APP_STATES.MOLECULE &&
+          moleculeHandControl.active &&
+          performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_GRAB_RELEASE_BUFFER_MS
+        ) {
+          pinchFrameBuffered = true;
+          return true;
+        }
         if (isPinching) {
           handlePinchRelease();
         }
@@ -1398,6 +1463,14 @@
 
       if (isPinching) {
         if (isAboveReleaseThreshold) {
+          if (
+            appState === APP_STATES.MOLECULE &&
+            moleculeHandControl.active &&
+            performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_GRAB_RELEASE_BUFFER_MS
+          ) {
+            pinchFrameBuffered = true;
+            return true;
+          }
           handlePinchRelease();
           resetPinchTracking();
           return false;
@@ -1606,7 +1679,8 @@
         rawY: smoothedRawHandPosition.y,
         handScale: pinchMetrics?.handScale ?? MIN_MOLECULE_HAND_SCALE,
         screenX: smoothedHandPosition.x,
-        screenY: smoothedHandPosition.y
+        screenY: smoothedHandPosition.y,
+        pinchObserved: Boolean(pinchMetrics) && !pinchFrameBuffered
       });
 
       // Show magnifier only in SELECTION mode
