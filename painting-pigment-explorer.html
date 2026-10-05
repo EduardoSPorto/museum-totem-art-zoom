@@ -1002,9 +1002,11 @@
     let isPinching = false;
     let pinchFrameBuffered = false;
     let pinchGestureTargetsArtwork = false;
+    let pinchStartButtonId = null;
     let pinchStartTime = null;
     let pinchGestureConsumed = false;
     const PINCH_CONFIRMATION_MS = 100;
+    const BUTTON_PINCH_HOLD_MS = 500;
     const PINCH_THRESHOLD = 0.32;
     const PINCH_RELEASE_THRESHOLD = 0.42;
     // Rotation is calibrated in degrees per palm-width, so it remains responsive
@@ -1025,10 +1027,8 @@
       lastFrameTime: 0
     };
     
-    // Button activation
+    // Camera level-change targeting
     let currentButtonHover = null;
-    let buttonDwellStartTime = null;
-    const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
     const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 3000;
     let nonMouseLevelChangeAvailableAt = 0;
     
@@ -1476,6 +1476,7 @@
     function resetPinchTracking() {
       isPinching = false;
       pinchGestureTargetsArtwork = false;
+      pinchStartButtonId = null;
       pinchStartTime = null;
       magnifier.classList.remove("pinching");
     }
@@ -1541,6 +1542,7 @@
 
       isPinching = true;
       pinchGestureTargetsArtwork = false;
+      pinchStartButtonId = currentButtonHover;
       pinchStartTime = Date.now();
       return true;
     }
@@ -1565,6 +1567,12 @@
     function isPinchConfirmed() {
       if (!isPinching || !pinchStartTime) return false;
       return Date.now() - pinchStartTime > PINCH_CONFIRMATION_MS;
+    }
+
+    function isButtonPinchHeld(buttonId) {
+      return pinchStartButtonId === buttonId &&
+        pinchStartTime !== null &&
+        Date.now() - pinchStartTime >= BUTTON_PINCH_HOLD_MS;
     }
 
     function updateStatusIndicator(isDetected) {
@@ -1691,7 +1699,6 @@
         handConfidence = 0;
         updateStatusIndicator(false, 0);
         currentButtonHover = null;
-        buttonDwellStartTime = null;
         return;
       }
 
@@ -1922,13 +1929,17 @@
       zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable);
       zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable);
 
-      // Update button hover state (for dwell timer)
+      // Keep the hovered button as the target for a deliberate pinch.
       if (isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable) {
         currentButtonHover = "zoomInBtn";
       } else if (isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable) {
         currentButtonHover = "zoomOutBtn";
       } else {
         currentButtonHover = null;
+      }
+
+      if (isPinching && currentButtonHover !== pinchStartButtonId) {
+        pinchStartButtonId = null;
       }
     }
 
@@ -2286,7 +2297,6 @@
 
       if (!canZoomIn && currentButtonHover === "zoomInBtn") {
         currentButtonHover = null;
-        buttonDwellStartTime = null;
       }
 
       if (!shouldInviteZoomIn && zoomInBtn.classList.contains("is-attention")) {
@@ -2295,11 +2305,10 @@
 
       if (!canZoomOut && currentButtonHover === "zoomOutBtn") {
         currentButtonHover = null;
-        buttonDwellStartTime = null;
       }
     }
 
-    // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
+    // ===== BUTTON ACTIVATION (Pinch for camera controls) =====
 
     function isNonMouseLevelChangeOnCooldown() {
       return Date.now() < nonMouseLevelChangeAvailableAt;
@@ -2319,41 +2328,9 @@
       return true;
     }
     
-    function checkButtonActivation() {
-      if (!handTrackingEnabled) return;
-      if (moleculeHandControl.active) return;
-
-      if (isNonMouseLevelChangeOnCooldown()) {
-        buttonDwellStartTime = null;
-        return;
-      }
-
-      // Only process if white circle is hovering a button
-      if (!currentButtonHover) {
-        buttonDwellStartTime = null;
-        return;
-      }
-
-      const button = document.getElementById(currentButtonHover);
-      if (!button || button.disabled) return;
-
-      // Track hover dwell for activation
-      if (!buttonDwellStartTime) {
-        buttonDwellStartTime = Date.now();
-      }
-
-      const elapsedMs = Date.now() - buttonDwellStartTime;
-
-      // Activate button after dwell timeout
-      if (elapsedMs >= BUTTON_DWELL_MS) {
-        activateButtonWithHand(button);
-        buttonDwellStartTime = null;
-      }
-    }
-
     function handleButtonPinch(buttonId) {
-      // Pinch while over button = immediate activation
-      if (isPinchConfirmed()) {
+      // A pinch must start over the button and be held there before activation.
+      if (isPinchConfirmed() && isButtonPinchHeld(buttonId)) {
         const button = document.getElementById(buttonId);
         if (button && !button.disabled && !isNonMouseLevelChangeOnCooldown()) {
           consumePinchGesture();
@@ -2413,9 +2390,7 @@
     // ===== MAIN INTERACTION LOOP =====
     setInterval(() => {
       if (handTrackingEnabled) {
-        checkButtonActivation();  // Handle hover-based dwell
-        
-        // Handle pinch-based button activation
+        // Handle pinch-based button activation.
         if (isPinching && isPinchConfirmed()) {
           if (currentButtonHover === "zoomInBtn") {
             handleButtonPinch("zoomInBtn");
@@ -2487,13 +2462,13 @@ INTERACTION FEATURES:
 ✓ Magnifier = Physical metaphor (pick up, drag, drop)
 ✓ White circle = Intentional action point (buttons only)
 ✓ Pinch detection = Primary interaction method
-✓ Hover dwell = Fallback option (1 second)
+✓ Camera level changes = Confirmed pinch while hovering a button
 ✓ Auto-rotating molecule = Museum engagement
 ✓ 3D controls = Mouse drag or hand gesture (future)
 
 CUSTOMIZATION:
   • PINCH_THRESHOLD: How close thumb-index must be
-  • BUTTON_DWELL_MS: Hover time to activate (1000ms)
+  • BUTTON_PINCH_HOLD_MS: Camera-control pinch hold duration (500ms)
   • SAFE_ZONE_MARGINS: Camera detection area
   • Three.js scene: Lighting, colors, atom sizes
 
