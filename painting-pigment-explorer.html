@@ -762,12 +762,12 @@
         MIN_MOLECULE_HAND_SCALE
       );
       moleculeHandControl.targetHorizontal = clamp(
-        (deltaX / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
+        (-deltaX / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
         -120,
         120
       );
       moleculeHandControl.targetVertical = clamp(
-        (-deltaY / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
+        (deltaY / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
         -120,
         120
       );
