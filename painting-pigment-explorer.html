@@ -1884,7 +1884,9 @@
       magnifier.style.left = "0px";
       magnifier.style.top = "0px";
 
-      if (appState === APP_STATES.SELECTION) {
+      // While the hand is not pinching, keep the confirmed selection visible.
+      // A pending animation frame can otherwise overwrite it after release.
+      if (appState === APP_STATES.SELECTION && isPinching) {
         const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
         const artworkItem = colorData ? identifyArtworkItem(colorData) : null;
         if (artworkItem) {

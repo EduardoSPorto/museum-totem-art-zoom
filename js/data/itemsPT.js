@@ -93,7 +93,7 @@ const ARTWORK_ITEMS = {
     yellow: {
         id: "cadmium_sulfide",
         type: "material",
-        color: "#FFF600",
+        color: "#FFFF00",
         image: "assets/materials/Cadmium_Yellow.jpg",
         name: "Amarelo de Cádmio",
         commonName: "Sulfeto de Cádmio",
