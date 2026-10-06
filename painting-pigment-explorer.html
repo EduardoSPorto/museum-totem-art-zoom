@@ -681,8 +681,7 @@
 
       const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
       legendInfo.innerHTML = `
-        ${isPT ? "Estrutura:" : "Structure:"} ${item.structure}<br/>
-        ${isPT ? "Fórmula:" : "Formula:"} ${item.formula}
+        ${isPT ? "Estrutura:" : "Structure:"} ${item.structure}
       `;
 
       moleculeTitle.textContent = item.name;
