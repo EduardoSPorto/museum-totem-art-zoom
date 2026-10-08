@@ -819,19 +819,11 @@
     }
 
     function applyMoleculeHandView(viewer, startView, horizontalDegrees, verticalDegrees) {
-      // Build 3Dmol's rotation from the pinch anchor, then use one public
-      // setView call. Calling setView/rotate separately redraws on each call.
-      const quaternion = [startView[4], startView[5], startView[6], startView[7]];
-      const rotateVector = ([x, y, z], [qx, qy, qz, qw]) => {
-        const tx = 2 * (qy * z - qz * y);
-        const ty = 2 * (qz * x - qx * z);
-        const tz = 2 * (qx * y - qy * x);
-        return [
-          x + qw * tx + qy * tz - qz * ty,
-          y + qw * ty + qz * tx - qx * tz,
-          z + qw * tz + qx * ty - qy * tx
-        ];
-      };
+      // Compose rotations around fixed viewer axes. Premultiplication keeps
+      // horizontal hand motion on the viewer's vertical axis and vertical
+      // motion on its horizontal axis, regardless of the molecule's current
+      // orientation. Build the full view and redraw only once.
+      let quaternion = [startView[4], startView[5], startView[6], startView[7]];
       const multiplyQuaternions = ([ax, ay, az, aw], [bx, by, bz, bw]) => [
         aw * bx + ax * bw + ay * bz - az * by,
         aw * by - ax * bz + ay * bw + az * bx,
@@ -839,15 +831,10 @@
         aw * bw - ax * bx - ay * by - az * bz
       ];
       const applyRotation = (degrees, axis) => {
-        const worldAxis = rotateVector(axis, quaternion);
         const halfAngle = degrees * Math.PI / 360;
         const sine = Math.sin(halfAngle);
-        quaternion.splice(0, 4, ...multiplyQuaternions(quaternion, [
-          worldAxis[0] * sine,
-          worldAxis[1] * sine,
-          worldAxis[2] * sine,
-          Math.cos(halfAngle)
-        ]));
+        const delta = [axis[0] * sine, axis[1] * sine, axis[2] * sine, Math.cos(halfAngle)];
+        quaternion = multiplyQuaternions(delta, quaternion);
       };
 
       applyRotation(horizontalDegrees, [0, 1, 0]);
@@ -1720,6 +1707,10 @@
 
       const rawPalmX = palmCenter.x;
       const rawPalmY = palmCenter.y;
+      const thumbTip = handLandmarks[4];
+      const indexTip = handLandmarks[8];
+      const rawPinchX = (thumbTip.x + indexTip.x) / 2;
+      const rawPinchY = (thumbTip.y + indexTip.y) / 2;
       const mappedPalm = mapHandPointToScreen(rawPalmX, rawPalmY);
       const palmX = mappedPalm.x;
       const palmY = mappedPalm.y;
@@ -1731,8 +1722,10 @@
       const handSmoothing = appState === APP_STATES.MOLECULE ? 0.15 : SMOOTHING_FACTOR;
       smoothedHandPosition.x = smoothedHandPosition.x * handSmoothing + palmX * (1 - handSmoothing);
       smoothedHandPosition.y = smoothedHandPosition.y * handSmoothing + palmY * (1 - handSmoothing);
-      smoothedRawHandPosition.x = smoothedRawHandPosition.x * handSmoothing + rawPalmX * (1 - handSmoothing);
-      smoothedRawHandPosition.y = smoothedRawHandPosition.y * handSmoothing + rawPalmY * (1 - handSmoothing);
+      const rawControlX = appState === APP_STATES.MOLECULE ? rawPinchX : rawPalmX;
+      const rawControlY = appState === APP_STATES.MOLECULE ? rawPinchY : rawPalmY;
+      smoothedRawHandPosition.x = smoothedRawHandPosition.x * handSmoothing + rawControlX * (1 - handSmoothing);
+      smoothedRawHandPosition.y = smoothedRawHandPosition.y * handSmoothing + rawControlY * (1 - handSmoothing);
       
       handConfidence = results.multiHandedness?.[0]?.score || 0.8;
 
@@ -1744,7 +1737,8 @@
       // Update status indicator
       updateStatusIndicator(true, handConfidence);
 
-      // Keep the molecule cursor and rotation tied to the same filtered pose.
+      // In the molecule view, keep the cursor, viewport hit check, and rotation
+      // tied to the same filtered midpoint between the pinching fingertips.
       const moleculeHandPose = appState === APP_STATES.MOLECULE
         ? mapHandPointToScreen(smoothedRawHandPosition.x, smoothedRawHandPosition.y, false)
         : null;
@@ -1756,8 +1750,8 @@
         rawX: smoothedRawHandPosition.x,
         rawY: smoothedRawHandPosition.y,
         handScale: pinchMetrics?.handScale ?? MIN_MOLECULE_HAND_SCALE,
-        screenX: smoothedHandPosition.x,
-        screenY: smoothedHandPosition.y,
+        screenX: moleculeHandPose?.x ?? smoothedHandPosition.x,
+        screenY: moleculeHandPose?.y ?? smoothedHandPosition.y,
         pinchObserved: Boolean(pinchMetrics) && !pinchFrameBuffered
       });
 
