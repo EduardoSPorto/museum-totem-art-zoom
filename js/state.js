@@ -70,8 +70,8 @@ function playSpeechForState(newState) {
 
   if (newState === APP_STATES.SELECTION) {
     textToSpeak = lang === 'pt' 
-      ? "Esta é uma pintura da artista Benette Casaretto Motta. A pintura mostra um anjo de braços abertos voltado para o observador. Você pode fazer o movimento de pinça em direção à câmera abaixo, o que permite selecionar uma cor e explorar mais sobre o material."
-      : "This is a painting by the artist Benette Casaretto Motta. The painting shows an angel with open arms facing the viewer. You can pinch toward the camera below, which allows you to select a color and explore more about the material.";
+      ? "Esta é uma pintura da artista Benette Casaretto Motta. A pintura mostra um anjo de braços abertos voltado para o observador. Você pode fazer o movimento de pinça em direção à câmera abaixo, o que permite selecionar uma cor e explorar mais sobre o material. Após selecionar uma cor é manter o sinal de pinça sobre o texto aproximar para aprender mais sobre a cor selecionada."
+      : "This is a painting by the artist Benette Casaretto Motta. The painting shows an angel with open arms facing the viewer. You can pinch toward the camera below, which allows you to select a color and explore more about the material. After selecting a color, hold the pinch gesture over the text zoom in to learn more about the selected color.";
   } else if (newState === APP_STATES.DETAIL) {
     if (typeof selectedArtworkItem !== 'undefined' && selectedArtworkItem) {
       const isArtist = selectedArtworkItem.type === 'artist';
@@ -85,14 +85,14 @@ function playSpeechForState(newState) {
           "Vamos aprender mais sobre o material.",
           selectedArtworkItem.historicalContext,
           hasSpeechContent(selectedArtworkItem.whyColor) ? `A cor visível é assim porque ${selectedArtworkItem.whyColor}.` : "",
-          selectedArtworkItem.chemicalStructure ? "Você pode aproximar para explorar a estrutura molecular." : ""
+          selectedArtworkItem.chemicalStructure ? "Você pode manter o sinal de pinça sobre o botão aproximar para explorar a estrutura molecular." : ""
         ];
       } else {
         textToSpeak = [
           "Let’s learn more about the material.",
           selectedArtworkItem.historicalContext,
           hasSpeechContent(selectedArtworkItem.whyColor) ? `The visible color looks like this because ${selectedArtworkItem.whyColor}.` : "",
-          selectedArtworkItem.chemicalStructure ? "You can zoom in to explore the molecular structure." : ""
+          selectedArtworkItem.chemicalStructure ? "You can keep the pinch signal over the zoom in button to explore the molecular structure." : ""
         ];
       }
 
