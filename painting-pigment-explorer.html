@@ -736,6 +736,15 @@
       if (!moleculeHandControl.active) {
         if (currentButtonHover) return;
 
+        // A pinch only begins a model drag when the hand is actually over the
+        // visible model viewport. Use the unclamped camera projection here so
+        // points outside the interaction region cannot collapse onto its edge.
+        const viewportRect = moleculeViewport.getBoundingClientRect();
+        if (
+          handPose.screenX < viewportRect.left || handPose.screenX > viewportRect.right ||
+          handPose.screenY < viewportRect.top || handPose.screenY > viewportRect.bottom
+        ) return;
+
         moleculeHandControl.active = true;
         moleculeHandControl.startPosition = { x: handPose.rawX, y: handPose.rawY };
         moleculeHandControl.startHandScale = handPose.handScale;
@@ -1434,7 +1443,7 @@
       return Math.min(Math.max(value, min), max);
     }
 
-    function mapHandPointToScreen(rawX, rawY) {
+    function mapHandPointToScreen(rawX, rawY, shouldClamp = HAND_INTERACTION_REGION.clampToRegion) {
       const region = HAND_INTERACTION_REGION;
       const mirroredX = 1 - rawX;
       const left = region.centerX - region.widthRatio / 2;
@@ -1443,7 +1452,7 @@
       let normalizedX = (mirroredX - left) / region.widthRatio;
       let normalizedY = (rawY - top) / region.heightRatio;
 
-      if (region.clampToRegion) {
+      if (shouldClamp) {
         normalizedX = clamp(normalizedX, 0, 1);
         normalizedY = clamp(normalizedY, 0, 1);
       }
@@ -1737,7 +1746,7 @@
 
       // Keep the molecule cursor and rotation tied to the same filtered pose.
       const moleculeHandPose = appState === APP_STATES.MOLECULE
-        ? mapHandPointToScreen(smoothedRawHandPosition.x, smoothedRawHandPosition.y)
+        ? mapHandPointToScreen(smoothedRawHandPosition.x, smoothedRawHandPosition.y, false)
         : null;
       updateHandCursor(
         moleculeHandPose?.x ?? smoothedHandPosition.x,
