@@ -979,6 +979,40 @@ body.app-state-detail {
   display: none !important;
 }
 
+#zoomInBtn.is-pinching,
+#zoomOutBtn.is-pinching {
+  opacity: 1;
+  transform: scale(1.14);
+  filter: drop-shadow(0 0 12px rgba(var(--selection-accent-rgb), 0.85))
+    drop-shadow(0 0 34px rgba(var(--selection-accent-rgb), 0.72));
+}
+
+#zoomInBtn.is-pinching .zoom-zone-arrow,
+#zoomInBtn.is-pinching .zoom-zone-label,
+#zoomOutBtn.is-pinching .zoom-zone-arrow,
+#zoomOutBtn.is-pinching .zoom-zone-label {
+  color: #3c1713;
+  text-shadow: 0 0 8px rgba(255, 244, 224, 0.9), 0 0 20px rgba(var(--selection-accent-rgb), 0.5);
+}
+
+#zoomInBtn.is-pinching .zoom-zone-arrow,
+#zoomOutBtn.is-pinching .zoom-zone-arrow {
+  animation: zoomPinchPulse 0.7s ease-in-out infinite alternate;
+}
+
+#zoomInBtn.is-pinching .zoom-zone-label,
+#zoomOutBtn.is-pinching .zoom-zone-label {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 235, 0.82);
+  box-shadow: 0 0 18px rgba(var(--selection-accent-rgb), 0.45);
+}
+
+@keyframes zoomPinchPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.16); }
+}
+
 #zoomOutBtn {
   left: 0;
   justify-content: flex-start;

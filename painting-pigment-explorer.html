@@ -1688,7 +1688,9 @@
           magnifierAnimationFrame = null;
         }
         zoomInBtn.classList.remove("is-hovered");
+        zoomInBtn.classList.remove("is-pinching");
         zoomOutBtn.classList.remove("is-hovered");
+        zoomOutBtn.classList.remove("is-pinching");
         magnifier.classList.remove("active");
         preserveMoleculeGrabDuringTrackingGap();
         handConfidence = 0;
@@ -1932,6 +1934,14 @@
       handCursor.classList.toggle("hovering", isOverButton && levelChangeAvailable);
       zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable);
       zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable);
+      zoomInBtn.classList.toggle(
+        "is-pinching",
+        isPinching && pinchStartButtonId === "zoomInBtn" && isOverZoomInBtn && !zoomInBtn.disabled
+      );
+      zoomOutBtn.classList.toggle(
+        "is-pinching",
+        isPinching && pinchStartButtonId === "zoomOutBtn" && isOverZoomOutBtn && !zoomOutBtn.disabled
+      );
 
       // Keep the hovered button as the target for a deliberate pinch.
       if (isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable) {
