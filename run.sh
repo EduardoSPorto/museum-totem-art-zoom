@@ -29,14 +29,13 @@ while ! check_port $PORT && [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
 done
 
 if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
-    echo "❌ Error: Could not find an available port after $MAX_ATTEMPTS attempts"
+    echo "Error: Could not find an available port after $MAX_ATTEMPTS attempts"
     exit 1
 fi
 
-echo "🎨 Starting Painting Pigment Explorer..."
+echo "Starting Painting Pigment Explorer"
 echo ""
-echo "📍 Local server running at: http://localhost:$PORT"
-echo "🌐 Launcher URL:          http://localhost:$PORT/launcher.html"
+echo "Launcher URL: http://localhost:$PORT/launcher.html"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
@@ -55,7 +54,7 @@ elif command -v php &> /dev/null; then
     php -S "localhost:$PORT" &
     SERVER_PID=$!
 else
-    echo "❌ Error: No suitable HTTP server found (python3, python, or php required)"
+    echo "Error: No suitable HTTP server found (python3, python, or php required)"
     exit 1
 fi
 

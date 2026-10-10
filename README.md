@@ -3,9 +3,15 @@
 
 ## Estado atual
 
-O projeto apresenta uma pintura em um totem interativo e permite selecionar regiões da obra com um gesto de pinça. A experiência está organizada em três níveis: a obra, as informações históricas e materiais da região selecionada, e a visualização tridimensional de sua estrutura química.
+O projeto apresenta uma pintura em um totem interativo e permite selecionar regiões da obra com um gesto de pinça touchless por rastreamento biométrico das mãos. A experiência está organizada em três níveis:
+1. **Nível 1 (Obra de Arte):** A pintura completa em tela cheia com visualização ampliada, onde o visitante seleciona regiões de interesse através de pinça confirmada sobre a máscara cromática. Regiões selecionadas contam com contorno e máscara de realce com filtro estético discreto.
+2. **Nível 2 (Material & Contexto):** Informações históricas, artísticas e materiais do pigmento selecionado, com layout adaptado sem necessidade de rolagem de texto, suporte a áudio dinâmico (TTS) em Português ou Inglês e botões de navegação lateral com estado desabilitado (cinza) nos limites.
+3. **Nível 3 (Molécula 3D & Cristalografia):** Visualização tridimensional interativa renderizada via WebGL com manipulação física direta através de pinça (rotação natural em órbita vinculada à superfície do modelo, com tolerância a perda momentânea de rastreamento). Além de modelos moleculares (`.MOL`/`.SDF`), suporta estruturas cristalinas periódicas via arquivos CIF (*Crystallographic Information File*), como a wurtzita de sulfeto de cádmio (CdS).
 
-Além da visualização de moléculas, o projeto já possui uma visualização de estrutura cristalina baseada em arquivos CIF (*Crystallographic Information File*). Essa visualização evidencia a célula unitária, a repetição periódica e a coordenação entre átomos, funcionando como uma representação didática do material, e não como uma fotografia dos átomos.
+O sistema também inclui:
+- **Modo Standby Museológico:** Retorno automático ao Nível 1 após período sem mãos detectadas diante da câmera (desde que não haja narração de áudio em andamento).
+- **Launcher Multiplataforma (`run.sh`, `run.command`, `run.bat`):** Inicia automaticamente servidor HTTP local com busca dinâmica de portas e abre a interface de configuração (`launcher.html`), com idioma padrão em Português e opção de Text-to-Speech configurável.
+- **Atalhos Rápidos de Acessibilidade:** `Shift + L` (alternar idioma), `Shift + M` (mutar/desmutar narração TTS), `D` (modo debug) e entrada em tela cheia na primeira interação.
 
 ## Visão Geral
 O projeto **Museum Totem Art Zoom** é uma aplicação interativa *touchless* (sem toque) idealizada para totens em ambientes museológicos e educacionais. O seu principal objetivo é criar uma ponte imersiva entre a apreciação artística e a ciência molecular, revelando os segredos químicos por trás das cores que compõem uma obra de arte.
@@ -20,18 +26,20 @@ A arquitetura do software é baseada na captura de vídeo em tempo real e na ren
 
 ### 1. Captura e Visão Computacional
 - **Input:** O sistema inicia ativando a webcam do totem e capturando o fluxo de vídeo (Stream).
-- **Processamento 2D (MediaPipe):** Cada frame de vídeo é enviado para a biblioteca **MediaPipe Hands**, que realiza o rastreamento das mãos do usuário e retorna as coordenadas espaciais (X, Y, Z) de 21 pontos articulares (*landmarks*).
+- **Processamento 2D (MediaPipe):** Cada frame de vídeo é enviado para a biblioteca **MediaPipe Hands** (executada offline), que realiza o rastreamento das mãos do usuário e retorna as coordenadas espaciais (X, Y, Z) de 21 pontos articulares (*landmarks*).
+- **Interpolação de Quadros e Zona Segura:** O cursor interpola o movimento a 60fps para garantir suavidade, e a navegação é mapeada a partir de uma zona segura central para permitir alcançar todos os cantos da tela confortavelmente.
 
-### 2. Reconhecimento de Gestos (O Gesto de "Pinça")
+### 2. Reconhecimento de Gestos (O Gesto de "Pinça Confirmada")
 A principal forma de interação do sistema não depende de cliques de mouse ou toques na tela, mas sim da biometria da mão.
-- **Cálculo da Distância:** O software monitora constantemente a distância euclidiana entre a ponta do dedo polegar (Landmark 4) e a ponta do dedo indicador (Landmark 8).
-- **Gatilho (Trigger):** Quando a distância entre esses dois pontos cai abaixo de um limiar predefinido (Threshold), o sistema interpreta o movimento como um clique (o gesto de "pinça").
+- **Cálculo da Distância:** O software monitora constantemente a distância euclidiana entre a ponta do polegar (Landmark 4) e a ponta do indicador (Landmark 8).
+- **Confirmação e Cooldown:** Para acionar seleções de cor e botões de nível, a pinça deve ser mantida brevemente sobre o alvo (com anel visual de progresso), prevenindo disparos acidentais durante a locomoção da mão. Há também tempo de espera controlado entre mudanças de nível consecutivas.
+- **Tolerância a Perda Momentânea:** Durante o arrasto do modelo 3D, uma perda passageira de rastreamento pela câmera mantém o estado de agarrar ativo, evitando solturas bruscas.
 
 ### 3. Comunicação com a Interface e Ambiente 3D
-Dependendo da camada (Level) em que o usuário se encontra, a "pinça" desencadeia diferentes eventos:
-- **Nível 1 (Obra de Arte):** A pinça atua como um seletor apontador, capturando a cor da região de interesse.
-- **Nível 2 (Contexto):** Navegação e acionamento de botões (Zoom In, Zoom Out).
-- **Nível 3 (Molécula 3D):** A pinça atua como um gatilho de *grab* (agarrar). O delta de movimento (deslocamento) da mão durante a pinça contínua é traduzido em cálculos de rotação (ângulos *yaw* e *pitch*) enviados à API do WebGL, permitindo a rotação do modelo atômico no espaço tridimensional em tempo real.
+Dependendo da camada (Level) em que o usuário se encontra, a pinça desencadeia diferentes eventos:
+- **Nível 1 (Obra de Arte):** A pinça confirmada atua como um seletor apontador sobre a máscara cromática, capturando a cor do pigmento e ativando a máscara de realce estético.
+- **Nível 2 (Contexto):** Navegação entre níveis através dos botões laterais "Zoom In" e "Zoom Out", que só mudam de nível se a pinça for deliberadamente confirmada sobre eles. Botões em limites de navegação ficam desabilitados e cinzas.
+- **Nível 3 (Molécula 3D):** A pinça tocando a renderização 3D agarra o objeto e rotaciona o modelo orbitalmente de forma natural e suave, acompanhando a superfície tridimensional.
 
 ---
 
@@ -73,7 +81,7 @@ Para isso, adotamos uma técnica de **Máscaras Ocultas Baseadas em RGB (Hidden 
 
 ---
 
-## 📂 Estrutura do Projeto
+## Estrutura do Projeto
 
 Abaixo apresentamos a organização dos arquivos e pastas para facilitar a navegação no repositório:
 
@@ -81,7 +89,8 @@ Abaixo apresentamos a organização dos arquivos e pastas para facilitar a naveg
 museum-totem-art-zoom/
 ├── assets/                    # Mídias estáticas do sistema
 │   ├── artwork/               # Pintura original (visível) e máscara colorida RGB (oculta)
-│   ├── highlights/            # Camadas de brilho para destacar áreas selecionadas
+│   ├── highlights/            # Camadas com filtro estético para realce da área selecionada
+│   ├── interface/             # Mídias auxiliares da interface (ilustrações e vídeo do gesto)
 │   ├── materials/             # Imagens históricas dos pigmentos usadas no Nível 2
 │   ├── molecules/             # Arquivos .mol, .sdf e .cif usados nas estruturas 3D
 │   └── vendor/                # Bibliotecas JavaScript e modelos locais para uso offline
@@ -96,20 +105,27 @@ museum-totem-art-zoom/
 │   │   ├── crystalStructures.js  # Dados de supercélula e célula unitária para cristais
 │   │   ├── items.js           # Banco de dados em inglês
 │   │   └── itemsPT.js         # Banco de dados em português
+│   ├── interaction/
+│   │   └── gestures.js        # Lógica de confirmação e métricas de gestos biométricos
+│   ├── rendering/
+│   │   └── moleculeRenderer.js # Renderização molecular/cristalina 3D e manipulação orbital
+│   ├── views/
+│   │   └── materialView.js    # Controle da visão de detalhes do material (Nível 2)
 │   └── state.js               # Gerenciador de estado global da aplicação
+├── config.js                  # Configurações globais padrão (idioma, TTS)
 ├── painting-pigment-explorer.html # Arquivo HTML principal (Entrypoint) do sistema
 ├── launcher.html              # Interface para configurar idioma e narração
 ├── launcher-script.js         # Lógica do launcher e geração da URL
-├── run.sh                     # Atalho para iniciar no Linux
-├── run.command                # Atalho para iniciar no macOS
-├── run.bat                    # Atalho para iniciar no Windows
+├── run.sh                     # Inicializador para Linux
+├── run.command                # Inicializador para macOS
+├── run.bat                    # Inicializador para Windows
 ├── LAUNCHER_GUIDE.md          # Guia de execução para usuários
 └── README.md                  # Documentação do projeto
 ```
 
 ---
 
-## ⚙️ Pré-requisitos e Instalação
+## Pré-requisitos e Instalação
 
 O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilação ou pacotes `npm`. É necessário um servidor web local para que as requisições `fetch` dos arquivos de imagem, molécula e CIF funcionem corretamente e para que o navegador permita o uso da webcam.
 
@@ -126,35 +142,44 @@ O aplicativo ainda deve ser aberto por um servidor HTTP local, usando um dos lau
    ```
 
 2. **Inicie um servidor Web Local:**
-    No Linux, o caminho mais simples é executar o launcher:
-    ```bash
-    ./run.sh
-    ```
-    Ele encontra uma porta disponível, inicia o servidor e abre `launcher.html` em `http://localhost`. Esse endereço local é importante: abrir `painting-pigment-explorer.html` diretamente como `file://` pode impedir o navegador de acessar a webcam. Também é possível usar qualquer servidor local:
-   - **Python (Recomendado):**
+   Execute o script do launcher apropriado para sua plataforma:
+   - **Linux:**
      ```bash
-     python3 -m http.server 8080
+     ./run.sh
      ```
-   - **Node.js (http-server):**
+   - **macOS:**
      ```bash
-     npx http-server -p 8080
+     ./run.command
      ```
-   - **Extensão VS Code:** Utilize a extensão *Live Server*.
+   - **Windows:**
+     ```cmd
+     run.bat
+     ```
+   O script procura uma porta livre (padrão 8000), detecta um interpretador HTTP disponível (`python3`, `python` ou `php`), inicia o servidor e abre `launcher.html` no navegador. Esse endereço local (`http://localhost`) é indispensável para que o navegador libere o acesso à webcam e permita requisições de arquivos locais.
 
-3. **Acesse no Navegador:**
-    Abra a URL mostrada pelo launcher. O navegador solicitará permissão para uso da webcam; conceda o acesso para habilitar a interação por gestos.
+   *Alternativas manuais sem script:*
+   - **Python:** `python3 -m http.server 8000`
+   - **Node.js:** `npx http-server -p 8000`
+   - **VS Code:** Extensão *Live Server*.
+
+3. **Configure e Acesse:**
+   O `launcher.html` abre configurado por padrão em **Português** (com alternância para **Inglês**) e com narração por voz ativada. Clique em **Launch Application** para iniciar.
 
 ---
 
 ## Guia de Uso (Interação)
 
-Ao se posicionar diante do totem e ter suas mãos reconhecidas, um cursor indicativo acompanhará o movimento das suas mãos na tela.
+Ao se posicionar diante do totem e ter suas mãos reconhecidas pela câmera:
 
-- **Navegação (Apontar):** Mova a mão aberta diante da câmera. O cursor na tela acompanhará seu movimento proporcionalmente em uma "zona segura" estabelecida no centro da tela.
-- **Explorar (Gesto de Pinça Intencional):** Ao manter os dedos polegar e indicador próximos por alguns instantes e de forma deliberada sobre uma área da pintura, um pigmento será selecionado. O sistema agora evita detecções acidentais causadas por pequenas variações de posição.
-- **Aprofundar (Botões):** Movimente o cursor até o botão "Zoom In" e realize a pinça de forma intencional, ou simplesmente mantenha a mão parada sobre ele por 1 segundo (*Hover/Dwell Time*) para entrar na visualização da molécula química.
-- **Rotacionar (Gesto de Pinça Longa):** Na tela de estrutura molecular 3D, faça a pinça de forma intencional, mantenha os dedos juntos e arraste a mão no ar. A molécula rotacionará nos eixos X e Y correspondentes ao movimento do seu braço. Solte a pinça para fixar o objeto no lugar.
-- **Voltar:** Use o botão "Zoom Out" para retornar ao nível anterior de forma fluida. As mudanças de nível exigem uma nova interação deliberada, evitando transições acidentais.
+- **Navegação (Apontar):** Mova a mão aberta diante da câmera. O cursor na tela acompanhará seu movimento proporcionalmente em uma zona segura central, eliminando a necessidade de esticar os braços até as bordas do totem.
+- **Explorar (Gesto de Pinça Confirmada):** Ao aproximar indicador e polegar sobre uma região da pintura por um breve instante, um anel visual confirma a seleção deliberada. A região selecionada ganha destaque visual através de uma camada de brilho estético com contorno discreto.
+- **Aprofundar (Botões Zoom In / Zoom Out):** Mova o cursor até os botões laterais e mantenha a pinça sobre o botão para navegar de nível. Se o usuário estiver nos limites (Nível 1 sem poder diminuir zoom, ou Nível 3 sem poder avançar), o botão correspondente é exibido desabilitado e acinzentado.
+- **Rotacionar Estrutura 3D (Pinça Direta no Modelo):** Na tela de visualização molecular/cristalina (Nível 3), faça a pinça diretamente sobre o modelo tridimensional e arraste a mão no ar. A rotação acompanha orbitalmente a superfície do modelo de forma fluida. Se a mão sair momentaneamente do campo de visão da câmera durante o gesto, a aplicação tolera a breve perda sem interromper bruscamente a orientação.
+- **Modo Standby Museológico:** Em períodos de inatividade (15 segundos sem detecção de mãos após o término de qualquer explicação falada), o totem retorna automaticamente ao Nível 1.
+- **Atalhos Rápidos de Teclado:**
+  - `Shift + L`: Alterna dinamicamente entre Português e Inglês.
+  - `Shift + M`: Ativa / desativa o áudio de narração (TTS).
+  - `D`: Exibe / oculta o painel de depuração de câmera e taxas de quadros.
 
 ## Exemplo MOL
 
@@ -172,6 +197,344 @@ PubChem CID 6293 — explicit hydrogen atoms for 3D display     <-- 1. HEADER: M
   3 10  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 3 e Átomo 10 (Tipo 2 = Dupla)
     ...
 ## Commit History
+--
+
+    Removed deprecated launchers
+
+--
+
+    Defaulted launcher to portuguse
+
+--
+
+    Improved visualization for pinching during level changes.
+
+--
+
+    Removed accidentaly send files
+
+--
+
+    Updated assets with the aesthetic filter
+
+--
+
+    Updated color mapping mask to be more precise
+
+--
+
+    Updated TTS to the current behaviour of the code
+
+--
+
+    Fixed a long-standing bug where the model did not follow the pinch movement
+
+--
+
+    Limited the pinching to touching the 3D render
+
+--
+
+    Reduced the chance of the text being to big to be visiible without scrolling it.
+
+--
+
+    Added pinch gesture requirement for level changes and general cleanup
+    
+    - Pinching is now required to change levels.
+    - Removed unused assets and performed general code cleanup.
+
+--
+
+    Hovering while pinching are now nedded to change levels
+
+--
+
+    Inverted the selection to a more intuitive way.
+    
+    - Pinching something to the left mover as if you dragged it, holding on it's surface.
+
+--
+
+    Small adaptation on what is considered a pinch on the model rotation
+
+--
+
+    A brief loss of hand tracking now preserves the active drag
+
+--
+
+    Non-selectable indication for button and small fullscreen fix
+    
+    - They become grayed out
+    - Exiting fullscreen on some levels could prevent the text scrollbar from appearing
+
+--
+
+    Force or request fullscreen
+
+--
+
+    Removed non-discrete colors in the selected visualization
+
+--
+
+    Fixed a bug when fullscrenning outside of the level 1
+    
+    - Before the paint would not be show again.
+
+--
+
+    Fixed selected color highlight resizing
+    
+    - The software did not change scale to represent the highlight visualization
+
+--
+
+    Model Manipulation is now Very Smooth
+    
+    - Removed allot of the previous smoothing, it added allot of delay
+    - Rotation calculaded from hand position, removing allot of the sudden changues creating the lag
+
+--
+    Some 3D model manipulation verification
+
+--
+
+    Forced return to default mode after 1 minute standby
+
+--
+
+    Fixed small problem with Test-to-Speach interruption
+
+--
+
+    Initial implementatioin of museus standby mode
+
+--
+
+    Unstable optimization changues
+
+--
+
+    Fixed the failed loading of a previously loaded material on level 3
+
+--
+
+    Text does not need scrolling anymore
+
+--
+
+    Fixed the lag on the movement of the selector
+
+--
+
+    Smothed out the color selection
+
+--
+
+    White material resized for better visualization
+
+--
+
+    Red Lake resized for better visualization
+
+--
+
+    Fixed tube coloring in the model for the yellow material
+
+--
+
+    Fixed double connection
+
+--
+
+    Fixed connection on the black material
+
+--
+
+    Fixed black material model
+
+--
+
+    Implemented CIF suppport for a multitude of materials
+
+--
+
+    Removed  deprecated CIF files
+
+--
+
+    Launcher color fix and changues to images
+    
+    - Lancher color now folow the software pattern
+    - The images now are based on the final materials
+
+--
+
+    Updated data and visualization
+    
+    - Level 2 and 3 now reorganized to show more relevant information
+    - Updated CIFs
+    - Updateded Portuguese version of text
+
+--
+
+    Interface Information Matching
+    
+    - Update base new information
+
+--
+
+    Small changues to the launcher
+
+--
+
+    Simplify launcher
+
+--
+
+    Adjusted interface in lower resolutions
+
+--
+
+    Fixing molecule color and translation
+    
+    - The color now is fixed in red and yellow
+    - The translation now is uptaded the the current english version
+
+--
+
+    Added the hand tracking model
+
+--
+
+    Initial camera non-activationg fix
+
+--
+
+    Added all sources that required an internet connection
+    
+    - Downloaded all files necessary to make the software offline-capable
+
+--
+
+    Updated README
+    
+    - Updated details about the current state of the implementation
+    - Added information about the CIFs
+    - Added the new files in the project strucure
+    -  Pre requisites and launcher use detailed
+
+--
+
+    New Cristal Like Visualization
+
+--
+
+    The yellow final CIF is now wired into the explorer
+
+--
+
+    New Cif archive
+
+--
+
+    Fixed image detection
+
+--
+
+    Updated information about color for the new and updated information
+
+--
+
+    More data for info reference
+
+--
+
+    Auxiliar files for testing the cif implementation
+
+--
+
+    Initial Crystal Visualization Modification
+
+--
+
+    Internal organization documentation
+
+--
+
+    Changues to material to color association
+
+--
+
+    Updated ID's in the code
+
+--
+
+    List of information nedded for the project.
+
+--
+
+    Some
+
+--
+
+    Updated 3D model visualization
+
+--
+
+    Smothed out the Google Version
+    
+    - It now interpolates at display frame rate between MediaPipe tracking updates, removing the visible stepping while preserving the existing stability filter.
+
+--
+
+    Upgraded the hand detection visualizar and webcam
+
+--
+
+    Added a 5-second cooldown between hand-controlled level changes
+
+--
+
+    More detail in the TTS for level 3
+
+--
+
+    And internal scroll was added
+    
+    - Make clear when the text overflow what is visible
+
+--
+
+    Language change and voice shortcut
+    
+    - Shift + M mutes and unmutes.
+    - Shift + L cycles through languages.
+
+--
+
+    Text to speach now correctly deals with the lack of common name when talking about the artist
+
+--
+
+    Section of Artist name is equal to the artist
+
+--
+
+    Information and Default Revision
+
+--
+
+    Ilustrative image
+    
+    - For visualization of the project
+
+--
+
+    Updated README with commit history
+
 --
 
     Small  performance tests

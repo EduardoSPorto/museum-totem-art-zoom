@@ -16,14 +16,28 @@ const MaskReader = (() => {
   }
 
   function loadImages() {
-    loadImage("assets/artwork/visible_anjo_adonay.png", (image) => {
-      paintingImage = image;
-      resizeCanvases(paintingCanvas, maskCanvas);
-      drawPainting();
-    });
+    if (window.Telemetry) window.Telemetry.mark("visible-image-load-start");
+    loadImageWithFallback(
+      "assets/artwork/visible_anjo_adonay.webp",
+      "assets/artwork/visible_anjo_adonay.png",
+      (image) => {
+        paintingImage = image;
+        if (window.Telemetry) {
+          window.Telemetry.mark("visible-image-load-end");
+          window.Telemetry.measure("visible-image-decode", "visible-image-load-start", "visible-image-load-end");
+        }
+        resizeCanvases(paintingCanvas, maskCanvas);
+        drawPainting();
+      }
+    );
 
+    if (window.Telemetry) window.Telemetry.mark("mask-image-load-start");
     loadImage("assets/artwork/color_anjo_adonay.png", (image) => {
       maskImage = image;
+      if (window.Telemetry) {
+        window.Telemetry.mark("mask-image-load-end");
+        window.Telemetry.measure("mask-image-decode", "mask-image-load-start", "mask-image-load-end");
+      }
       resizeCanvases(paintingCanvas, maskCanvas);
       drawMask();
     });
@@ -31,8 +45,20 @@ const MaskReader = (() => {
     console.log("✓ Artwork and mask images loading");
   }
 
+  function loadImageWithFallback(primarySrc, fallbackSrc, onLoad) {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => onLoad(image);
+    image.onerror = () => {
+      console.warn(`! Fallback to PNG source: ${fallbackSrc}`);
+      loadImage(fallbackSrc, onLoad);
+    };
+    image.src = primarySrc;
+  }
+
   function loadImage(src, onLoad) {
     const image = new Image();
+    image.decoding = "async";
     image.onload = () => onLoad(image);
     image.onerror = () => console.error(`✗ Failed to load image: ${src}`);
     image.src = src;

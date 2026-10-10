@@ -4,10 +4,6 @@ REM This script starts a local web server and opens the launcher interface
 
 setlocal enabledelayedexpansion
 
-echo.
-echo 🎨 Starting Painting Pigment Explorer...
-echo.
-
 REM Get the directory where this script is located
 set SCRIPT_DIR=%~dp0
 
@@ -16,34 +12,56 @@ cd /d "%SCRIPT_DIR%"
 
 REM Port configuration
 set PORT=8000
+set MAX_ATTEMPTS=10
+set ATTEMPT=1
 
-REM Check if Python is available
-python --version >nul 2>&1
+:find_port
+netstat -ano | findstr /R /C:":%PORT% " >nul 2>&1
 if %errorlevel% neq 0 (
-    python3 --version >nul 2>&1
-    if %errorlevel% neq 0 (
-        echo ❌ Error: Python is not installed or not in PATH
-        echo.
-        echo Please install Python from https://www.python.org
-        echo Make sure to check "Add Python to PATH" during installation
-        pause
-        exit /b 1
-    )
-    set PYTHON=python3
-) else (
-    set PYTHON=python
+    goto port_found
 )
 
-echo 📍 Local server running at: http://localhost:%PORT%
-echo 🌐 Launcher URL:          http://localhost:%PORT%/launcher.html
+set /a PORT+=1
+set /a ATTEMPT+=1
+if %ATTEMPT% leq %MAX_ATTEMPTS% goto find_port
+
+echo Error: Could not find an available port after %MAX_ATTEMPTS% attempts
+exit /b 1
+
+:port_found
+echo Starting Painting Pigment Explorer
 echo.
-echo Opening launcher in your default browser...
+echo Launcher URL: http://localhost:%PORT%/launcher.html
 echo.
 echo Press Ctrl+C to stop the server
 echo.
 
-REM Open in default browser
+REM Check which HTTP server is available (python3, python, or php)
+set SERVER_CMD=
+python3 --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set SERVER_CMD=python3 -m http.server %PORT%
+    goto start_server
+)
+
+python --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set SERVER_CMD=python -m http.server %PORT%
+    goto start_server
+)
+
+php -v >nul 2>&1
+if %errorlevel% equ 0 (
+    set SERVER_CMD=php -S localhost:%PORT%
+    goto start_server
+)
+
+echo Error: No suitable HTTP server found (python3, python, or php required)
+exit /b 1
+
+:start_server
+REM Open browser to the served launcher URL
 start http://localhost:%PORT%/launcher.html
 
 REM Start HTTP server
-%PYTHON% -m http.server %PORT%
+%SERVER_CMD%

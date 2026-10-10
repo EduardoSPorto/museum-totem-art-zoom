@@ -110,7 +110,7 @@ textarea {
 .magnifier.pinching {
   width: 130px;
   height: 130px;
-  box-shadow: 0 0 0 8px rgba(var(--selection-accent-rgb), 0.12), inset 0 0 15px rgba(var(--selection-accent-rgb), 0.14);
+  box-shadow: 0 0 0 8px rgba(var(--selection-accent-rgb), 0.12);
 }
 
 .magnifier-fill {
@@ -281,10 +281,10 @@ textarea {
   display: block;
   width: 100%;
   /* Keep lengthy chemical descriptions usable without expanding the view. */
-  max-height: min(42vh, 24rem);
+  max-height: min(50vh, 30rem);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px 24px 20px;
+  padding: 18px 24px 4px;
   background: linear-gradient(180deg,
     rgba(255, 255, 255, 0.92) 0%,
     rgba(248, 246, 240, 0.90) 100%);
@@ -797,7 +797,7 @@ body.app-state-detail {
 .app-state-detail .material-content {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: hidden;
   overscroll-behavior: contain;
   padding-right: 12px;
 }
@@ -863,6 +863,14 @@ body.app-state-detail {
   opacity: 0.95;
 }
 
+.material-text p {
+  margin: 0 0 1em;
+}
+
+.material-text p:last-child {
+  margin-bottom: 0;
+}
+
 .app-state-detail .material-content,
 .molecule-legend {
   scrollbar-width: thin;
@@ -878,6 +886,20 @@ body.app-state-detail {
 .molecule-legend::-webkit-scrollbar-thumb {
   background: rgba(var(--selection-accent-ink-rgb), 0.5);
   border-radius: 999px;
+}
+
+.app-state-detail .material-content:not(.is-scrollable),
+.molecule-legend:not(.is-scrollable) {
+  scrollbar-width: none;
+}
+
+.app-state-detail .material-content:not(.is-scrollable)::-webkit-scrollbar,
+.molecule-legend:not(.is-scrollable)::-webkit-scrollbar {
+  display: none;
+}
+
+.app-state-detail .material-content.is-scrollable {
+  overflow-y: auto;
 }
 
 .material-property {
@@ -955,6 +977,40 @@ body.app-state-detail {
 
 .zoom-zone.is-hidden {
   display: none !important;
+}
+
+#zoomInBtn.is-pinching,
+#zoomOutBtn.is-pinching {
+  opacity: 1;
+  transform: scale(1.14);
+  filter: drop-shadow(0 0 12px rgba(var(--selection-accent-rgb), 0.85))
+    drop-shadow(0 0 34px rgba(var(--selection-accent-rgb), 0.72));
+}
+
+#zoomInBtn.is-pinching .zoom-zone-arrow,
+#zoomInBtn.is-pinching .zoom-zone-label,
+#zoomOutBtn.is-pinching .zoom-zone-arrow,
+#zoomOutBtn.is-pinching .zoom-zone-label {
+  color: #3c1713;
+  text-shadow: 0 0 8px rgba(255, 244, 224, 0.9), 0 0 20px rgba(var(--selection-accent-rgb), 0.5);
+}
+
+#zoomInBtn.is-pinching .zoom-zone-arrow,
+#zoomOutBtn.is-pinching .zoom-zone-arrow {
+  animation: zoomPinchPulse 0.7s ease-in-out infinite alternate;
+}
+
+#zoomInBtn.is-pinching .zoom-zone-label,
+#zoomOutBtn.is-pinching .zoom-zone-label {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 235, 0.82);
+  box-shadow: 0 0 18px rgba(var(--selection-accent-rgb), 0.45);
+}
+
+@keyframes zoomPinchPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.16); }
 }
 
 #zoomOutBtn {
@@ -1037,6 +1093,26 @@ body.app-state-detail {
 .zoom-zone:disabled .zoom-zone-arrow,
 .zoom-zone:disabled .zoom-zone-label {
   opacity: 0.9;
+}
+
+.level-change-cooldown .zoom-zone,
+.level-change-cooldown .zoom-zone:hover,
+.level-change-cooldown .zoom-zone:focus-visible,
+.level-change-cooldown .zoom-zone.is-hovered {
+  opacity: 0.28;
+  transform: none;
+  filter: none;
+  color: #625f5a;
+}
+
+.level-change-cooldown .zoom-zone .zoom-zone-arrow,
+.level-change-cooldown .zoom-zone .zoom-zone-label {
+  color: #625f5a;
+  text-shadow: none;
+}
+
+.level-change-cooldown .zoom-zone.is-attention .zoom-zone-content {
+  animation: none;
 }
 
 .detail-header {
@@ -1143,8 +1219,8 @@ body.app-state-detail {
   }
 
   .molecule-legend {
-    max-height: min(30vh, 20rem);
-    padding: 12px 18px 14px;
+    max-height: min(38vh, 24rem);
+    padding: 12px 18px 2px;
   }
 
   .legend-atoms {

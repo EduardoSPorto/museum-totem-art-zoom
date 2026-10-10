@@ -117,5 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUrlDisplay();
 
     // Auto-focus language selection (accessibility)
-    document.getElementById('lang-en').focus();
+    const defaultLang = document.getElementById('lang-pt') || document.getElementById('lang-en');
+    if (defaultLang) defaultLang.focus();
 });

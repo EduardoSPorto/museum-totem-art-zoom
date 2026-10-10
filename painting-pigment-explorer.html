@@ -127,13 +127,10 @@
   <script async src="assets/vendor/mediapipe/camera_utils.js"></script>
   <script async src="assets/vendor/mediapipe/drawing_utils.js"></script>
   <script async src="assets/vendor/mediapipe/hands/hands.js"></script>
-  <script src="assets/vendor/three.min.js"></script>
-
-  <!-- 3Dmol.js for molecular visualization -->
-  <script src="assets/vendor/3Dmol-min.js"></script>
-
   <!-- Configuration for the application, including language settings -->
   <script src="config.js"></script>
+  <script src="js/core/telemetry.js"></script>
+  <script src="js/core/vendorLoader.js"></script>
   <script>
     // 1. Dynamically load the items based on language
     const languageFromUrl = new URLSearchParams(window.location.search).get('lang');
@@ -196,6 +193,9 @@
   <script src="js/data/colorMap.js"></script>
   <script src="js/core/maskReader.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/interaction/gestures.js"></script>
+  <script src="js/rendering/moleculeRenderer.js"></script>
+  <script src="js/views/materialView.js"></script>
 
   <script>
     // ===== SAFE DETECTION ZONE =====
@@ -249,11 +249,21 @@
 
     function disposeMoleculeViewer() {
       moleculeRenderVersion += 1;
-      moleculeViewer = null;
+      if (moleculeViewer) {
+        try {
+          if (typeof moleculeViewer.clear === "function") moleculeViewer.clear();
+        } catch (e) {}
+        moleculeViewer = null;
+      }
       moleculeViewport.replaceChildren();
     }
 
+    const periodicCifCache = new Map();
+
     function buildPeriodicCifDisplay(cifData) {
+      if (periodicCifCache.has(cifData)) {
+        return periodicCifCache.get(cifData);
+      }
       const cellValue = (name) => {
         const match = cifData.match(new RegExp(`^${name}\\s+([0-9.Ee+-]+)`, "m"));
         return match ? Number.parseFloat(match[1]) : NaN;
@@ -279,15 +289,37 @@
         y: (fractional.y + translation.y) * cellVectorB.y + (fractional.z + translation.z) * cellVectorC.y,
         z: (fractional.z + translation.z) * cellVectorC.z
       });
+      const tokenize = (line) => line.match(/'[^']*'|"[^"]*"|\S+/g)?.map((token) => token.replace(/^['"]|['"]$/g, "")) || [];
+      const lines = cifData.replace(/\r\n/g, "\n").split("\n");
+      const atomHeaders = [];
+      let atomRowsStart = -1;
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+        const header = lines[lineIndex].trim();
+        if (!header.startsWith("_atom_site_")) {
+          if (atomHeaders.length && atomRowsStart < 0) atomRowsStart = lineIndex;
+          continue;
+        }
+        atomHeaders.push(header);
+      }
+      const headerIndex = (name) => atomHeaders.findIndex((header) => header === name);
+      const elementIndex = headerIndex("_atom_site_type_symbol");
+      const xIndex = headerIndex("_atom_site_fract_x");
+      const yIndex = headerIndex("_atom_site_fract_y");
+      const zIndex = headerIndex("_atom_site_fract_z");
       const atoms = [];
-      const atomPattern = /^\s*(Cd|S)\s+\S+\s+\d+\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)\s+([0-9.Ee+-]+)/;
-      for (const line of cifData.split(/\r?\n/)) {
-        const match = line.match(atomPattern);
-        if (match) {
-          atoms.push({
-            element: match[1],
-            fractional: { x: Number.parseFloat(match[2]), y: Number.parseFloat(match[3]), z: Number.parseFloat(match[4]) }
-          });
+      if (atomRowsStart >= 0 && elementIndex >= 0 && xIndex >= 0 && yIndex >= 0 && zIndex >= 0) {
+        for (let lineIndex = atomRowsStart; lineIndex < lines.length; lineIndex += 1) {
+          const line = lines[lineIndex].trim();
+          if (!line || line.startsWith("_") || line === "loop_" || line.startsWith("data_")) break;
+          const values = tokenize(line);
+          const fractional = {
+            x: Number.parseFloat(values[xIndex]),
+            y: Number.parseFloat(values[yIndex]),
+            z: Number.parseFloat(values[zIndex])
+          };
+          if (values[elementIndex] && Object.values(fractional).every(Number.isFinite)) {
+            atoms.push({ element: values[elementIndex], fractional });
+          }
         }
       }
       if (!atoms.length || ![cellA, cellB, cellC, alpha, beta, gamma].every(Number.isFinite)) return null;
@@ -298,7 +330,7 @@
       }));
       const imageIndex = new Map();
       const bonds = [];
-      const colors = { Cd: "#e53935", S: "#ffd700" };
+      const covalentRadii = { H: 0.31, C: 0.76, N: 0.71, O: 0.66, S: 1.05, Ca: 1.76, Cd: 1.44 };
       const distanceSquared = (first, second) => {
         const dx = first.x - second.x;
         const dy = first.y - second.y;
@@ -310,7 +342,6 @@
         const atom = atoms[atomIndex];
         const neighbors = [];
         for (let candidateIndex = 0; candidateIndex < atoms.length; candidateIndex += 1) {
-          if (atoms[candidateIndex].element === atom.element) continue;
           for (let tx = -1; tx <= 1; tx += 1) {
             for (let ty = -1; ty <= 1; ty += 1) {
               for (let tz = -1; tz <= 1; tz += 1) {
@@ -322,7 +353,13 @@
           }
         }
         neighbors.sort((first, second) => first.distance - second.distance);
-        for (const neighbor of neighbors.slice(0, 4)) {
+        const radius = covalentRadii[atom.element] || 1;
+        const selectedNeighbors = neighbors.filter((neighbor) => {
+          const candidateRadius = covalentRadii[atoms[neighbor.candidateIndex].element] || 1;
+          const maxDistance = radius + candidateRadius + (atom.element === "Ca" || atoms[neighbor.candidateIndex].element === "Ca" ? 0.7 : 0.45);
+          return neighbor.distance <= maxDistance ** 2 && neighbor.distance > 0.25;
+        }).slice(0, 6);
+        for (const neighbor of selectedNeighbors) {
           const translationKey = `${neighbor.candidateIndex}:${neighbor.translation.x}:${neighbor.translation.y}:${neighbor.translation.z}`;
           let positionIndex = imageIndex.get(translationKey);
           if (positionIndex === undefined) {
@@ -334,20 +371,41 @@
             }
             imageIndex.set(translationKey, positionIndex);
           }
-          bonds.push({ start: positions[atomIndex].point, end: positions[positionIndex].point, startColor: colors[atom.element], endColor: colors[atoms[neighbor.candidateIndex].element] });
+          bonds.push({
+            start: positions[atomIndex].point,
+            end: positions[positionIndex].point,
+            startElement: atom.element,
+            endElement: atoms[neighbor.candidateIndex].element
+          });
         }
       }
 
-      return {
+      const result = {
         xyz: `${positions.length}\nPeriodic CdS coordination display\n${positions.map((atom) => `${atom.element} ${atom.point.x.toFixed(6)} ${atom.point.y.toFixed(6)} ${atom.point.z.toFixed(6)}`).join("\n")}`,
         positions,
         bonds
       };
+      periodicCifCache.set(cifData, result);
+      return result;
+    }
+
+    function detectStructureFormat(molPath, molData) {
+      if (/V2000|V3000/.test(molData)) return "sdf";
+      return molPath.toLowerCase().endsWith(".cif") ? "cif" : "sdf";
     }
 
     async function displayMolecule(item) {
       const renderVersion = ++moleculeRenderVersion;
       applySelectionAccent(item);
+
+      // Clear the previous scene before any asynchronous file loading starts.
+      moleculeViewer = null;
+      moleculeIsRendering = false;
+      moleculeViewport.replaceChildren();
+      document.getElementById("moleculeTitle").textContent = item.name;
+      document.getElementById("legendFormula").textContent = "";
+      document.getElementById("legendAtoms").replaceChildren();
+      document.getElementById("legendInfo").replaceChildren();
 
       // Get MOL file data
       const molPath = ITEM_CHEMICAL_STRUCTURE_FILES[item.id];
@@ -380,6 +438,16 @@
         return;
       }
 
+      // Ensure 3Dmol & Three.js are loaded before viewer creation
+      if (typeof $3Dmol === "undefined" && window.VendorLoader) {
+        try {
+          await window.VendorLoader.loadMoleculeLibraries();
+        } catch (e) {
+          console.error("✗ Failed to load 3D molecule libraries:", e);
+          return;
+        }
+      }
+
       // The 3Dmol canvas cannot be safely reused after this fullscreen view is
       // hidden. Wait for the layout to settle, then create a fresh viewer.
       await waitForNextPaint();
@@ -400,7 +468,9 @@
         S: "#ffd700",
         Cu: "#c87533",
         Cd: "#e53935",
-        Pb: "#575961"
+        Pb: "#575961",
+        P: "#E67E22",
+        Ca: "#B8C0CC"
       };
 
       try {
@@ -442,33 +512,127 @@
             }
           }
         } else {
-          const fileExt = molPath.split(".").pop().toLowerCase();
-          const format = fileExt === "cif" ? "cif" : "sdf";
+          const format = detectStructureFormat(molPath, molData);
           if (format === "cif") {
             const periodicDisplay = buildPeriodicCifDisplay(molData);
             if (!periodicDisplay) throw new Error("Invalid CIF cell or atom data");
             viewer.addModel(periodicDisplay.xyz, "xyz");
-            viewer.setStyle({ elem: "Cd" }, { sphere: { radius: 0.72, alpha: 0.98 } });
-            viewer.setStyle({ elem: "S" }, { sphere: { radius: 0.62, alpha: 0.98 } });
+            const periodicSphereScale = ["red_lake", "calcium_carbonate"].includes(item.id) ? 0.28 : 0.42;
+            viewer.setStyle({}, { sphere: { scale: periodicSphereScale, alpha: 0.98 } });
             for (const bond of periodicDisplay.bonds) {
               const midpoint = {
                 x: (bond.start.x + bond.end.x) / 2,
                 y: (bond.start.y + bond.end.y) / 2,
                 z: (bond.start.z + bond.end.z) / 2
               };
-              viewer.addCylinder({ start: bond.start, end: midpoint, radius: 0.16, color: bond.startColor, alpha: 0.9 });
-              viewer.addCylinder({ start: midpoint, end: bond.end, radius: 0.16, color: bond.endColor, alpha: 0.9 });
+              viewer.addCylinder({
+                start: bond.start,
+                end: midpoint,
+                radius: 0.18,
+                color: elementColors[bond.startElement] || "#5f6875",
+                alpha: 0.98
+              });
+              viewer.addCylinder({
+                start: midpoint,
+                end: bond.end,
+                radius: 0.18,
+                color: elementColors[bond.endElement] || "#5f6875",
+                alpha: 0.98
+              });
             }
           } else {
             viewer.addModel(molData, format);
-            viewer.setStyle({}, {
-              stick: { colorscheme: "Jmol", radius: 0.18, opacity: 0.95 },
-              sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 }
+            const atoms = viewer.getModel().selectedAtoms({});
+            viewer.setStyle({}, { sphere: { colorscheme: "Jmol", scale: 0.32, opacity: 0.98 } });
+            if (item.id === "bone_black") {
+              const carbonScale = 0.28;
+              viewer.setStyle({ elem: "C" }, { sphere: { colorscheme: "Jmol", scale: carbonScale, opacity: 0.98 } });
+              viewer.setStyle({ elem: "P" }, { sphere: { colorscheme: "Jmol", scale: carbonScale, opacity: 0.98 } });
+              viewer.setStyle({ elem: "Ca" }, { sphere: { colorscheme: "Jmol", scale: carbonScale, opacity: 0.98 } });
+            }
+            const bondColors = {
+              H: "#FFFFFF", C: "#4D4D4D", N: "#3050F8", O: "#FF0D0D", S: "#FFD700",
+              P: "#E67E22", Ca: "#B8C0CC"
+            };
+            if (item.id === "bone_black") {
+              bondColors.S = "#E67E22";
+            }
+            const addBondCylinder = (start, end, color) => {
+              viewer.addCylinder({ start, end, radius: 0.1, color, alpha: 0.95 });
+            };
+            const renderedBonds = new Set();
+            atoms.forEach((atom, atomIndex) => {
+              (atom.bonds || []).forEach((bondIndex, bondPosition) => {
+                const otherAtom = atoms[bondIndex];
+                if (!otherAtom) return;
+                const bondKey = atomIndex < bondIndex
+                  ? `${atomIndex}:${bondIndex}`
+                  : `${bondIndex}:${atomIndex}`;
+                if (renderedBonds.has(bondKey)) return;
+                renderedBonds.add(bondKey);
+
+                const bondOrder = Math.max(1, Math.round(atom.bondOrder?.[bondPosition] || 1));
+                const direction = {
+                  x: otherAtom.x - atom.x,
+                  y: otherAtom.y - atom.y,
+                  z: otherAtom.z - atom.z
+                };
+                const reference = Math.abs(direction.x) < Math.abs(direction.y)
+                  ? { x: 1, y: 0, z: 0 }
+                  : { x: 0, y: 1, z: 0 };
+                const perpendicular = item.id === "bone_black"
+                  ? { x: direction.y, y: -direction.x, z: 0 }
+                  : {
+                    x: direction.y * reference.z - direction.z * reference.y,
+                    y: direction.z * reference.x - direction.x * reference.z,
+                    z: direction.x * reference.y - direction.y * reference.x
+                  };
+                const perpendicularLength = Math.hypot(perpendicular.x, perpendicular.y, perpendicular.z) || 1;
+                const normalizedPerpendicular = {
+                  x: perpendicular.x / perpendicularLength,
+                  y: perpendicular.y / perpendicularLength,
+                  z: perpendicular.z / perpendicularLength
+                };
+                const bondOffsets = bondOrder === 1
+                  ? [0]
+                  : Array.from({ length: bondOrder }, (_, offsetIndex) => (offsetIndex - (bondOrder - 1) / 2) * 0.22);
+
+                const midpoint = {
+                  x: (atom.x + otherAtom.x) / 2,
+                  y: (atom.y + otherAtom.y) / 2,
+                  z: (atom.z + otherAtom.z) / 2
+                };
+                bondOffsets.forEach((offset) => {
+                  const shift = {
+                    x: normalizedPerpendicular.x * offset,
+                    y: normalizedPerpendicular.y * offset,
+                    z: normalizedPerpendicular.z * offset
+                  };
+                  addBondCylinder(
+                    { x: atom.x + shift.x, y: atom.y + shift.y, z: atom.z + shift.z },
+                    { x: midpoint.x + shift.x, y: midpoint.y + shift.y, z: midpoint.z + shift.z },
+                    bondColors[atom.elem] || "#888888"
+                  );
+                  addBondCylinder(
+                    { x: midpoint.x + shift.x, y: midpoint.y + shift.y, z: midpoint.z + shift.z },
+                    { x: otherAtom.x + shift.x, y: otherAtom.y + shift.y, z: otherAtom.z + shift.z },
+                    bondColors[otherAtom.elem] || "#888888"
+                  );
+                });
+              });
             });
           }
         }
 
-        viewer.setColorByElement({}, elementColors);
+        const displayElementColors = item.id === "bone_black"
+          ? { ...elementColors, S: "#E67E22" }
+          : elementColors;
+        viewer.setColorByElement({}, displayElementColors);
+        if (item.id === "bone_black") {
+          viewer.setStyle({ elem: "S" }, {
+            sphere: { color: "#E67E22", scale: 0.32, opacity: 0.98 }
+          });
+        }
 
         viewer.setBackgroundColor("0xfafaf8");
         viewer.zoomTo();
@@ -503,7 +667,7 @@
         // Element colors (Jmol style)
         const elementColors = {
           "H": "#FFFFFF", "C": "#909090", "N": "#3050F8", "O": "#FF0D0D",
-          "S": "#ffd700", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#e53935",
+          "S": "#ffd700", "P": "#E67E22", "Ca": "#B8C0CC", "Pb": "#575961", "Hg": "#B8B8D0", "Cd": "#e53935",
           "Cu": "#C88033"
         };
         const color = elementColors[atom.element] || "#CCCCCC";
@@ -517,13 +681,28 @@
 
       const isPT = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.language === 'pt';
       legendInfo.innerHTML = `
-        ${isPT ? "Modelo:" : "Model:"} ${structure.modelName}<br/>
-        ${isPT ? "Fórmula:" : "Formula:"} ${item.formula}
+        ${isPT ? "Estrutura:" : "Structure:"} ${item.structure}
       `;
 
       moleculeTitle.textContent = item.name;
+      updateTextScrollTargets();
       
       console.log(`✓ Loaded molecule: ${item.name}`);
+    }
+
+    const MOLECULE_TRACKING_GAP_BUFFER_MS = 500; // Keep dragging through brief hand-detection dropouts
+    const MOLECULE_PINCH_RELEASE_BUFFER_MS = 180; // Confirm a visible unpinch quickly to avoid stale drag anchors
+
+    function preserveMoleculeGrabDuringTrackingGap() {
+      if (appState !== APP_STATES.MOLECULE || !moleculeHandControl.active) {
+        stopMoleculeGrab();
+        return;
+      }
+
+      if (performance.now() - moleculeHandControl.lastPinchSeenTime > MOLECULE_TRACKING_GAP_BUFFER_MS) {
+        stopMoleculeGrab();
+        resetPinchTracking();
+      }
     }
 
     function updateMoleculeHandManipulation(isCurrentlyPinching, handPose) {
@@ -532,66 +711,149 @@
         return;
       }
 
+      const now = performance.now();
+
+      // A missing landmark frame is different from an intentional open-hand
+      // release. Keep the grab through brief tracking dropouts without treating
+      // the stale hand pose as a new movement sample.
+      if (handPose.pinchObserved === false) return;
+
       if (!isCurrentlyPinching) {
+        if (moleculeHandControl.active) {
+          // If we recently saw a pinch, hold onto the grab during this buffer window
+          if (now - moleculeHandControl.lastPinchSeenTime <= MOLECULE_TRACKING_GAP_BUFFER_MS) {
+            // Keep grab active using the last good pose
+            return;
+          }
+        }
         stopMoleculeGrab();
         return;
       }
 
+      // Pinch is active
+      moleculeHandControl.lastPinchSeenTime = now;
+
       if (!moleculeHandControl.active) {
         if (currentButtonHover) return;
+
+        // A pinch only begins a model drag when the hand is actually over the
+        // visible model viewport. Use the unclamped camera projection here so
+        // points outside the interaction region cannot collapse onto its edge.
+        const viewportRect = moleculeViewport.getBoundingClientRect();
+        if (
+          handPose.screenX < viewportRect.left || handPose.screenX > viewportRect.right ||
+          handPose.screenY < viewportRect.top || handPose.screenY > viewportRect.bottom
+        ) return;
 
         moleculeHandControl.active = true;
         moleculeHandControl.startPosition = { x: handPose.rawX, y: handPose.rawY };
         moleculeHandControl.startHandScale = handPose.handScale;
         moleculeHandControl.startView = moleculeViewer.getView().slice();
+        moleculeHandControl.targetHorizontal = 0;
+        moleculeHandControl.targetVertical = 0;
+        moleculeHandControl.currentHorizontal = 0;
+        moleculeHandControl.currentVertical = 0;
         handCursor.classList.add("grabbing");
       }
 
-      rotateMoleculeFromHandPose(handPose);
+      updateMoleculeRotationTargets(handPose);
     }
 
-    function rotateMoleculeFromHandPose(handPose) {
-      if (!moleculeViewer || !moleculeHandControl.startPosition || !moleculeHandControl.startView) return;
+    function updateMoleculeRotationTargets(handPose) {
+      if (!moleculeHandControl.active || !moleculeHandControl.startPosition) return;
 
       const deltaX = handPose.rawX - moleculeHandControl.startPosition.x;
       const deltaY = handPose.rawY - moleculeHandControl.startPosition.y;
 
-      if (Math.abs(deltaX) < 0.01 && Math.abs(deltaY) < 0.01) return;
-
-      // Express the drag in palm-widths instead of camera pixels. A hand farther
-      // from the camera occupies fewer pixels, so this preserves the same rotation
-      // for the same physical hand movement at different distances.
       const handScale = Math.max(
         (moleculeHandControl.startHandScale + handPose.handScale) / 2,
         MIN_MOLECULE_HAND_SCALE
       );
-      const horizontalDegrees = clamp(
-        (deltaX / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
+      moleculeHandControl.targetHorizontal = clamp(
+        (-deltaX / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
         -120,
         120
       );
-      const verticalDegrees = clamp(
-        (-deltaY / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
+      moleculeHandControl.targetVertical = clamp(
+        (deltaY / handScale) * MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH,
         -120,
         120
       );
 
-      try {
-        // Rebuild the view from the pinch-start pose so the hand acts like a grasp, not a drag.
-        moleculeViewer.setView(moleculeHandControl.startView);
-        moleculeViewer.rotate(horizontalDegrees, "vy");
-        moleculeViewer.rotate(verticalDegrees, "vx");
-        moleculeViewer.render();
-      } catch (error) {
-        console.warn("Hand molecule rotation failed:", error);
+      if (moleculeHandControl.animationFrame === null) {
+        moleculeHandControl.lastFrameTime = performance.now();
+        moleculeHandControl.animationFrame = requestAnimationFrame(animateMoleculeRotation);
       }
     }
 
+    function animateMoleculeRotation(timestamp) {
+      if (!moleculeHandControl.active || !moleculeViewer || !moleculeHandControl.startView) {
+        moleculeHandControl.animationFrame = null;
+        return;
+      }
+
+      const elapsedSeconds = Math.min((timestamp - moleculeHandControl.lastFrameTime) / 1000, 0.1);
+      moleculeHandControl.lastFrameTime = timestamp;
+      const progress = 1 - Math.exp(-MOLECULE_ROTATION_FOLLOW_RATE * elapsedSeconds);
+
+      moleculeHandControl.currentHorizontal += (moleculeHandControl.targetHorizontal - moleculeHandControl.currentHorizontal) * progress;
+      moleculeHandControl.currentVertical += (moleculeHandControl.targetVertical - moleculeHandControl.currentVertical) * progress;
+
+      try {
+        applyMoleculeHandView(
+          moleculeViewer,
+          moleculeHandControl.startView,
+          moleculeHandControl.currentHorizontal,
+          moleculeHandControl.currentVertical
+        );
+      } catch (error) {
+        console.warn("Hand molecule rotation failed:", error);
+      }
+
+      const diffH = Math.abs(moleculeHandControl.targetHorizontal - moleculeHandControl.currentHorizontal);
+      const diffV = Math.abs(moleculeHandControl.targetVertical - moleculeHandControl.currentVertical);
+
+      moleculeHandControl.animationFrame = (diffH > 0.05 || diffV > 0.05)
+        ? requestAnimationFrame(animateMoleculeRotation)
+        : null;
+    }
+
+    function applyMoleculeHandView(viewer, startView, horizontalDegrees, verticalDegrees) {
+      // Compose rotations around fixed viewer axes. Premultiplication keeps
+      // horizontal hand motion on the viewer's vertical axis and vertical
+      // motion on its horizontal axis, regardless of the molecule's current
+      // orientation. Build the full view and redraw only once.
+      let quaternion = [startView[4], startView[5], startView[6], startView[7]];
+      const multiplyQuaternions = ([ax, ay, az, aw], [bx, by, bz, bw]) => [
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+        aw * bw - ax * bx - ay * by - az * bz
+      ];
+      const applyRotation = (degrees, axis) => {
+        const halfAngle = degrees * Math.PI / 360;
+        const sine = Math.sin(halfAngle);
+        const delta = [axis[0] * sine, axis[1] * sine, axis[2] * sine, Math.cos(halfAngle)];
+        quaternion = multiplyQuaternions(delta, quaternion);
+      };
+
+      applyRotation(horizontalDegrees, [0, 1, 0]);
+      applyRotation(verticalDegrees, [1, 0, 0]);
+      const view = startView.slice();
+      view.splice(4, 4, ...quaternion);
+      viewer.setView(view);
+    }
+
     function stopMoleculeGrab() {
+      if (moleculeHandControl.animationFrame !== null) {
+        cancelAnimationFrame(moleculeHandControl.animationFrame);
+        moleculeHandControl.animationFrame = null;
+      }
       moleculeHandControl.active = false;
       moleculeHandControl.startPosition = null;
       moleculeHandControl.startHandScale = null;
       moleculeHandControl.startView = null;
+      moleculeHandControl.lastPinchSeenTime = 0;
       if (typeof handCursor !== "undefined") {
         handCursor.classList.remove("grabbing");
       }
@@ -602,9 +864,12 @@
       const countsLineIndex = lines.findIndex((line) => line.includes("V2000"));
       if (countsLineIndex === -1) return molData;
 
-      const [atomCountText, bondCountText] = lines[countsLineIndex].trim().split(/\s+/);
-      const atomCount = Number.parseInt(atomCountText, 10);
-      const bondCount = Number.parseInt(bondCountText, 10);
+      const countsLine = lines[countsLineIndex];
+      const countMatch = countsLine.match(/(?:^|\s)(\d{3})(\d{3})\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+V2000/);
+      const countParts = countsLine.trim().split(/\s+/);
+      const compactCounts = countParts[0].match(/^(\d{3})(\d{3})$/);
+      const atomCount = Number.parseInt(countMatch?.[1] || compactCounts?.[1] || countParts[0], 10);
+      const bondCount = Number.parseInt(countMatch?.[2] || compactCounts?.[2] || countParts[1], 10);
       if (!Number.isFinite(atomCount) || !Number.isFinite(bondCount)) return molData;
 
       const normalized = [...lines];
@@ -632,7 +897,13 @@
         const parts = (normalized[lineIndex] || "").trim().split(/\s+/);
         if (parts.length < 3) continue;
 
-        normalized[lineIndex] = `${parts[0].padStart(3)}${parts[1].padStart(3)}${parts[2].padStart(3)}  0  0  0  0`;
+        let bondParts = parts;
+        if (/^\d{5,6}$/.test(parts[0])) {
+          bondParts = [parts[0].slice(0, -3), parts[0].slice(-3), ...parts.slice(1)];
+        }
+        if (bondParts.length < 3) continue;
+
+        normalized[lineIndex] = `${bondParts[0].padStart(3)}${bondParts[1].padStart(3)}${bondParts[2].padStart(3)}  0  0  0  0`;
       }
 
       return normalized.join("\n");
@@ -696,12 +967,21 @@
     let handCursorAnimationFrame = null;
     let lastHandCursorFrameTime = 0;
     let smoothedMagnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let magnifierTargetPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    let magnifierAnimationFrame = null;
+    let lastMagnifierFrameTime = 0;
     let handConfidence = 0;
+    const NO_HAND_STANDBY_TIMEOUT_MS = 15000;
+    let noHandSince = null;
+    let isStandbyMode = true;
+    const FORCED_NON_LEVEL1_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max on Level 2 or 3
+    let nonLevel1Since = null;
     const SMOOTHING_FACTOR = 0.6;  // 0 = no smoothing, 1 = full smoothing
     // Render between camera-analysis frames so the cursor does not step at the
     // hand detector's lower frame rate.
     const HAND_CURSOR_FOLLOW_RATE = 24;
-    const MAGNIFIER_SMOOTHING_FACTOR = 0.82;
+    const MOLECULE_HAND_CURSOR_FOLLOW_RATE = 48;
+    const MAGNIFIER_FOLLOW_RATE = 24;
     const HAND_INTERACTION_REGION = {
       centerX: 0.5,
       centerY: 0.5,
@@ -715,28 +995,36 @@
     const magnifierFill = document.getElementById("magnifierFill");
     let magnifierPosition = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let isPinching = false;
+    let pinchFrameBuffered = false;
     let pinchGestureTargetsArtwork = false;
+    let pinchStartButtonId = null;
     let pinchStartTime = null;
     let pinchGestureConsumed = false;
     const PINCH_CONFIRMATION_MS = 100;
+    const BUTTON_PINCH_HOLD_MS = 500;
     const PINCH_THRESHOLD = 0.32;
     const PINCH_RELEASE_THRESHOLD = 0.42;
     // Rotation is calibrated in degrees per palm-width, so it remains responsive
     // when a user's hand appears small because they are farther from the camera.
     const MOLECULE_ROTATION_DEGREES_PER_PALM_WIDTH = 36;
     const MIN_MOLECULE_HAND_SCALE = 0.025;
+    const MOLECULE_ROTATION_FOLLOW_RATE = 32;
     const moleculeHandControl = {
       active: false,
       startPosition: null,
       startHandScale: null,
-      startView: null
+      startView: null,
+      targetHorizontal: 0,
+      targetVertical: 0,
+      currentHorizontal: 0,
+      currentVertical: 0,
+      animationFrame: null,
+      lastFrameTime: 0
     };
     
-    // Button activation
+    // Camera level-change targeting
     let currentButtonHover = null;
-    let buttonDwellStartTime = null;
-    const BUTTON_DWELL_MS = 1000;  // 1 second to activate via hover
-    const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 5000;
+    const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 3000;
     let nonMouseLevelChangeAvailableAt = 0;
     
     const handCursor = document.getElementById("handCursor");
@@ -813,6 +1101,7 @@
           y: window.innerHeight / 2 
         };
         smoothedMagnifierPosition = { ...magnifierPosition };
+        magnifierTargetPosition = { ...magnifierPosition };
         
         // Show camera preview panel
         const cameraPreviewPanel = document.getElementById("cameraPreviewPanel");
@@ -852,10 +1141,34 @@
 
         console.log("🎥 Starting hand detection loop...");
         
+        let isProcessingFrame = false;
+        let lastInferenceTime = 0;
+        const TARGET_INFERENCE_INTERVAL_MS = 1000 / 24; // Cap at 24 FPS to save kiosk CPU/GPU
+
         handCamera = new window.Camera(webcamVideo, {
           onFrame: async () => {
-            if (handDetector) {
+            if (!handDetector) return;
+            const now = performance.now();
+            
+            // Drop frame if previous inference is still in-flight or rate is exceeded
+            if (isProcessingFrame || (now - lastInferenceTime < TARGET_INFERENCE_INTERVAL_MS)) {
+              if (window.Telemetry && isProcessingFrame) {
+                window.Telemetry.recordDroppedFrame();
+              }
+              return;
+            }
+
+            isProcessingFrame = true;
+            lastInferenceTime = now;
+            const startTime = performance.now();
+
+            try {
               await handDetector.send({ image: webcamVideo });
+            } finally {
+              isProcessingFrame = false;
+              if (window.Telemetry) {
+                window.Telemetry.recordInferenceTime(performance.now() - startTime);
+              }
             }
           },
           width: 1280,
@@ -1117,7 +1430,7 @@
       return Math.min(Math.max(value, min), max);
     }
 
-    function mapHandPointToScreen(rawX, rawY) {
+    function mapHandPointToScreen(rawX, rawY, shouldClamp = HAND_INTERACTION_REGION.clampToRegion) {
       const region = HAND_INTERACTION_REGION;
       const mirroredX = 1 - rawX;
       const left = region.centerX - region.widthRatio / 2;
@@ -1126,7 +1439,7 @@
       let normalizedX = (mirroredX - left) / region.widthRatio;
       let normalizedY = (rawY - top) / region.heightRatio;
 
-      if (region.clampToRegion) {
+      if (shouldClamp) {
         normalizedX = clamp(normalizedX, 0, 1);
         normalizedY = clamp(normalizedY, 0, 1);
       }
@@ -1158,6 +1471,7 @@
     function resetPinchTracking() {
       isPinching = false;
       pinchGestureTargetsArtwork = false;
+      pinchStartButtonId = null;
       pinchStartTime = null;
       magnifier.classList.remove("pinching");
     }
@@ -1168,7 +1482,16 @@
     }
 
     function updatePinchState(pinchMetrics) {
+      pinchFrameBuffered = false;
       if (!pinchMetrics) {
+        if (
+          appState === APP_STATES.MOLECULE &&
+          moleculeHandControl.active &&
+          performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_TRACKING_GAP_BUFFER_MS
+        ) {
+          pinchFrameBuffered = true;
+          return true;
+        }
         if (isPinching) {
           handlePinchRelease();
         }
@@ -1191,6 +1514,14 @@
 
       if (isPinching) {
         if (isAboveReleaseThreshold) {
+          if (
+            appState === APP_STATES.MOLECULE &&
+            moleculeHandControl.active &&
+            performance.now() - moleculeHandControl.lastPinchSeenTime <= MOLECULE_PINCH_RELEASE_BUFFER_MS
+          ) {
+            pinchFrameBuffered = true;
+            return true;
+          }
           handlePinchRelease();
           resetPinchTracking();
           return false;
@@ -1206,6 +1537,7 @@
 
       isPinching = true;
       pinchGestureTargetsArtwork = false;
+      pinchStartButtonId = currentButtonHover;
       pinchStartTime = Date.now();
       return true;
     }
@@ -1232,6 +1564,12 @@
       return Date.now() - pinchStartTime > PINCH_CONFIRMATION_MS;
     }
 
+    function isButtonPinchHeld(buttonId) {
+      return pinchStartButtonId === buttonId &&
+        pinchStartTime !== null &&
+        Date.now() - pinchStartTime >= BUTTON_PINCH_HOLD_MS;
+    }
+
     function updateStatusIndicator(isDetected) {
         if (isDetected) {
             statusDot.textContent = "●";
@@ -1248,6 +1586,82 @@
 
     let firstFrameReceived = false;
 
+    function returnToSelectionForStandby() {
+      stopMoleculeGrab();
+      disposeMoleculeViewer();
+      selectedArtworkItem = null;
+      nonLevel1Since = null;
+      highlightOverlayLayer.replaceChildren();
+      materialContent.replaceChildren();
+      materialContent.style.display = "none";
+      materialEmpty.style.display = "block";
+      setAppState(APP_STATES.SELECTION, { announce: false });
+
+      magnifierPosition = {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      };
+      smoothedMagnifierPosition = { ...magnifierPosition };
+      magnifierTargetPosition = { ...magnifierPosition };
+      updateZoomControls();
+    }
+
+    function checkForcedLevel1Timeout() {
+      if (appState !== APP_STATES.SELECTION) {
+        if (nonLevel1Since === null) {
+          nonLevel1Since = Date.now();
+        } else if (Date.now() - nonLevel1Since >= FORCED_NON_LEVEL1_TIMEOUT_MS) {
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+          isStandbyMode = true;
+          returnToSelectionForStandby();
+          return true;
+        }
+      } else {
+        nonLevel1Since = null;
+      }
+      return false;
+    }
+
+    function handleVisitorDetected() {
+      noHandSince = null;
+
+      if (checkForcedLevel1Timeout()) return;
+
+      if (!isStandbyMode) return;
+
+      isStandbyMode = false;
+      returnToSelectionForStandby();
+      
+      // Only trigger Level 1 speech if it's not already speaking
+      const isCurrentlySpeaking = window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+      if (!isCurrentlySpeaking) {
+        playSpeechForState(APP_STATES.SELECTION);
+      }
+    }
+
+    function handleNoHandDetected() {
+      if (checkForcedLevel1Timeout()) return;
+
+      // Do not enter standby or return to level 1 while audio explanation is still playing
+      const isCurrentlySpeaking = window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+      if (isCurrentlySpeaking) {
+        noHandSince = Date.now();
+        return;
+      }
+
+      if (noHandSince === null) {
+        noHandSince = Date.now();
+        return;
+      }
+
+      if (!isStandbyMode && Date.now() - noHandSince >= NO_HAND_STANDBY_TIMEOUT_MS) {
+        isStandbyMode = true;
+        returnToSelectionForStandby();
+      }
+    }
+
     function onHandResults(results) {
       if (!firstFrameReceived) {
         firstFrameReceived = true;
@@ -1261,6 +1675,7 @@
       drawCameraPreview(webcamVideo, results.multiHandLandmarks?.[0] || null);
 
       if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        handleNoHandDetected();
         handCursor.classList.remove("active");
         handCursorTargetPosition = null;
         renderedHandCursorPosition = null;
@@ -1268,16 +1683,23 @@
           cancelAnimationFrame(handCursorAnimationFrame);
           handCursorAnimationFrame = null;
         }
+        if (magnifierAnimationFrame !== null) {
+          cancelAnimationFrame(magnifierAnimationFrame);
+          magnifierAnimationFrame = null;
+        }
         zoomInBtn.classList.remove("is-hovered");
+        zoomInBtn.classList.remove("is-pinching");
         zoomOutBtn.classList.remove("is-hovered");
+        zoomOutBtn.classList.remove("is-pinching");
         magnifier.classList.remove("active");
-        stopMoleculeGrab();
+        preserveMoleculeGrabDuringTrackingGap();
         handConfidence = 0;
         updateStatusIndicator(false, 0);
         currentButtonHover = null;
-        buttonDwellStartTime = null;
         return;
       }
+
+      handleVisitorDetected();
 
       // Get first hand (primary hand)
       const handLandmarks = results.multiHandLandmarks[0];
@@ -1287,17 +1709,25 @@
 
       const rawPalmX = palmCenter.x;
       const rawPalmY = palmCenter.y;
+      const thumbTip = handLandmarks[4];
+      const indexTip = handLandmarks[8];
+      const rawPinchX = (thumbTip.x + indexTip.x) / 2;
+      const rawPinchY = (thumbTip.y + indexTip.y) / 2;
       const mappedPalm = mapHandPointToScreen(rawPalmX, rawPalmY);
       const palmX = mappedPalm.x;
       const palmY = mappedPalm.y;
       
       lastHandPosition = { x: palmX, y: palmY };
       
-      // Apply exponential smoothing to reduce jitter
-      smoothedHandPosition.x = smoothedHandPosition.x * SMOOTHING_FACTOR + palmX * (1 - SMOOTHING_FACTOR);
-      smoothedHandPosition.y = smoothedHandPosition.y * SMOOTHING_FACTOR + palmY * (1 - SMOOTHING_FACTOR);
-      smoothedRawHandPosition.x = smoothedRawHandPosition.x * SMOOTHING_FACTOR + rawPalmX * (1 - SMOOTHING_FACTOR);
-      smoothedRawHandPosition.y = smoothedRawHandPosition.y * SMOOTHING_FACTOR + rawPalmY * (1 - SMOOTHING_FACTOR);
+      // Use lighter filtering in the molecule view so the cursor and model
+      // follow the hand promptly. Other levels keep the stronger jitter filter.
+      const handSmoothing = appState === APP_STATES.MOLECULE ? 0.15 : SMOOTHING_FACTOR;
+      smoothedHandPosition.x = smoothedHandPosition.x * handSmoothing + palmX * (1 - handSmoothing);
+      smoothedHandPosition.y = smoothedHandPosition.y * handSmoothing + palmY * (1 - handSmoothing);
+      const rawControlX = appState === APP_STATES.MOLECULE ? rawPinchX : rawPalmX;
+      const rawControlY = appState === APP_STATES.MOLECULE ? rawPinchY : rawPalmY;
+      smoothedRawHandPosition.x = smoothedRawHandPosition.x * handSmoothing + rawControlX * (1 - handSmoothing);
+      smoothedRawHandPosition.y = smoothedRawHandPosition.y * handSmoothing + rawControlY * (1 - handSmoothing);
       
       handConfidence = results.multiHandedness?.[0]?.score || 0.8;
 
@@ -1309,14 +1739,22 @@
       // Update status indicator
       updateStatusIndicator(true, handConfidence);
 
-      // Update white cursor position (using smoothed position for stability)
-      updateHandCursor(smoothedHandPosition.x, smoothedHandPosition.y);
+      // In the molecule view, keep the cursor, viewport hit check, and rotation
+      // tied to the same filtered midpoint between the pinching fingertips.
+      const moleculeHandPose = appState === APP_STATES.MOLECULE
+        ? mapHandPointToScreen(smoothedRawHandPosition.x, smoothedRawHandPosition.y, false)
+        : null;
+      updateHandCursor(
+        moleculeHandPose?.x ?? smoothedHandPosition.x,
+        moleculeHandPose?.y ?? smoothedHandPosition.y
+      );
       updateMoleculeHandManipulation(currentlyPinching, {
         rawX: smoothedRawHandPosition.x,
         rawY: smoothedRawHandPosition.y,
         handScale: pinchMetrics?.handScale ?? MIN_MOLECULE_HAND_SCALE,
-        screenX: smoothedHandPosition.x,
-        screenY: smoothedHandPosition.y
+        screenX: moleculeHandPose?.x ?? smoothedHandPosition.x,
+        screenY: moleculeHandPose?.y ?? smoothedHandPosition.y,
+        pinchObserved: Boolean(pinchMetrics) && !pinchFrameBuffered
       });
 
       // Show magnifier only in SELECTION mode
@@ -1334,36 +1772,14 @@
           x: smoothedHandPosition.x,
           y: smoothedHandPosition.y
         };
-        const candidatePosition = {
-          x: smoothedMagnifierPosition.x * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.x * (1 - MAGNIFIER_SMOOTHING_FACTOR),
-          y: smoothedMagnifierPosition.y * MAGNIFIER_SMOOTHING_FACTOR + smoothedHandPosition.y * (1 - MAGNIFIER_SMOOTHING_FACTOR)
-        };
 
         if (getArtworkItemAtPosition(handPosition.x, handPosition.y)) {
           pinchGestureTargetsArtwork = true;
           magnifier.classList.add("pinching");
-          // If smoothing would cross an unmapped gap, snap to the valid hand
-          // position instead of leaving the indicator in that gap.
-          const nextPosition = getArtworkItemAtPosition(candidatePosition.x, candidatePosition.y)
-            ? candidatePosition
-            : handPosition;
-          smoothedMagnifierPosition = nextPosition;
-          magnifierPosition = { ...nextPosition };
+          magnifierTargetPosition = handPosition;
+          updateMagnifierPosition();
         } else {
           magnifier.classList.remove("pinching");
-        }
-      }
-
-      // Update magnifier visual position
-      magnifier.style.transform = `translate3d(calc(${magnifierPosition.x}px - 50%), calc(${magnifierPosition.y}px - 50%), 0)`;
-      magnifier.style.left = "0px";
-      magnifier.style.top = "0px";
-
-      // Sample color at magnifier position and update fill
-      if (appState === APP_STATES.SELECTION) {
-        const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
-        if (colorData && getArtworkItemAtPosition(magnifierPosition.x, magnifierPosition.y)) {
-          magnifierFill.style.backgroundColor = colorData.hex;
         }
       }
 
@@ -1428,7 +1844,10 @@
     function animateHandCursor(timestamp) {
       const elapsedSeconds = Math.min((timestamp - lastHandCursorFrameTime) / 1000, 0.1);
       lastHandCursorFrameTime = timestamp;
-      const progress = 1 - Math.exp(-HAND_CURSOR_FOLLOW_RATE * elapsedSeconds);
+      const followRate = appState === APP_STATES.MOLECULE
+        ? MOLECULE_HAND_CURSOR_FOLLOW_RATE
+        : HAND_CURSOR_FOLLOW_RATE;
+      const progress = 1 - Math.exp(-followRate * elapsedSeconds);
       const target = handCursorTargetPosition;
 
       if (!target || !renderedHandCursorPosition) {
@@ -1446,6 +1865,45 @@
       );
       handCursorAnimationFrame = remainingDistance > 0.1
         ? requestAnimationFrame(animateHandCursor)
+        : null;
+    }
+
+    function updateMagnifierPosition() {
+      if (magnifierAnimationFrame === null) {
+        lastMagnifierFrameTime = performance.now();
+        magnifierAnimationFrame = requestAnimationFrame(animateMagnifier);
+      }
+    }
+
+    function animateMagnifier(timestamp) {
+      const elapsedSeconds = Math.min((timestamp - lastMagnifierFrameTime) / 1000, 0.1);
+      lastMagnifierFrameTime = timestamp;
+      const progress = 1 - Math.exp(-MAGNIFIER_FOLLOW_RATE * elapsedSeconds);
+
+      smoothedMagnifierPosition.x += (magnifierTargetPosition.x - smoothedMagnifierPosition.x) * progress;
+      smoothedMagnifierPosition.y += (magnifierTargetPosition.y - smoothedMagnifierPosition.y) * progress;
+      magnifierPosition = { ...smoothedMagnifierPosition };
+
+      magnifier.style.transform = `translate3d(calc(${magnifierPosition.x}px - 50%), calc(${magnifierPosition.y}px - 50%), 0)`;
+      magnifier.style.left = "0px";
+      magnifier.style.top = "0px";
+
+      // While the hand is not pinching, keep the confirmed selection visible.
+      // A pending animation frame can otherwise overwrite it after release.
+      if (appState === APP_STATES.SELECTION && isPinching) {
+        const colorData = sampleColorAtPosition(magnifierPosition.x, magnifierPosition.y);
+        const artworkItem = colorData ? identifyArtworkItem(colorData) : null;
+        if (artworkItem) {
+          magnifierFill.style.backgroundColor = artworkItem.color;
+        }
+      }
+
+      const remainingDistance = Math.hypot(
+        magnifierTargetPosition.x - magnifierPosition.x,
+        magnifierTargetPosition.y - magnifierPosition.y
+      );
+      magnifierAnimationFrame = remainingDistance > 0.1
+        ? requestAnimationFrame(animateMagnifier)
         : null;
     }
 
@@ -1470,19 +1928,32 @@
         y >= zoomOutRect.top && y <= zoomOutRect.bottom;
 
       const isOverButton = isOverZoomInBtn || isOverZoomOutBtn;
+      const levelChangeAvailable = !isNonMouseLevelChangeOnCooldown();
 
       // Highlight white circle when hovering button
-      handCursor.classList.toggle("hovering", isOverButton);
-      zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled);
-      zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled);
+      handCursor.classList.toggle("hovering", isOverButton && levelChangeAvailable);
+      zoomInBtn.classList.toggle("is-hovered", isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable);
+      zoomOutBtn.classList.toggle("is-hovered", isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable);
+      zoomInBtn.classList.toggle(
+        "is-pinching",
+        isPinching && pinchStartButtonId === "zoomInBtn" && isOverZoomInBtn && !zoomInBtn.disabled
+      );
+      zoomOutBtn.classList.toggle(
+        "is-pinching",
+        isPinching && pinchStartButtonId === "zoomOutBtn" && isOverZoomOutBtn && !zoomOutBtn.disabled
+      );
 
-      // Update button hover state (for dwell timer)
-      if (isOverZoomInBtn && !zoomInBtn.disabled) {
+      // Keep the hovered button as the target for a deliberate pinch.
+      if (isOverZoomInBtn && !zoomInBtn.disabled && levelChangeAvailable) {
         currentButtonHover = "zoomInBtn";
-      } else if (isOverZoomOutBtn && !zoomOutBtn.disabled) {
+      } else if (isOverZoomOutBtn && !zoomOutBtn.disabled && levelChangeAvailable) {
         currentButtonHover = "zoomOutBtn";
       } else {
         currentButtonHover = null;
+      }
+
+      if (isPinching && currentButtonHover !== pinchStartButtonId) {
+        pinchStartButtonId = null;
       }
     }
 
@@ -1507,6 +1978,91 @@
     const legendFormula = document.getElementById("legendFormula");
     const legendAtoms = document.getElementById("legendAtoms");
     const legendInfo = document.getElementById("legendInfo");
+
+    const AUTO_SCROLL_SPEED = 8;
+    const AUTO_SCROLL_START_DELAY = 2000;
+    const AUTO_SCROLL_END_PAUSE = 5000;
+    const autoScrollStates = new Map();
+
+    function updateSlowTextScroll(element) {
+      const existingState = autoScrollStates.get(element);
+      if (existingState) {
+        cancelAnimationFrame(existingState.animationFrame);
+        autoScrollStates.delete(element);
+      }
+
+      element.classList.remove("is-scrollable");
+      requestAnimationFrame(() => {
+        if (element.scrollHeight <= element.clientHeight + 4) return;
+
+        element.classList.add("is-scrollable");
+
+        const state = {
+          animationFrame: null,
+          direction: 1,
+          lastTimestamp: performance.now(),
+          pauseUntil: performance.now() + AUTO_SCROLL_START_DELAY
+        };
+
+        const pause = () => {
+          state.pauseUntil = performance.now() + 4000;
+        };
+
+        const scroll = (timestamp) => {
+          if (!element.isConnected || element.scrollHeight <= element.clientHeight + 4) {
+            autoScrollStates.delete(element);
+            return;
+          }
+
+          const elapsedSeconds = Math.min((timestamp - state.lastTimestamp) / 1000, 0.1);
+          state.lastTimestamp = timestamp;
+
+          if (timestamp >= state.pauseUntil) {
+            const maxScrollTop = element.scrollHeight - element.clientHeight;
+            element.scrollTop += state.direction * AUTO_SCROLL_SPEED * elapsedSeconds;
+
+            if (element.scrollTop >= maxScrollTop) {
+              element.scrollTop = maxScrollTop;
+              state.direction = -1;
+              state.pauseUntil = timestamp + AUTO_SCROLL_END_PAUSE;
+            } else if (element.scrollTop <= 0) {
+              element.scrollTop = 0;
+              state.direction = 1;
+              state.pauseUntil = timestamp + 1800;
+            }
+          }
+
+          state.animationFrame = requestAnimationFrame(scroll);
+        };
+
+        element.onmouseenter = pause;
+        element.onwheel = pause;
+        autoScrollStates.set(element, state);
+        state.animationFrame = requestAnimationFrame(scroll);
+      });
+    }
+
+    function updateTextScrollTargets() {
+      [materialContent, moleculeLegend].forEach(updateSlowTextScroll);
+    }
+
+    function refreshTextScrollAfterViewportChange() {
+      if (appState !== APP_STATES.DETAIL && appState !== APP_STATES.MOLECULE) return;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(updateTextScrollTargets);
+      });
+    }
+
+    window.addEventListener("resize", refreshTextScrollAfterViewportChange);
+    document.addEventListener("fullscreenchange", refreshTextScrollAfterViewportChange);
+
+    function formatTextParagraphs(value) {
+      return String(value || "")
+        .split(/\n\s*\n/)
+        .map((paragraph) => `<p>${paragraph.trim()}</p>`)
+        .join("");
+    }
 
     const ITEM_HIGHLIGHT_FILES = {
       bone_black: "assets/highlights/highlight_carbon_black_000000.png",
@@ -1590,6 +2146,7 @@
 
     function selectArtworkItem(item) {
       selectedArtworkItem = item;
+      magnifierFill.style.backgroundColor = item.color;
       applySelectionAccent(item);
       pulseSelectionHighlight(item);
       updateZoomControls();
@@ -1623,32 +2180,21 @@
         
         <div class="material-section">
           <div class="material-section-title">${isPT ? "Contexto Histórico & Cultural" : "Historical & Cultural Context"}</div>
-          <div class="material-text">${item.historicalContext}</div>
-        </div>
-
-        <div class="material-section">
-          <div class="material-section-title">${isArtist ? (isPT ? "Origem" : "Origin") : (isPT ? "Origem / Produção" : "Origin / Production")}</div>
-          <div class="material-text">${item.originProduction}</div>
+          <div class="material-text">${formatTextParagraphs(item.historicalContext)}</div>
         </div>
 
         ${!isArtist && item.whyColor ? `
         <div class="material-section">
           <div class="material-section-title">${isPT ? "Contexto da Cor" : "Color Context"}</div>
-          <div class="material-text">${item.whyColor}</div>
+          <div class="material-text">${formatTextParagraphs(item.whyColor)}</div>
         </div>
         ` : ""}
 
-        ${item.commonName ? `
-          <div class="material-section">
-            <div class="material-section-title">${isPT ? "Nome Comum" : "Common Name"}</div>
-            <div class="material-text">${item.commonName}</div>
-          </div>
-
-          ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
-        ` : ""}
+        ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
       `;
 
       materialContent.innerHTML = html;
+      updateTextScrollTargets();
       const materialImage = materialContent.querySelector(".material-image");
       if (materialImage) {
         materialImage.addEventListener("error", () => {
@@ -1717,6 +2263,7 @@
           y: window.innerHeight / 2 
         };
         smoothedMagnifierPosition = { ...magnifierPosition };
+        magnifierTargetPosition = { ...magnifierPosition };
         updateZoomControls();
       } else if (appState === APP_STATES.MOLECULE) {
         stopMoleculeGrab();
@@ -1764,7 +2311,6 @@
 
       if (!canZoomIn && currentButtonHover === "zoomInBtn") {
         currentButtonHover = null;
-        buttonDwellStartTime = null;
       }
 
       if (!shouldInviteZoomIn && zoomInBtn.classList.contains("is-attention")) {
@@ -1773,11 +2319,10 @@
 
       if (!canZoomOut && currentButtonHover === "zoomOutBtn") {
         currentButtonHover = null;
-        buttonDwellStartTime = null;
       }
     }
 
-    // ===== BUTTON ACTIVATION (Pinch or Hover-based) =====
+    // ===== BUTTON ACTIVATION (Pinch for camera controls) =====
 
     function isNonMouseLevelChangeOnCooldown() {
       return Date.now() < nonMouseLevelChangeAvailableAt;
@@ -1790,44 +2335,16 @@
       // controls. Start the cooldown here so physical mouse clicks remain instant.
       nonMouseLevelChangeAvailableAt = Date.now() + NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS;
       button.click();
+      document.body.classList.add("level-change-cooldown");
+      window.setTimeout(() => {
+        document.body.classList.remove("level-change-cooldown");
+      }, NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS);
       return true;
     }
     
-    function checkButtonActivation() {
-      if (!handTrackingEnabled) return;
-      if (moleculeHandControl.active) return;
-
-      if (isNonMouseLevelChangeOnCooldown()) {
-        buttonDwellStartTime = null;
-        return;
-      }
-
-      // Only process if white circle is hovering a button
-      if (!currentButtonHover) {
-        buttonDwellStartTime = null;
-        return;
-      }
-
-      const button = document.getElementById(currentButtonHover);
-      if (!button || button.disabled) return;
-
-      // Track hover dwell for activation
-      if (!buttonDwellStartTime) {
-        buttonDwellStartTime = Date.now();
-      }
-
-      const elapsedMs = Date.now() - buttonDwellStartTime;
-
-      // Activate button after dwell timeout
-      if (elapsedMs >= BUTTON_DWELL_MS) {
-        activateButtonWithHand(button);
-        buttonDwellStartTime = null;
-      }
-    }
-
     function handleButtonPinch(buttonId) {
-      // Pinch while over button = immediate activation
-      if (isPinchConfirmed()) {
+      // A pinch must start over the button and be held there before activation.
+      if (isPinchConfirmed() && isButtonPinchHeld(buttonId)) {
         const button = document.getElementById(buttonId);
         if (button && !button.disabled && !isNonMouseLevelChangeOnCooldown()) {
           consumePinchGesture();
@@ -1873,14 +2390,21 @@
       MaskReader.resizeCanvases(paintingCanvas, maskCanvas);
     }
 
-    window.addEventListener("resize", resizeCanvases);
+    function requestFullscreenOnFirstInteraction() {
+      const requestFullscreen = document.documentElement.requestFullscreen;
+      if (document.fullscreenElement || typeof requestFullscreen !== "function") return;
+
+      requestFullscreen.call(document.documentElement).catch((error) => {
+        console.info("Fullscreen was not enabled by the browser:", error);
+      });
+    }
+
+    document.addEventListener("pointerdown", requestFullscreenOnFirstInteraction, { once: true });
 
     // ===== MAIN INTERACTION LOOP =====
     setInterval(() => {
       if (handTrackingEnabled) {
-        checkButtonActivation();  // Handle hover-based dwell
-        
-        // Handle pinch-based button activation
+        // Handle pinch-based button activation.
         if (isPinching && isPinchConfirmed()) {
           if (currentButtonHover === "zoomInBtn") {
             handleButtonPinch("zoomInBtn");
@@ -1894,16 +2418,16 @@
     // ===== INITIALIZATION =====
     MaskReader.init(paintingCanvas, maskCanvas);
     MaskReader.loadImages();
-    resizeCanvases();
-    setAppState(APP_STATES.SELECTION);
+    setAppState(APP_STATES.SELECTION, { announce: false });
     updateZoomControls();
     initializeSafeZone();
+    resizeCanvases();
     initializeHandTracking();
 
     // Re-initialize safe zone on window resize
     window.addEventListener("resize", () => {
-      resizeCanvases();
       initializeSafeZone();
+      resizeCanvases();
     });
 
     console.log(`
@@ -1952,13 +2476,13 @@ INTERACTION FEATURES:
 ✓ Magnifier = Physical metaphor (pick up, drag, drop)
 ✓ White circle = Intentional action point (buttons only)
 ✓ Pinch detection = Primary interaction method
-✓ Hover dwell = Fallback option (1 second)
+✓ Camera level changes = Confirmed pinch while hovering a button
 ✓ Auto-rotating molecule = Museum engagement
 ✓ 3D controls = Mouse drag or hand gesture (future)
 
 CUSTOMIZATION:
   • PINCH_THRESHOLD: How close thumb-index must be
-  • BUTTON_DWELL_MS: Hover time to activate (1000ms)
+  • BUTTON_PINCH_HOLD_MS: Camera-control pinch hold duration (500ms)
   • SAFE_ZONE_MARGINS: Camera detection area
   • Three.js scene: Lighting, colors, atom sizes
 
