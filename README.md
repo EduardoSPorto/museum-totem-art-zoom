@@ -73,7 +73,7 @@ Para isso, adotamos uma técnica de **Máscaras Ocultas Baseadas em RGB (Hidden 
 
 ---
 
-## 📂 Estrutura do Projeto
+## Estrutura do Projeto
 
 Abaixo apresentamos a organização dos arquivos e pastas para facilitar a navegação no repositório:
 
@@ -109,7 +109,7 @@ museum-totem-art-zoom/
 
 ---
 
-## ⚙️ Pré-requisitos e Instalação
+## Pré-requisitos e Instalação
 
 O projeto foi projetado para rodar nativamente em ambientes Web, portanto, não é necessária a instalação de Node.js, compilação ou pacotes `npm`. É necessário um servidor web local para que as requisições `fetch` dos arquivos de imagem, molécula e CIF funcionem corretamente e para que o navegador permita o uso da webcam.
 
@@ -172,6 +172,344 @@ PubChem CID 6293 — explicit hydrogen atoms for 3D display     <-- 1. HEADER: M
   3 10  2  0  0  0  0                                         <-- 4. BOND BLOCK: Ligação entre Átomo 3 e Átomo 10 (Tipo 2 = Dupla)
     ...
 ## Commit History
+--
+
+    Removed deprecated launchers
+
+--
+
+    Defaulted launcher to portuguse
+
+--
+
+    Improved visualization for pinching during level changes.
+
+--
+
+    Removed accidentaly send files
+
+--
+
+    Updated assets with the aesthetic filter
+
+--
+
+    Updated color mapping mask to be more precise
+
+--
+
+    Updated TTS to the current behaviour of the code
+
+--
+
+    Fixed a long-standing bug where the model did not follow the pinch movement
+
+--
+
+    Limited the pinching to touching the 3D render
+
+--
+
+    Reduced the chance of the text being to big to be visiible without scrolling it.
+
+--
+
+    Added pinch gesture requirement for level changes and general cleanup
+    
+    - Pinching is now required to change levels.
+    - Removed unused assets and performed general code cleanup.
+
+--
+
+    Hovering while pinching are now nedded to change levels
+
+--
+
+    Inverted the selection to a more intuitive way.
+    
+    - Pinching something to the left mover as if you dragged it, holding on it's surface.
+
+--
+
+    Small adaptation on what is considered a pinch on the model rotation
+
+--
+
+    A brief loss of hand tracking now preserves the active drag
+
+--
+
+    Non-selectable indication for button and small fullscreen fix
+    
+    - They become grayed out
+    - Exiting fullscreen on some levels could prevent the text scrollbar from appearing
+
+--
+
+    Force or request fullscreen
+
+--
+
+    Removed non-discrete colors in the selected visualization
+
+--
+
+    Fixed a bug when fullscrenning outside of the level 1
+    
+    - Before the paint would not be show again.
+
+--
+
+    Fixed selected color highlight resizing
+    
+    - The software did not change scale to represent the highlight visualization
+
+--
+
+    Model Manipulation is now Very Smooth
+    
+    - Removed allot of the previous smoothing, it added allot of delay
+    - Rotation calculaded from hand position, removing allot of the sudden changues creating the lag
+
+--
+    Some 3D model manipulation verification
+
+--
+
+    Forced return to default mode after 1 minute standby
+
+--
+
+    Fixed small problem with Test-to-Speach interruption
+
+--
+
+    Initial implementatioin of museus standby mode
+
+--
+
+    Unstable optimization changues
+
+--
+
+    Fixed the failed loading of a previously loaded material on level 3
+
+--
+
+    Text does not need scrolling anymore
+
+--
+
+    Fixed the lag on the movement of the selector
+
+--
+
+    Smothed out the color selection
+
+--
+
+    White material resized for better visualization
+
+--
+
+    Red Lake resized for better visualization
+
+--
+
+    Fixed tube coloring in the model for the yellow material
+
+--
+
+    Fixed double connection
+
+--
+
+    Fixed connection on the black material
+
+--
+
+    Fixed black material model
+
+--
+
+    Implemented CIF suppport for a multitude of materials
+
+--
+
+    Removed  deprecated CIF files
+
+--
+
+    Launcher color fix and changues to images
+    
+    - Lancher color now folow the software pattern
+    - The images now are based on the final materials
+
+--
+
+    Updated data and visualization
+    
+    - Level 2 and 3 now reorganized to show more relevant information
+    - Updated CIFs
+    - Updateded Portuguese version of text
+
+--
+
+    Interface Information Matching
+    
+    - Update base new information
+
+--
+
+    Small changues to the launcher
+
+--
+
+    Simplify launcher
+
+--
+
+    Adjusted interface in lower resolutions
+
+--
+
+    Fixing molecule color and translation
+    
+    - The color now is fixed in red and yellow
+    - The translation now is uptaded the the current english version
+
+--
+
+    Added the hand tracking model
+
+--
+
+    Initial camera non-activationg fix
+
+--
+
+    Added all sources that required an internet connection
+    
+    - Downloaded all files necessary to make the software offline-capable
+
+--
+
+    Updated README
+    
+    - Updated details about the current state of the implementation
+    - Added information about the CIFs
+    - Added the new files in the project strucure
+    -  Pre requisites and launcher use detailed
+
+--
+
+    New Cristal Like Visualization
+
+--
+
+    The yellow final CIF is now wired into the explorer
+
+--
+
+    New Cif archive
+
+--
+
+    Fixed image detection
+
+--
+
+    Updated information about color for the new and updated information
+
+--
+
+    More data for info reference
+
+--
+
+    Auxiliar files for testing the cif implementation
+
+--
+
+    Initial Crystal Visualization Modification
+
+--
+
+    Internal organization documentation
+
+--
+
+    Changues to material to color association
+
+--
+
+    Updated ID's in the code
+
+--
+
+    List of information nedded for the project.
+
+--
+
+    Some
+
+--
+
+    Updated 3D model visualization
+
+--
+
+    Smothed out the Google Version
+    
+    - It now interpolates at display frame rate between MediaPipe tracking updates, removing the visible stepping while preserving the existing stability filter.
+
+--
+
+    Upgraded the hand detection visualizar and webcam
+
+--
+
+    Added a 5-second cooldown between hand-controlled level changes
+
+--
+
+    More detail in the TTS for level 3
+
+--
+
+    And internal scroll was added
+    
+    - Make clear when the text overflow what is visible
+
+--
+
+    Language change and voice shortcut
+    
+    - Shift + M mutes and unmutes.
+    - Shift + L cycles through languages.
+
+--
+
+    Text to speach now correctly deals with the lack of common name when talking about the artist
+
+--
+
+    Section of Artist name is equal to the artist
+
+--
+
+    Information and Default Revision
+
+--
+
+    Ilustrative image
+    
+    - For visualization of the project
+
+--
+
+    Updated README with commit history
+
 --
 
     Small  performance tests
