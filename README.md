@@ -175,11 +175,11 @@ Depois de preparado, abra a pasta do projeto e inicie `run.bat` no Windows, `run
 
    *Alternativas manuais sem script:*
    - **Python:** `python3 -m http.server 8000`
-   - **Node.js:** `npx http-server -p 8000`
+   - **Node.js (opcional):** `npx http-server -p 8000`
    - **VS Code:** Extensão *Live Server*.
 
 3. **Configure e Acesse:**
-   O `launcher.html` abre configurado por padrão em **Português** (com alternância para **Inglês**) e com narração por voz ativada. Clique em **Launch Application** para iniciar.
+   O `launcher.html` abre configurado por padrão em **Português** (com alternância para **Inglês**) e com narração por voz ativada. Clique em **Launch Application** para iniciar. Se o arquivo principal for aberto diretamente sem parâmetros, o idioma padrão é **Inglês**; use o launcher ou `?lang=pt` para iniciar em Português.
 
 ---
 
@@ -191,7 +191,7 @@ Ao se posicionar diante do totem e ter suas mãos reconhecidas pela câmera:
 - **Explorar (Gesto de Pinça Confirmada):** Ao aproximar indicador e polegar sobre uma região da pintura por um breve instante, um anel visual confirma a seleção deliberada. A região selecionada ganha destaque visual através de uma camada de brilho estético com contorno discreto.
 - **Aprofundar (Botões Zoom In / Zoom Out):** Mova o cursor até os botões laterais e mantenha a pinça sobre o botão para navegar de nível. Se o usuário estiver nos limites (Nível 1 sem poder diminuir zoom, ou Nível 3 sem poder avançar), o botão correspondente é exibido desabilitado e acinzentado.
 - **Rotacionar Estrutura 3D (Pinça Direta no Modelo):** Na tela de visualização molecular/cristalina (Nível 3), faça a pinça diretamente sobre o modelo tridimensional e arraste a mão no ar. A rotação acompanha orbitalmente a superfície do modelo de forma fluida. Se a mão sair momentaneamente do campo de visão da câmera durante o gesto, a aplicação tolera a breve perda sem interromper bruscamente a orientação.
-- **Modo Standby Museológico:** Em períodos de inatividade (15 segundos sem detecção de mãos após o término de qualquer explicação falada), o totem retorna automaticamente ao Nível 1.
+- **Modo Standby Museológico:** Em períodos de inatividade (15 segundos sem detecção de mãos após o término de qualquer explicação falada), o totem retorna automaticamente ao Nível 1. Como proteção adicional, permanecer nos Níveis 2 ou 3 por cinco minutos também força o retorno ao Nível 1.
 - **Atalhos Rápidos de Teclado:**
   - `Shift + L`: Alterna dinamicamente entre Português e Inglês.
   - `Shift + M`: Ativa / desativa o áudio de narração (TTS).
