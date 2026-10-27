@@ -22,19 +22,25 @@ const ARTWORK_ITEMS = {
     },
 
     blue: {
-        id: "generic_blue",
+        id: "prussian_blue",
         type: "material",
         color: "#0000FF",
         image: "assets/materials/generic_blue.jpg",
-        name: "Pigmento Azul",
-        commonName: "Pigmento Azul",
-        formula: "[non_filled]",
-            historicalContext: "[non_filled]",
-            structure: "[non_filled]",
-            whyColor: "[non_filled]",
+        name: "Azul da Prússia",
+        commonName: "Azul da Prússia (PB27)",
+        formula: "Fe(III)₄[Fe(II)(CN)₆]₃ · xH₂O",
+            historicalContext: "Pigmento azul inorgânico com expressiva utilização histórica em pinturas a óleo e na formulação de misturas verdes. Constitui um candidato cronologicamente plausível para as regiões azuis e verdes das obras de Benette Casaretto Motta (como 'Anjo Adonay' e 'Sem título (Flores)'), embora sua presença ainda não tenha sido confirmada por análises químicas nessas regiões específicas.",
+            structure: "Pigmento inorgânico constituído por uma rede tridimensional de coordenação. A estrutura é formada por centros de ferro em diferentes estados de oxidação ligados por pontes de cianeto, apresentando segmentos Fe(II)-C=N-Fe(III).",
+            whyColor: "A cor azul intensa característica é resultado do processo de transferência de carga do tipo intervalo entre os centros metálicos de Fe(II) e Fe(III).",
             chemicalStructure: {
-                modelName: "[non_filled]",
-                atoms: []
+                modelName: "prussian_blue",
+                atoms: [
+                    { element: "Fe" },
+                    { element: "C" },
+                    { element: "N" },
+                    { element: "H" },
+                    { element: "O" }
+                ]
             }
     },
 

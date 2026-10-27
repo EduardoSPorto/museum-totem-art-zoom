@@ -22,19 +22,25 @@ const ARTWORK_ITEMS = {
     },
 
     blue: {
-        id: "generic_blue",
+        id: "prussian_blue",
         type: "material",
         color: "#0000FF",
         image: "assets/materials/generic_blue.jpg",
-        name: "Blue Pigment",
-        commonName: "Blue Pigment",
-        formula: "[non_filled]",
-            historicalContext: "[non_filled]",
-            structure: "[non_filled]",
-            whyColor: "[non_filled]",
+        name: "Prussian Blue",
+        commonName: "Prussian Blue (PB27)",
+        formula: "Fe(III)₄[Fe(II)(CN)₆]₃ · xH₂O",
+            historicalContext: "Inorganic blue pigment with significant historical use in oil paintings and in green paint mixtures[cite: 1]. It is a chronologically plausible candidate for the blue and green regions of Benette Casaretto Motta's artworks (such as 'Anjo Adonay' and 'Untitled (Flowers)'), although its presence has not yet been confirmed by chemical analysis in these specific regions[cite: 1].",
+            structure: "Inorganic pigment consisting of a three-dimensional coordination network[cite: 1]. The structure is formed by iron centers in different oxidation states connected by cyanide ligands, featuring Fe(II)-C=N-Fe(III) segments[cite: 1].",
+            whyColor: "The characteristic intense blue color results from an intervalence charge transfer process between the Fe(II) and Fe(III) metal centers[cite: 1].",
             chemicalStructure: {
-                modelName: "[non_filled]",
-                atoms: []
+                modelName: "prussian_blue",
+                atoms: [
+                    { element: "Fe" },
+                    { element: "C" },
+                    { element: "N" },
+                    { element: "H" },
+                    { element: "O" }
+                ]
             }
     },
 
