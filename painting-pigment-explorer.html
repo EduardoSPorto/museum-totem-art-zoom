@@ -2066,7 +2066,7 @@
 
     const ITEM_HIGHLIGHT_FILES = {
       bone_black: "assets/highlights/highlight_carbon_black_000000.png",
-      generic_blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
+      prussian_blue: "assets/highlights/highlight_placeholder_blue_pigment_0000ff.png",
       red_lake: "assets/highlights/highlight_lake_red_titian_ff0000.png",
       benette_casaretto_signature: "assets/highlights/highlight_artist_ff00ff.png",
       calcium_carbonate: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
@@ -2190,7 +2190,11 @@
         </div>
         ` : ""}
 
-        ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
+        ${item.chemicalStructure
+          ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>`
+          : item.molecularStructureStatus === "unconfirmed"
+            ? `<div class="material-note">${isPT ? "Explore outros materiais com modelos moleculares associados confirmados." : "Explore other materials with confirmed associated molecular models."}</div>`
+            : ""}
       `;
 
       materialContent.innerHTML = html;

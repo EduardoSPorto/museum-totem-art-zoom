@@ -85,14 +85,22 @@ function playSpeechForState(newState) {
           selectedArtworkItem.name ? `Vamos aprender mais sobre o material ${selectedArtworkItem.name}.` : "Vamos aprender mais sobre o material.",
           selectedArtworkItem.historicalContext,
           hasSpeechContent(selectedArtworkItem.whyColor) ? `A cor visível é assim porque ${selectedArtworkItem.whyColor}.` : "",
-          selectedArtworkItem.chemicalStructure ? "Você pode manter o sinal de pinça sobre o botão aproximar para explorar a estrutura molecular." : ""
+          selectedArtworkItem.chemicalStructure
+            ? "Você pode manter o sinal de pinça sobre o botão aproximar para explorar a estrutura molecular."
+            : selectedArtworkItem.molecularStructureStatus === "unconfirmed"
+              ? "Explore outros materiais com modelos moleculares associados confirmados."
+              : ""
         ];
       } else {
         textToSpeak = [
           selectedArtworkItem.name ? `Let’s learn more about the material ${selectedArtworkItem.name}.` : "Let’s learn more about the material.",
           selectedArtworkItem.historicalContext,
           hasSpeechContent(selectedArtworkItem.whyColor) ? `The visible color looks like this because ${selectedArtworkItem.whyColor}.` : "",
-          selectedArtworkItem.chemicalStructure ? "You can keep the pinch signal over the zoom in button to explore the molecular structure." : ""
+          selectedArtworkItem.chemicalStructure
+            ? "You can keep the pinch signal over the zoom in button to explore the molecular structure."
+            : selectedArtworkItem.molecularStructureStatus === "unconfirmed"
+              ? "Explore other materials with confirmed associated molecular models."
+              : ""
         ];
       }
 

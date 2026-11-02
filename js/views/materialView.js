@@ -74,6 +74,20 @@ const MaterialView = (() => {
     });
   }
 
+  function getMolecularStructureNote(item, isPT) {
+    if (item.chemicalStructure) {
+      return isPT
+        ? `Aproxime para explorar a estrutura molecular de ${item.name}`
+        : `Zoom in to explore the molecular structure of ${item.name}`;
+    }
+    if (item.molecularStructureStatus === "unconfirmed") {
+      return isPT
+        ? "Explore outros materiais com modelos moleculares associados confirmados."
+        : "Explore other materials with confirmed associated molecular models.";
+    }
+    return "";
+  }
+
   function renderArtworkDetail(item, elements) {
     const { detailTitle, detailSubtitle, materialContent, materialEmpty } = elements;
     if (!item) return;
@@ -108,7 +122,7 @@ const MaterialView = (() => {
       </div>
       ` : ""}
 
-      ${item.chemicalStructure ? `<div class="material-note">${isPT ? "Aproxime para explorar a estrutura molecular de " : "Zoom in to explore the molecular structure of "}${item.name}</div>` : ""}
+      ${getMolecularStructureNote(item, isPT) ? `<div class="material-note">${getMolecularStructureNote(item, isPT)}</div>` : ""}
     `;
 
     materialContent.innerHTML = html;
