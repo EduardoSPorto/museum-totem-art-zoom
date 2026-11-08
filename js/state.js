@@ -131,8 +131,8 @@ function playSpeechForState(newState) {
         : "";
       const atomDescription = elementNames.length
         ? (lang === "pt"
-          ? `A legenda identifica ${joinSpeechList(elementNames, lang)}.`
-          : `The legend identifies ${joinSpeechList(elementNames, lang)}.`)
+          ? "A legenda mostra os símbolos químicos correspondentes."
+          : "The legend shows the corresponding chemical symbols.")
         : "";
 
       textToSpeak = lang === "pt"
