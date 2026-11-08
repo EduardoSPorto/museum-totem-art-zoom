@@ -11,6 +11,18 @@ function hasSpeechContent(value) {
   return typeof value === "string" && value.trim() !== "" && value !== "[not informed]";
 }
 
+function prepareTextForSpeech(text, lang) {
+  if (lang !== "pt" || typeof text !== "string") return text;
+
+  return text
+    .replace(/\bAl\(III\)/g, "alumínio três")
+    .replace(/\bAl³⁺/g, "alumínio três positivo")
+    .replace(/\bFe\(III\)/g, "ferro três")
+    .replace(/\bFe\(II\)/g, "ferro dois")
+    .replace(/\bFe³⁺/g, "ferro três positivo")
+    .replace(/\bFe²⁺/g, "ferro dois positivo");
+}
+
 const ELEMENT_SPEECH_NAMES = {
   en: {
     H: "hydrogen", C: "carbon", N: "nitrogen", O: "oxygen", S: "sulfur",
@@ -84,6 +96,7 @@ function playSpeechForState(newState) {
         textToSpeak = [
           selectedArtworkItem.name ? `Vamos aprender mais sobre o material ${selectedArtworkItem.name}.` : "Vamos aprender mais sobre o material.",
           selectedArtworkItem.historicalContext,
+          selectedArtworkItem.structure,
           hasSpeechContent(selectedArtworkItem.whyColor) ? `A cor visível é assim porque ${selectedArtworkItem.whyColor}.` : "",
           selectedArtworkItem.chemicalStructure
             ? "Você pode manter o sinal de pinça sobre o botão aproximar para explorar a estrutura molecular."
@@ -143,6 +156,7 @@ function playSpeechForState(newState) {
   }
 
   if (textToSpeak) {
+    textToSpeak = prepareTextForSpeech(textToSpeak, lang);
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = lang === 'pt' ? 'pt-BR' : 'en-US';
     window.speechSynthesis.speak(utterance);
