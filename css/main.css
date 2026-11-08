@@ -1081,7 +1081,9 @@ body.app-state-detail {
 }
 
 .zoom-zone.is-attention .zoom-zone-content {
-  animation: zoomInvitePulse 3.6s ease-in-out infinite;
+  /* Keep the zoom invitation visible without continuously repainting the
+     full-screen selection UI while camera hand tracking is active. */
+  animation: none;
   transform-origin: center;
 }
 
@@ -1109,10 +1111,6 @@ body.app-state-detail {
 .level-change-cooldown .zoom-zone .zoom-zone-label {
   color: #625f5a;
   text-shadow: none;
-}
-
-.level-change-cooldown .zoom-zone.is-attention .zoom-zone-content {
-  animation: none;
 }
 
 .detail-header {
@@ -1280,18 +1278,6 @@ body.app-state-detail {
   }
   100% {
     opacity: 0;
-  }
-}
-
-@keyframes zoomInvitePulse {
-  0%,
-  100% {
-    opacity: 0.82;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.035);
   }
 }
 
