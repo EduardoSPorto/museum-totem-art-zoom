@@ -1026,6 +1026,7 @@
     let currentButtonHover = null;
     const NON_MOUSE_LEVEL_CHANGE_COOLDOWN_MS = 3000;
     let nonMouseLevelChangeAvailableAt = 0;
+    let zoomButtonRects = null;
     
     const handCursor = document.getElementById("handCursor");
     const handInfoOverlay = document.getElementById("handInfoOverlay");
@@ -1034,6 +1035,13 @@
     const cameraPreviewCtx = cameraPreviewCanvas.getContext("2d");
     const statusDot = document.getElementById("statusDot");
     const statusText = document.getElementById("statusText");
+
+    function refreshZoomButtonRects() {
+      zoomButtonRects = {
+        zoomIn: zoomInBtn.getBoundingClientRect(),
+        zoomOut: zoomOutBtn.getBoundingClientRect()
+      };
+    }
 
     async function waitForMediaPipeLibraries(maxWaitMs = 15000) {
       const startTime = Date.now();
@@ -1571,6 +1579,10 @@
     }
 
     function updateStatusIndicator(isDetected) {
+        const nextStatus = isDetected ? "detected" : "searching";
+        if (statusDot.dataset.status === nextStatus) return;
+
+        statusDot.dataset.status = nextStatus;
         if (isDetected) {
             statusDot.textContent = "●";
           statusDot.title = "Hand detected";
@@ -1592,6 +1604,7 @@
       selectedArtworkItem = null;
       nonLevel1Since = null;
       selectionHighlightVersion++;
+      lastPreloadedSelectionHighlightId = null;
       highlightOverlayLayer.replaceChildren();
       materialContent.replaceChildren();
       materialContent.style.display = "none";
@@ -1776,7 +1789,10 @@
 
         const artworkItem = getArtworkItemAtPosition(handPosition.x, handPosition.y);
         if (artworkItem) {
-          preloadSelectionHighlight(artworkItem);
+          if (artworkItem.id !== lastPreloadedSelectionHighlightId) {
+            lastPreloadedSelectionHighlightId = artworkItem.id;
+            preloadSelectionHighlight(artworkItem);
+          }
           pinchGestureTargetsArtwork = true;
           magnifier.classList.add("pinching");
           magnifierTargetPosition = handPosition;
@@ -1916,9 +1932,10 @@
       handCursor.style.left = "0px";
       handCursor.style.top = "0px";
 
-      // Check if white circle is hovering over buttons
-      const zoomInRect = document.getElementById("zoomInBtn").getBoundingClientRect();
-      const zoomOutRect = document.getElementById("zoomOutBtn").getBoundingClientRect();
+      // Use layout measurements refreshed on resize/state changes. Reading
+      // button geometry on every animation frame forces synchronous layout.
+      if (!zoomButtonRects) refreshZoomButtonRects();
+      const { zoomIn: zoomInRect, zoomOut: zoomOutRect } = zoomButtonRects;
       const zoomInVisible = !zoomInBtn.classList.contains("is-hidden");
       const zoomOutVisible = !zoomOutBtn.classList.contains("is-hidden");
 
@@ -2077,6 +2094,7 @@
     };
     const selectionHighlightPreloads = new Map();
     let selectionHighlightVersion = 0;
+    let lastPreloadedSelectionHighlightId = null;
 
     let moleculeViewer = null;
     let moleculeRenderVersion = 0;
@@ -2352,6 +2370,8 @@
       if (!canZoomOut && currentButtonHover === "zoomOutBtn") {
         currentButtonHover = null;
       }
+
+      refreshZoomButtonRects();
     }
 
     // ===== BUTTON ACTIVATION (Pinch for camera controls) =====
