@@ -1591,6 +1591,7 @@
       disposeMoleculeViewer();
       selectedArtworkItem = null;
       nonLevel1Since = null;
+      selectionHighlightVersion++;
       highlightOverlayLayer.replaceChildren();
       materialContent.replaceChildren();
       materialContent.style.display = "none";
@@ -1773,7 +1774,9 @@
           y: smoothedHandPosition.y
         };
 
-        if (getArtworkItemAtPosition(handPosition.x, handPosition.y)) {
+        const artworkItem = getArtworkItemAtPosition(handPosition.x, handPosition.y);
+        if (artworkItem) {
+          preloadSelectionHighlight(artworkItem);
           pinchGestureTargetsArtwork = true;
           magnifier.classList.add("pinching");
           magnifierTargetPosition = handPosition;
@@ -2072,6 +2075,8 @@
       calcium_carbonate: "assets/highlights/highlight_placeholder_white_pigment_ffffff.png",
       cadmium_sulfide: "assets/highlights/highlight_cadmiumgelb_pigment_ffff00.png"
     };
+    const selectionHighlightPreloads = new Map();
+    let selectionHighlightVersion = 0;
 
     let moleculeViewer = null;
     let moleculeRenderVersion = 0;
@@ -2130,18 +2135,41 @@
       const highlightPath = ITEM_HIGHLIGHT_FILES[item.id];
       if (!highlightPath) return;
 
+      const version = ++selectionHighlightVersion;
       highlightOverlayLayer.replaceChildren();
 
-      const highlightImage = document.createElement("img");
-      highlightImage.className = "selection-highlight";
-      highlightImage.alt = "";
-      highlightImage.setAttribute("aria-hidden", "true");
-      highlightImage.src = highlightPath;
-      highlightImage.addEventListener("animationend", () => {
-        highlightImage.remove();
-      }, { once: true });
+      preloadSelectionHighlight(item).then(() => {
+        if (version !== selectionHighlightVersion) return;
 
-      highlightOverlayLayer.appendChild(highlightImage);
+        const highlightImage = document.createElement("img");
+        highlightImage.className = "selection-highlight";
+        highlightImage.alt = "";
+        highlightImage.setAttribute("aria-hidden", "true");
+        highlightImage.src = highlightPath;
+        highlightImage.addEventListener("animationend", () => {
+          highlightImage.remove();
+        }, { once: true });
+
+        highlightOverlayLayer.appendChild(highlightImage);
+      });
+    }
+
+    function preloadSelectionHighlight(item) {
+      const highlightPath = ITEM_HIGHLIGHT_FILES[item?.id];
+      if (!highlightPath) return Promise.resolve();
+
+      if (!selectionHighlightPreloads.has(highlightPath)) {
+        const image = new Image();
+        image.src = highlightPath;
+        selectionHighlightPreloads.set(
+          highlightPath,
+          typeof image.decode === "function"
+            ? image.decode().catch(() => {})
+            : Promise.resolve()
+        );
+      }
+
+      return selectionHighlightPreloads.get(highlightPath);
     }
 
     function selectArtworkItem(item) {
