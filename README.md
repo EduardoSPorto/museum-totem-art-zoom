@@ -133,6 +133,22 @@ As bibliotecas MediaPipe, Three.js e 3Dmol.js são distribuídas no diretório `
 
 O aplicativo ainda deve ser aberto por um servidor HTTP local, usando um dos launchers fornecidos. Isso é necessário para que o navegador permita o acesso à webcam e para que os arquivos de imagens, moléculas e CIF possam ser carregados com `fetch`; não é necessário acesso à internet.
 
+### Como baixar e preparar os requisitos
+
+1. **Use um computador com câmera e suporte a WebGL.** A câmera pode ser integrada ou USB. Esses recursos dependem do equipamento; não são programas para baixar. Para o nível 3D, mantenha os drivers gráficos atualizados.
+2. **Instale ou atualize um navegador.** O [Google Chrome](https://www.google.com/chrome/) é uma opção recomendada. Também é possível usar uma versão recente do [Firefox](https://www.mozilla.org/firefox/new/) ou outro navegador moderno com suporte a webcam e WebGL.
+3. **Tenha um servidor HTTP local disponível.** O projeto não requer Node.js nem pacotes npm. Os launchers tentam localizar `python3`, `python` ou `php` automaticamente.
+   - **Windows:** se o launcher não encontrar um servidor, baixe o [Python para Windows](https://www.python.org/downloads/windows/), execute o instalador e marque **Add Python to PATH** antes de instalar. Feche e abra novamente o terminal após a instalação.
+   - **macOS:** baixe o [Python para macOS](https://www.python.org/downloads/macos/) se `python3` não estiver disponível.
+   - **Linux:** muitas distribuições já incluem Python. Caso necessário, instale o pacote Python 3 pelo gerenciador de programas da sua distribuição ou baixe-o em [python.org](https://www.python.org/downloads/).
+4. **Baixe o projeto.** Na página do repositório, selecione **Code → Download ZIP** e extraia o arquivo, ou clone-o com Git:
+   ```bash
+   git clone https://github.com/EduardoSPorto/museum-totem-art-zoom.git
+   ```
+5. **Conecte ou habilite a câmera** e permita o acesso quando o navegador solicitar. Ao iniciar pelo launcher em `http://localhost`, o navegador pode usar a webcam sem HTTPS.
+
+Depois de preparado, abra a pasta do projeto e inicie `run.bat` no Windows, `run.command` no macOS ou `./run.sh` no Linux. O aplicativo e seus recursos locais não precisam de internet durante o uso.
+
 ### Passo a Passo
 
 1. **Clone o repositório:**
@@ -159,11 +175,11 @@ O aplicativo ainda deve ser aberto por um servidor HTTP local, usando um dos lau
 
    *Alternativas manuais sem script:*
    - **Python:** `python3 -m http.server 8000`
-   - **Node.js:** `npx http-server -p 8000`
+   - **Node.js (opcional):** `npx http-server -p 8000`
    - **VS Code:** Extensão *Live Server*.
 
 3. **Configure e Acesse:**
-   O `launcher.html` abre configurado por padrão em **Português** (com alternância para **Inglês**) e com narração por voz ativada. Clique em **Launch Application** para iniciar.
+   O `launcher.html` abre configurado por padrão em **Português** (com alternância para **Inglês**) e com narração por voz ativada. Clique em **Launch Application** para iniciar. Se o arquivo principal for aberto diretamente sem parâmetros, o idioma padrão é **Inglês**; use o launcher ou `?lang=pt` para iniciar em Português.
 
 ---
 
@@ -175,7 +191,7 @@ Ao se posicionar diante do totem e ter suas mãos reconhecidas pela câmera:
 - **Explorar (Gesto de Pinça Confirmada):** Ao aproximar indicador e polegar sobre uma região da pintura por um breve instante, um anel visual confirma a seleção deliberada. A região selecionada ganha destaque visual através de uma camada de brilho estético com contorno discreto.
 - **Aprofundar (Botões Zoom In / Zoom Out):** Mova o cursor até os botões laterais e mantenha a pinça sobre o botão para navegar de nível. Se o usuário estiver nos limites (Nível 1 sem poder diminuir zoom, ou Nível 3 sem poder avançar), o botão correspondente é exibido desabilitado e acinzentado.
 - **Rotacionar Estrutura 3D (Pinça Direta no Modelo):** Na tela de visualização molecular/cristalina (Nível 3), faça a pinça diretamente sobre o modelo tridimensional e arraste a mão no ar. A rotação acompanha orbitalmente a superfície do modelo de forma fluida. Se a mão sair momentaneamente do campo de visão da câmera durante o gesto, a aplicação tolera a breve perda sem interromper bruscamente a orientação.
-- **Modo Standby Museológico:** Em períodos de inatividade (15 segundos sem detecção de mãos após o término de qualquer explicação falada), o totem retorna automaticamente ao Nível 1.
+- **Modo Standby Museológico:** Em períodos de inatividade (15 segundos sem detecção de mãos após o término de qualquer explicação falada), o totem retorna automaticamente ao Nível 1. Como proteção adicional, permanecer nos Níveis 2 ou 3 por cinco minutos também força o retorno ao Nível 1.
 - **Atalhos Rápidos de Teclado:**
   - `Shift + L`: Alterna dinamicamente entre Português e Inglês.
   - `Shift + M`: Ativa / desativa o áudio de narração (TTS).
