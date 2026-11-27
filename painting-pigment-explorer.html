@@ -1677,7 +1677,11 @@
     }
 
     function onHandResults(results) {
-      if (!firstFrameReceived) {
+      const hasCameraFrame =
+        webcamVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+        webcamVideo.videoWidth > 2 &&
+        webcamVideo.videoHeight > 2;
+      if (!firstFrameReceived && hasCameraFrame) {
         firstFrameReceived = true;
         const offIllustration = document.getElementById("cameraOffIllustration");
         const canvas = document.getElementById("cameraPreviewCanvas");
